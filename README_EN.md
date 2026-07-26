@@ -1,112 +1,141 @@
-# OpenFic
+# OmniFic
 
-![GitHub Repo stars](https://img.shields.io/github/stars/syrizelink/OpenFic)
+> Forked from [OpenFic](https://github.com/syrizelink/OpenFic) v0.7.5 and developed independently — an AI-assisted long-form fiction writing tool.
+
 ![License](https://img.shields.io/badge/License-Apache_2.0-red)
 ![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)
-![GitHub Release](https://img.shields.io/github/v/release/syrizelink/OpenFic?logo=githubactions&logoColor=white&color=yellow)
-![Release Downloads](https://img.shields.io/github/downloads/syrizelink/OpenFic/total?logo=github&logoColor=white&label=Release%20downloads&color=yellow)
-![PyPI - Version](https://img.shields.io/pypi/v/openfic?logo=pypi&logoColor=white&color=green)
+![Based on OpenFic](https://img.shields.io/badge/Based%20on-OpenFic%20v0.7.5-blue)
 
 [中文](./README.md) | English
 
-**OpenFic** is an all-in-one, cross-platform, AI-native writing tool built for fiction authors. It helps you build world, design characters, and shape custom workflows, so the Agent fits your writing process instead of forcing you into its own.
+## Positioning
 
-![Demo Screenshot](./demo.png)
+**OmniFic is forked from OpenFic and now develops independently. It no longer tracks upstream updates.**
 
-## When to Use OpenFic
+OpenFic is an excellent AI-native fiction writing tool with solid worldbuilding management, Agent collaboration, and local persistence. OmniFic builds on all of this and takes a different path — these improvements are not generic feature requests, but the result of a heavy user optimizing the tool after hitting real pain points in daily use.
 
-> [!Tip]  
-> *OpenFic is designed for Agent-assisted writing, not one-click novel generation. It is first and foremost a writing tool for fiction, and then an AI Agent system built around that workflow.*
+OmniFic may suit you better than OpenFic if:
 
-#### It works well when you:
+- You use a company or personal model relay / API proxy instead of official provider endpoints
+- You want a Codex / Claude Code-level interaction experience, operating everything with `/`
+- You need to quickly turn Markdown, PDF, Word, and other setting documents into usable worldbook entries
+- You write million-word novels and have real needs around context management, task goals, and Agent transparency
+- You're a power user who prefers to optimize your own tools rather than wait for features
 
-- are writing a mid-length or long-form novel and need to keep track of worldbuilding, characters, foreshadowing, and chapter details
-- want an Agent to help with brainstorming, continuity checks, and detail expansion
-- already have your own setting, tone, and plot direction, and want help turning ideas into actual prose
-- want to customize prompts, Agents, and workflows around your own writing process
-- care about local data storage, context management, and sustainable long-term collaboration
+## Key Differences from OpenFic
 
-#### It is probably not a good fit when you:
+### Model Integration
 
-- expect to type one prompt and get a complete novel automatically
-- mainly need short-form marketing copy, social posts, or generic one-off text generation
-- do not plan to maintain detailed project material or long-term writing context
+| Capability | OpenFic | OmniFic |
+|---|---|---|
+| Official model catalog | ✅ | ✅ |
+| Arbitrary OpenAI-compatible relay | ⚠️ Limited | ✅ First-class support |
+| Auto-discover relay models | ❌ | ✅ One-click fetch all |
+| Per-model reasoning capability override | ❌ | ✅ Manual override supported |
 
-## Features
+Relay users no longer need to guess whether a model supports reasoning effort, or switch between multiple provider pages to compare options.
 
-- 🚀 **Ready out of the box**: install with Docker or pip, or use the desktop app directly, with minimal setup
-- ✒️ **Built for writing**: an editor designed around fiction writing, with a comfortable long-form writing experience
-- 🤝 **Broad model support**: works with many providers, including any model compatible with the OpenAI API
-- 📱 **Responsive UI**: designed for desktop, mobile, and browser use without breaking the workflow
-- 🧩 **Custom workflows**: a highly configurable Agent system that lets you adapt prompts and workflows to your needs
-- 🤖 **Human-AI co-writing**: Agents help with brainstorming, plotting, and editing, instead of replacing the writing process with one-click generation
-- 💾 **Local persistence**: all project data stays on your machine, with no cloud storage dependency
-- 🧠 **Semantic retrieval**: Agentic RAG built on vector search, so Agents can retrieve information efficiently even in projects with millions of words
-- ⚖️ **Cost-aware context handling**: layered context management, smart compression, dynamic truncation, and stable caching to reduce usage cost
+### Interaction Experience
+
+| Capability | OpenFic | OmniFic |
+|---|---|---|
+| Agent input | Plain text | `@` references + `/` command center |
+| Skill selection | No shortcut | `/` menu + blue visual Skill Token |
+| Session config | Scattered selectors | `/reasoning` `/model` unified entry |
+| Agent reasoning timer | None | Real-time display, survives refresh/reconnect |
+| Runtime status panel | Header summary | `/status` full session details |
+
+The input box is no longer a chat box — it's the Agent control center.
+
+### Writing Assistance
+
+| Capability | OpenFic | OmniFic |
+|---|---|---|
+| Worldbook import | SillyTavern JSON | + Markdown / PDF / Word / PPT / TXT |
+| AI-organized worldbook | ❌ | ✅ LLM enhancement during import |
+| Novel TXT volume-aware import | ❌ | ✅ Auto-detect volume-chapter structure |
+| Task goal | ❌ | ✅ Persistent goal, injected into context |
+
+### Agent System
+
+| Capability | OpenFic | OmniFic |
+|---|---|---|
+| Multi-select Agent questions | ❌ | ✅ Checkbox multi-select |
+| Character page Agent assistant | ❌ | ✅ Three-column Agent panel |
+
+## Architecture
+
+```
+OmniFic
+├── OpenFic v0.7.5 core          ← Worldbuilding / Agent Runtime / RAG / Writing editor
+├── Deep relay/proxy support      ← Model discovery, capability override, URL-first strategy
+├── Codex-style command center    ← /MCP /Reasoning /Model /Status /Goal /Skills
+├── Multi-format worldbook import ← MarkItDown parsing + LLM enhancement
+├── Novel TXT smart import        ← Volume parsing + auto Volume creation
+└── Writing efficiency            ← Task goal persistence / Reasoning timer / Multi-select
+```
 
 ## Quick Start
 
-### 🐳 Docker (Recommended)
+> OmniFic shares the exact same tech stack and deployment approach as OpenFic.
 
-If you are self-hosting, Docker is the recommended way to run OpenFic.
+### Requirements
 
-```bash
-docker run -d -p 8000:8000 -v "openfic:/data" --name openfic ghcr.io/syrizelink/openfic:latest
-```
+- Python 3.12+
+- Node.js 22+
+- pnpm
 
-### 🐍 Python pip
-
-> [!WARNING]  
-> Before you start, make sure Python 3.12+ is installed.
-
-#### 1. Install OpenFic
+### Local Development
 
 ```bash
-pip install openfic
+# Clone the repository
+git clone https://github.com/F0rJay/OmniFic.git
+cd OmniFic
+
+# Backend
+cd backend
+uv sync
+uv run uvicorn app.main:app --host 127.0.0.1 --port 8001 --app-dir .
+
+# Frontend
+cd frontend
+pnpm install
+pnpm dev
 ```
 
-#### 2. Start the server
+Frontend runs at `http://127.0.0.1:9000` by default, backend at `http://127.0.0.1:8001`.
+
+### Docker
 
 ```bash
-openfic serve
+docker run -d -p 8000:8000 -v "omnific:/data" --name omnific ghcr.io/F0rJay/omnific:latest
 ```
 
-### 🖥 Desktop App
+## Migrating from OpenFic
 
-Download the desktop app from [the Release Page](https://github.com/syrizelink/OpenFic/releases) and run it natively on your system.
+If you already have OpenFic project data, simply copy the data directory:
 
-## Contributing
+```bash
+cp -r ~/openfic-data ~/omnific-data
+```
 
-Contributions of any kind are welcome. If you have ideas, suggestions, or code improvements, feel free to open an Issue or submit a Pull Request.
-
-- **Report bugs**: open an Issue with as much detail as possible
-- **Suggest features**: share your ideas in Issues
-- **Submit code**: fork the repository, make your changes, and open a Pull Request
-
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed contribution guidelines.
-
-## Star History
-
-<a href="https://www.star-history.com/?repos=syrizelink%2FOpenFic&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=syrizelink/OpenFic&type=date&theme=dark&legend=top-left&sealed_token=JHQpP1A05gPA9RleC2GLLnXJ5mg_nQHq_VosoaeQPU2yPGneRUJNEyxaEy--2atezknlCUb5HxLE0HB31gJAOr1ezJZHYW92VUSlWh0Ej0bkt4Q3AWVUHQ" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=syrizelink/OpenFic&type=date&legend=top-left&sealed_token=JHQpP1A05gPA9RleC2GLLnXJ5mg_nQHq_VosoaeQPU2yPGneRUJNEyxaEy--2atezknlCUb5HxLE0HB31gJAOr1ezJZHYW92VUSlWh0Ej0bkt4Q3AWVUHQ" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=syrizelink/OpenFic&type=date&legend=top-left&sealed_token=JHQpP1A05gPA9RleC2GLLnXJ5mg_nQHq_VosoaeQPU2yPGneRUJNEyxaEy--2atezknlCUb5HxLE0HB31gJAOr1ezJZHYW92VUSlWh0Ej0bkt4Q3AWVUHQ" />
- </picture>
-</a>
-
-## Repobeats
-
-![Repobeats](https://repobeats.axiom.co/api/embed/a3b67d74bb71044ef2385d65bc469090ee3e0fe6.svg "Repobeats analytics image")
+OmniFic's database schema is backward-compatible with OpenFic. All new fields have defaults, and existing data requires no conversion.
 
 ## Acknowledgements
 
-- [SillyTavern](https://github.com/SillyTavern/SillyTavern) - inspiration
-- [oh-story-claudecode](https://github.com/worldwonderer/oh-story-claudecode) - reference for the built-in writing Skill
+This project is based on [OpenFic](https://github.com/syrizelink/OpenFic). Thanks to the original authors for their outstanding work.
 
-## Community
+OpenFic's design philosophy — "let the Agent fit your writing process, not the other way around" — is also OmniFic's starting point. Every customization we've made is about pushing that philosophy further.
 
-[LINUX DO](https://linux.do/)
+Other inspirations:
+
+- [SillyTavern](https://github.com/SillyTavern/SillyTavern) — worldbook format reference
+- [Claude Code](https://claude.ai/code) — `/` command interaction paradigm
+- [oh-story-claudecode](https://github.com/worldwonderer/oh-story-claudecode) — built-in writing Skill reference
+
+## Communication
+
+Anyone interested in AI-assisted fiction writing is welcome to exchange ideas and learn together — open an Issue or reach out directly.
 
 ## License
 
