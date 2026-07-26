@@ -13,7 +13,7 @@ from loguru import logger
 from app.core.errors import (
     ConflictError,
     NotFoundError,
-    OpenFicError,
+    OmniFicError,
     ProjectAlreadyBoundError,
 )
 
@@ -78,9 +78,9 @@ def register_exception_handlers(app: FastAPI) -> None:
             content={"detail": str(exc)},
         )
 
-    @app.exception_handler(OpenFicError)
+    @app.exception_handler(OmniFicError)
     async def openfic_error_handler(
-        request: Request, exc: OpenFicError
+        request: Request, exc: OmniFicError
     ) -> JSONResponse:
         """处理其他 OpenFic 领域错误。"""
         logger.opt(exception=True).debug(

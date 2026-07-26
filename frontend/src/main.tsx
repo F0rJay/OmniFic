@@ -1,5 +1,5 @@
 import { Theme } from "@radix-ui/themes";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { lazy, StrictMode, Suspense, useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router";
 
@@ -10,7 +10,6 @@ import { AppLayout } from "./features/app-shell";
 import { CharactersPage } from "./features/characters";
 import { PromptChainsPage } from "./features/prompt-chains";
 import { fetchSettings } from "./features/settings/lib/settings-api";
-import type { Settings } from "./features/settings/lib/settings.types";
 import { WorldInfoPage } from "./features/world-info";
 import { WritingPage } from "./features/writing";
 import { checkHealth } from "./lib/api-client";
@@ -39,7 +38,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const FRONTEND_VERSION = __OPENFIC_FRONTEND_VERSION__;
+const FRONTEND_VERSION = __OMNIFIC_FRONTEND_VERSION__;
 
 const DashboardPage = lazy(() =>
   import("./features/dashboard/pages/dashboard-page").then((module) => ({
@@ -105,15 +104,20 @@ function AppContent({
   );
 }
 
-function Root() {
+function AppRoot() {
   const [appearance, setAppearance] = useState<"light" | "dark">("light");
-  const [settings, setSettings] = useState<Settings | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState(false);
 
   const toggleTheme = () => {
     setAppearance((prev) => (prev === "light" ? "dark" : "light"));
   };
+
+  const { data: settings } = useQuery({
+    queryKey: ["settings"],
+    queryFn: fetchSettings,
+    staleTime: 60 * 1000,
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -124,33 +128,25 @@ function Root() {
       try {
         await loadRuntimeConfig();
 
-        const [, settings] = await Promise.all([
-          checkHealth(),
-          queryClient.fetchQuery({
+        await Promise.all([
+          queryClient.prefetchQuery({
             queryKey: ["settings"],
             queryFn: fetchSettings,
           }),
+          checkHealth(),
           preloadTiktokenEncoding(),
           connectSocket(),
         ]);
 
-        applyFontFamily(settings.fontFamily);
-        applyCodeFontFamily(settings.codeFontFamily);
-        await loadConfiguredFonts(settings.fontFamily, settings.codeFontFamily);
-
         if (mounted) {
-          setSettings(settings);
-          setAppearance(settings.theme);
           setIsReady(true);
         }
       } catch {
         if (mounted) {
-          // Check for timeout (30s)
           if (Date.now() - startTime > 30000) {
             setError(true);
             return;
           }
-          // Retry after 500ms
           timer = setTimeout(initializeApp, 500);
         }
       }
@@ -165,6 +161,14 @@ function Root() {
   }, []);
 
   useEffect(() => {
+    if (!settings) return;
+    setAppearance(settings.theme);
+    applyFontFamily(settings.fontFamily);
+    applyCodeFontFamily(settings.codeFontFamily);
+    void loadConfiguredFonts(settings.fontFamily, settings.codeFontFamily);
+  }, [settings]);
+
+  useEffect(() => {
     publishDesktopAppearance({
       appearance,
       fontFamily: settings?.fontFamily,
@@ -173,32 +177,38 @@ function Root() {
   }, [appearance, settings?.fontFamily, settings?.codeFontFamily]);
 
   return (
+    <>
+      <Theme
+        appearance={appearance}
+        accentColor="gray"
+        grayColor="gray"
+        radius="medium"
+        scaling="100%"
+      >
+        {!isReady ? (
+          <GlobalLoading
+            error={error}
+            onRetry={() => window.location.reload()}
+          />
+        ) : (
+          <AppContent
+            appearance={appearance}
+            version={FRONTEND_VERSION}
+            setAppearance={setAppearance}
+            toggleTheme={toggleTheme}
+          />
+        )}
+      </Theme>
+      {isReady ? <Toaster appearance={appearance} /> : null}
+    </>
+  );
+}
+
+function Root() {
+  return (
     <StrictMode>
       <QueryClientProvider client={queryClient}>
-        <>
-          <Theme
-            appearance={appearance}
-            accentColor="gray"
-            grayColor="gray"
-            radius="medium"
-            scaling="100%"
-          >
-            {!isReady ? (
-              <GlobalLoading
-                error={error}
-                onRetry={() => window.location.reload()}
-              />
-            ) : (
-              <AppContent
-                appearance={appearance}
-                version={FRONTEND_VERSION}
-                setAppearance={setAppearance}
-                toggleTheme={toggleTheme}
-              />
-            )}
-          </Theme>
-          {isReady ? <Toaster appearance={appearance} /> : null}
-        </>
+        <AppRoot />
       </QueryClientProvider>
     </StrictMode>
   );

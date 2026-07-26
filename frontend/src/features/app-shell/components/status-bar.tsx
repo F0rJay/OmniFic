@@ -216,7 +216,7 @@ export function StatusBar({ version }: StatusBarProps) {
     () => [
       {
         id: "version",
-        content: <span data-slot="app-version">OpenFic v{version}</span>,
+        content: <span data-slot="app-version">OmniFic v{version}</span>,
         isVisible: Boolean(version),
       },
     ],

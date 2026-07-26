@@ -1,6 +1,6 @@
 {
-  "name": "OpenFic",
-  "short_name": "OpenFic",
+  "name": "OmniFic",
+  "short_name": "OmniFic",
   "description": "AI Agent时代专为小说创作打造的一站式Vibe Wrting平台",
   "start_url": "/",
   "scope": "/",
