@@ -8,7 +8,9 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent_runtime.modes import AgentMode
-from app.agent_runtime.persistence.task_projection import load_task_messages_for_agent_session
+from app.agent_runtime.persistence.task_projection import (
+    load_task_messages_for_agent_session,
+)
 from app.agent_runtime.runner.checkpointer import delete_checkpoints_for_thread
 
 from app.api.schemas.task import (
@@ -59,6 +61,7 @@ async def get_task(
             id=task.id,
             project_id=task.project_id,
             title=task.title,
+            goal=task.goal,
             mode=_require_agent_mode(task.mode),
             messages=task_messages,
             token_input=task.token_input,
@@ -69,6 +72,7 @@ async def get_task(
             current_message_id=task.current_message_id,
             agent_session_id=task.agent_session_id,
             is_running=task.is_running,
+            run_started_at=task.run_started_at,
             is_favorited=task.is_favorited,
             created_at=task.created_at,
             updated_at=task.updated_at,
@@ -133,10 +137,13 @@ async def update_task(
     session: AsyncSession = Depends(get_session),
 ) -> TaskResponse:
     try:
+        fields_set = request.model_fields_set
         task = await task_service.update_task(
             session,
             task_id=task_id,
             title=request.title,
+            goal=request.goal,
+            clear_goal="goal" in fields_set and request.goal is None,
             is_favorited=request.is_favorited,
         )
         await session.commit()
@@ -152,6 +159,7 @@ async def update_task(
             id=task.id,
             project_id=task.project_id,
             title=task.title,
+            goal=task.goal,
             mode=_require_agent_mode(task.mode),
             messages=task_messages,
             token_input=task.token_input,
@@ -162,6 +170,7 @@ async def update_task(
             current_message_id=task.current_message_id,
             agent_session_id=task.agent_session_id,
             is_running=task.is_running,
+            run_started_at=task.run_started_at,
             is_favorited=task.is_favorited,
             created_at=task.created_at,
             updated_at=task.updated_at,

@@ -111,6 +111,7 @@ export interface ClarificationQuestion {
   title: string;
   description?: string;
   options: ClarificationOption[];
+  multiSelect?: boolean;
 }
 
 export interface ClarificationAnswerItem {
@@ -229,6 +230,7 @@ export interface AgentSessionCreateRequest {
   max_iterations?: number;
   agent_key?: string;
   reasoning_effort?: ReasoningEffort;
+  goal?: string;
 }
 
 export interface AgentSessionCreateResponse {
@@ -237,6 +239,7 @@ export interface AgentSessionCreateResponse {
   status: string;
   task_id: string;
   task_title: string;
+  task_goal?: string | null;
   task_created_at: string;
   task_updated_at: string;
 }

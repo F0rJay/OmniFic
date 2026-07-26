@@ -33,6 +33,7 @@ export interface TaskListItem {
   tokenCache: number;
   contextInputTokens: number;
   isRunning: boolean;
+  runStartedAt?: string | null;
   isFavorited: boolean;
   createdAt: string;
   updatedAt: string;
@@ -43,12 +44,14 @@ export interface Task {
   id: string;
   projectId: string;
   title: string;
+  goal?: string | null;
   messages: TaskMessage[];
   tokenInput: number;
   tokenOutput: number;
   tokenCache: number;
   contextInputTokens: number;
   isRunning: boolean;
+  runStartedAt?: string | null;
   currentRevisionId?: string | null;
   currentMessageId?: string | null;
   agentSessionId?: string | null;
@@ -66,5 +69,6 @@ export interface TaskListResponse {
 /** 更新任务请求 */
 export interface UpdateTaskRequest {
   title?: string;
+  goal?: string | null;
   is_favorited?: boolean;
 }

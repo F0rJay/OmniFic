@@ -15,19 +15,22 @@ from app.agent_runtime.context.types import ContextMessage
 
 @pytest.fixture
 def base_state() -> AgentRuntimeState:
-    return cast(AgentRuntimeState, {
-        "session_id": "s1",
-        "task_id": "t1",
-        "project_id": "p1",
-        "model_config": {"max_context_tokens": 8000},
-        "active_agent": "writer",
-        "is_completed": False,
-        "error": None,
-        "retry_count": 0,
-        "user_request": "写一段",
-        "installed_skill_ids": [],
-        "current_revision_id": None,
-    })
+    return cast(
+        AgentRuntimeState,
+        {
+            "session_id": "s1",
+            "task_id": "t1",
+            "project_id": "p1",
+            "model_config": {"max_context_tokens": 8000},
+            "active_agent": "writer",
+            "is_completed": False,
+            "error": None,
+            "retry_count": 0,
+            "user_request": "写一段",
+            "installed_skill_ids": [],
+            "current_revision_id": None,
+        },
+    )
 
 
 @pytest.mark.asyncio
@@ -46,22 +49,37 @@ async def test_missing_max_context_tokens_raises(base_state: AgentRuntimeState) 
 @pytest.mark.asyncio
 async def test_assembles_messages_in_order(base_state: AgentRuntimeState) -> None:
     sys_msgs = [
-        ContextMessage(role="system", content="sys", metadata={"part": "system_prompt"}),
-        ContextMessage(role="user", content="prompt-user", metadata={"part": "system_prompt"}),
-        ContextMessage(role="assistant", content="prompt-assistant", metadata={"part": "system_prompt"}),
+        ContextMessage(
+            role="system", content="sys", metadata={"part": "system_prompt"}
+        ),
+        ContextMessage(
+            role="user", content="prompt-user", metadata={"part": "system_prompt"}
+        ),
+        ContextMessage(
+            role="assistant",
+            content="prompt-assistant",
+            metadata={"part": "system_prompt"},
+        ),
     ]
 
     with (
         patch(
             "app.agent_runtime.context.build_context.build_system_prompt",
             new=AsyncMock(return_value=sys_msgs),
-        ), patch(
+        ),
+        patch(
             "app.agent_runtime.context.build_context.build_rules",
             new=AsyncMock(return_value=None),
-        ), patch(
+        ),
+        patch(
             "app.agent_runtime.context.build_context.build_skills",
             new=AsyncMock(return_value=None),
-        ), patch(
+        ),
+        patch(
+            "app.agent_runtime.context.build_context.build_task_goal",
+            new=AsyncMock(return_value=None),
+        ),
+        patch(
             "app.agent_runtime.context.build_context.compaction_repo.list_by_session",
             new=AsyncMock(return_value=[]),
         ),
@@ -69,7 +87,9 @@ async def test_assembles_messages_in_order(base_state: AgentRuntimeState) -> Non
         out = await build_context(
             state=base_state,
             agent_name="writer",
-            node_messages=[{"role": "user", "content": "hi", "metadata": {"part": "history"}}],
+            node_messages=[
+                {"role": "user", "content": "hi", "metadata": {"part": "history"}}
+            ],
             db_session=AsyncMock(),
         )
 
@@ -112,6 +132,10 @@ async def test_build_context_applies_persisted_compaction_overlay_to_history_onl
         ),
         patch(
             "app.agent_runtime.context.build_context.build_skills",
+            new=AsyncMock(return_value=None),
+        ),
+        patch(
+            "app.agent_runtime.context.build_context.build_task_goal",
             new=AsyncMock(return_value=None),
         ),
         patch(
@@ -158,6 +182,10 @@ async def test_build_context_wraps_compaction_load_errors(
             new=AsyncMock(return_value=None),
         ),
         patch(
+            "app.agent_runtime.context.build_context.build_task_goal",
+            new=AsyncMock(return_value=None),
+        ),
+        patch(
             "app.agent_runtime.context.build_context.compaction_repo.list_by_session",
             new=AsyncMock(side_effect=cause),
         ),
@@ -189,6 +217,10 @@ async def test_filters_chapter_write_metadata_for_live_llm_context(
         ),
         patch(
             "app.agent_runtime.context.build_context.build_skills",
+            new=AsyncMock(return_value=None),
+        ),
+        patch(
+            "app.agent_runtime.context.build_context.build_task_goal",
             new=AsyncMock(return_value=None),
         ),
         patch(
@@ -256,6 +288,10 @@ async def test_build_context_filters_tool_result_metadata_for_llm_context(
         ),
         patch(
             "app.agent_runtime.context.build_context.build_skills",
+            new=AsyncMock(return_value=None),
+        ),
+        patch(
+            "app.agent_runtime.context.build_context.build_task_goal",
             new=AsyncMock(return_value=None),
         ),
         patch(

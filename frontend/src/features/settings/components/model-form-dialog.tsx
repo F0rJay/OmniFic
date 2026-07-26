@@ -48,6 +48,7 @@ const modelSchema = z.object({
   repetitionPenalty: z.number().min(0).max(2),
   maxTokens: z.number().min(1).nullable().optional(),
   contextLength: z.number().int().min(0).max(2000000),
+  reasoningCapabilityOverride: z.boolean().nullable().optional(),
   dimensions: z.number().min(1).max(4096).nullable().optional(),
 });
 
@@ -105,6 +106,7 @@ export function ModelFormDialog({
       repetitionPenalty: 1,
       maxTokens: null,
       contextLength: 128000,
+      reasoningCapabilityOverride: null,
       dimensions: null,
     },
   });
@@ -130,6 +132,7 @@ export function ModelFormDialog({
           repetitionPenalty: model.repetitionPenalty ?? 1,
           maxTokens: model.maxTokens ?? null,
           contextLength: model.contextLength ?? 128000,
+          reasoningCapabilityOverride: model.reasoningCapabilityOverride ?? null,
           dimensions: model.dimensions ?? null,
         });
       } else {
@@ -150,6 +153,7 @@ export function ModelFormDialog({
           repetitionPenalty: 1,
           maxTokens: null,
           contextLength: 128000,
+          reasoningCapabilityOverride: null,
           dimensions: null,
         });
       }
@@ -353,6 +357,8 @@ export function ModelFormDialog({
         repetition_penalty: data.taskType === "llm" ? data.repetitionPenalty : null,
         max_tokens: data.taskType === "llm" ? data.maxTokens : null,
         context_length: data.taskType === "llm" ? data.contextLength : 128000,
+        reasoning_capability_override:
+          data.taskType === "llm" ? (data.reasoningCapabilityOverride ?? null) : null,
         dimensions:
           data.taskType === "embedding" && selectedProviderSupportsEmbeddingDimensions
             ? data.dimensions
@@ -698,14 +704,73 @@ export function ModelFormDialog({
                 />
               </Flex>
 
-              <Separator size="4" />
-
-              {/* 高级参数 - 仅 LLM 模式 */}
+              {/* 推理能力 + 高级参数 - 仅 LLM 模式 */}
               {taskType === "llm" && (
-                <AdvancedParamsSection
-                  control={control}
-                  modelId={model?.id}
-                />
+                <>
+                  <Separator size="4" />
+
+                  <Flex
+                    direction="column"
+                    gap="2"
+                  >
+                    <Text
+                      size="2"
+                      weight="medium"
+                      color="gray"
+                    >
+                      {t("models.reasoningCapabilityLabel")}
+                    </Text>
+                    <Controller
+                      name="reasoningCapabilityOverride"
+                      control={control}
+                      render={({ field }) => (
+                        <LabeledSelect
+                          value={
+                            field.value === null
+                              ? "auto"
+                              : field.value
+                                ? "supported"
+                                : "unsupported"
+                          }
+                          options={[
+                            {
+                              value: "auto",
+                              label: t("models.reasoningCapabilityAuto"),
+                            },
+                            {
+                              value: "supported",
+                              label: t("models.reasoningCapabilitySupported"),
+                            },
+                            {
+                              value: "unsupported",
+                              label: t("models.reasoningCapabilityUnsupported"),
+                            },
+                          ]}
+                          onChange={(value) => {
+                            if (value === "auto") field.onChange(null);
+                            else if (value === "supported") field.onChange(true);
+                            else field.onChange(false);
+                          }}
+                          triggerStyle={{ width: "100%" }}
+                          disabled={isAgentSettingsLocked}
+                        />
+                      )}
+                    />
+                    <Text
+                      size="1"
+                      color="gray"
+                    >
+                      {t("models.reasoningCapabilityHint")}
+                    </Text>
+                  </Flex>
+
+                  <Separator size="4" />
+
+                  <AdvancedParamsSection
+                    control={control}
+                    modelId={model?.id}
+                  />
+                </>
               )}
 
               {/* 操作按钮 */}

@@ -94,6 +94,7 @@ class ModelService:
         repetition_penalty: float | None = DEFAULT_REPETITION_PENALTY,
         max_tokens: int | None = None,
         context_length: int = DEFAULT_CONTEXT_LENGTH,
+        reasoning_capability_override: bool | None = None,
         dimensions: int | None = None,
     ) -> Model:
         """
@@ -131,6 +132,7 @@ class ModelService:
             frequency_penalty = None
             presence_penalty = None
             repetition_penalty = None
+            reasoning_capability_override = None
         else:
             temperature = with_default(temperature, DEFAULT_TEMPERATURE)
             top_p = with_default(top_p, DEFAULT_TOP_P)
@@ -162,6 +164,7 @@ class ModelService:
             repetition_penalty=repetition_penalty,
             max_tokens=max_tokens,
             context_length=context_length,
+            reasoning_capability_override=reasoning_capability_override,
             dimensions=dimensions,
         )
         await session.commit()
@@ -186,6 +189,8 @@ class ModelService:
         repetition_penalty: float | None = None,
         max_tokens: int | None = None,
         context_length: int | None = None,
+        reasoning_capability_override: bool | None = None,
+        update_reasoning_capability_override: bool = False,
         dimensions: int | None = None,
     ) -> Model:
         """
@@ -222,7 +227,9 @@ class ModelService:
             session, name, exclude_model_id=model_id
         ):
             raise ValueError("模型名称已存在")
-        if await retrieval_index_repo.exists_by_embedding_model_ref_id(session, model_id):
+        if await retrieval_index_repo.exists_by_embedding_model_ref_id(
+            session, model_id
+        ):
             protected_changes = []
             if provider_id is not None and provider_id != existing.provider_id:
                 protected_changes.append("provider_id")
@@ -254,6 +261,8 @@ class ModelService:
             repetition_penalty=repetition_penalty,
             max_tokens=max_tokens,
             context_length=context_length,
+            reasoning_capability_override=reasoning_capability_override,
+            update_reasoning_capability_override=update_reasoning_capability_override,
             dimensions=dimensions,
         )
 
@@ -284,4 +293,3 @@ class ModelService:
         if not success:
             raise NotFoundError(f"Model with id {model_id} not found")
         await session.commit()
-

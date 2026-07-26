@@ -11,6 +11,7 @@ from app.agent_runtime.types import DEFAULT_AGENT_MAX_ITERATIONS
 from app.api.schemas.task import TaskMessage
 from app.models.clients.model_params import ReasoningEffort
 
+
 class AgentSessionCreateRequest(BaseModel):
     """创建 Agent 会话请求。"""
 
@@ -30,6 +31,7 @@ class AgentSessionCreateRequest(BaseModel):
         default=None,
         description="当前会话推理强度，仅 reasoning 模型可用",
     )
+    goal: str | None = Field(default=None, max_length=4000, description="当前任务目标")
 
     model_config = {"extra": "forbid"}
 
@@ -42,6 +44,7 @@ class AgentSessionCreateResponse(BaseModel):
     status: str = Field(..., description="状态")
     task_id: str = Field(..., description="创建的任务ID")
     task_title: str = Field(..., description="创建的任务标题")
+    task_goal: str | None = Field(default=None, description="创建的任务目标")
     task_created_at: str = Field(..., description="任务创建时间")
     task_updated_at: str = Field(..., description="任务更新时间")
     agent_key: str = Field(..., description="当前会话使用的主智能体标识")
@@ -179,7 +182,9 @@ class SubagentSessionResponse(BaseModel):
     is_running: bool = Field(..., description="子运行是否仍在后台执行")
     request: dict = Field(default_factory=dict, description="子运行请求负载")
     result: dict | None = Field(default=None, description="子运行结果负载")
-    pending_approval: dict | None = Field(default=None, description="待用户处理的审批负载")
+    pending_approval: dict | None = Field(
+        default=None, description="待用户处理的审批负载"
+    )
     error: str | None = Field(default=None, description="错误信息")
     metadata: dict = Field(default_factory=dict, description="子运行元数据")
     token_input: int = Field(default=0, description="当前子会话最近一次输入 token")

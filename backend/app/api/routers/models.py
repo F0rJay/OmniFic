@@ -53,6 +53,7 @@ def _to_response(m) -> ModelResponse:
         repetition_penalty=m.repetition_penalty,
         max_tokens=m.max_tokens,
         context_length=m.context_length,
+        reasoning_capability_override=m.reasoning_capability_override,
         dimensions=m.dimensions,
         is_builtin=m.is_builtin,
         created_at=m.created_at.isoformat(),
@@ -94,6 +95,7 @@ async def get_models(
             models = all_models
 
     return [_to_response(m) for m in models]
+
 
 @router.get(
     "/{model_id}",
@@ -169,6 +171,7 @@ async def create_model(
             repetition_penalty=request.repetition_penalty,
             max_tokens=request.max_tokens,
             context_length=request.context_length,
+            reasoning_capability_override=request.reasoning_capability_override,
             dimensions=request.dimensions,
         )
     except ValueError as e:
@@ -225,14 +228,17 @@ async def update_model(
             repetition_penalty=request.repetition_penalty,
             max_tokens=request.max_tokens,
             context_length=request.context_length,
+            reasoning_capability_override=request.reasoning_capability_override,
+            update_reasoning_capability_override="reasoning_capability_override"
+            in request.model_fields_set,
             dimensions=request.dimensions,
         )
-
-        return _to_response(model)
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    return _to_response(model)
 
 
 @router.delete(

@@ -35,6 +35,7 @@ class Model(SQLModel, table=True):
         repetition_penalty: Repetition Penalty 参数（LLM 专用）。
         max_tokens: Max Tokens 参数（LLM 专用）。
         context_length: 上下文长度（LLM 专用）。
+        reasoning_capability_override: 推理能力手动覆盖（None 为自动）。
         dimensions: Embedding 维度（Embedding 专用）。
         created_at: 创建时间。
         updated_at: 上次修改时间。
@@ -47,7 +48,8 @@ class Model(SQLModel, table=True):
     remark: str = Field(default="", max_length=500)
     provider_id: str = Field(foreign_key="model_providers.id", index=True)
     model_id: str = Field(
-        max_length=200, description="Model ID from the provider (e.g., gpt-4, claude-3-opus)"
+        max_length=200,
+        description="Model ID from the provider (e.g., gpt-4, claude-3-opus)",
     )
     task_type: str = Field(
         default="llm",
@@ -64,12 +66,22 @@ class Model(SQLModel, table=True):
     presence_penalty: float | None = Field(default=None, ge=-2.0, le=2.0)
     repetition_penalty: float | None = Field(default=None, ge=0.0, le=2.0)
     max_tokens: int | None = Field(default=None, ge=1)
-    context_length: int = Field(default=DEFAULT_CONTEXT_LENGTH, ge=0, le=MAX_CONTEXT_LENGTH)
+    context_length: int = Field(
+        default=DEFAULT_CONTEXT_LENGTH, ge=0, le=MAX_CONTEXT_LENGTH
+    )
+    reasoning_capability_override: bool | None = Field(
+        default=None,
+        description="推理能力手动覆盖；None 使用目录自动识别",
+    )
 
     # Embedding parameters (nullable)
-    dimensions: int | None = Field(default=None, ge=1, description="Embedding dimensions")
+    dimensions: int | None = Field(
+        default=None, ge=1, description="Embedding dimensions"
+    )
 
-    is_builtin: bool = Field(default=False, description="是否为内置模型（不可删除/编辑）")
+    is_builtin: bool = Field(
+        default=False, description="是否为内置模型（不可删除/编辑）"
+    )
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

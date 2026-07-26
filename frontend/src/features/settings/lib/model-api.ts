@@ -157,6 +157,10 @@ function transformModel(raw: ModelResponse): Model {
     contextLength: raw.context_length ?? 128000,
     dimensions: raw.dimensions,
     isBuiltin: raw.is_builtin ?? false,
+    reasoningCapabilityOverride:
+      raw.reasoning_capability_override === undefined
+        ? null
+        : (raw.reasoning_capability_override as boolean | null),
     createdAt: raw.created_at,
     updatedAt: raw.updated_at,
   };

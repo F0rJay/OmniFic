@@ -30,6 +30,7 @@ async def create_task(
     title: str,
     mode: AgentMode = "agent",
     agent_session_id: str | None = None,
+    goal: str | None = None,
 ) -> Task:
     """创建任务。"""
     project = await project_repo.get_by_id(session, project_id)
@@ -41,6 +42,7 @@ async def create_task(
         title=title,
         mode=mode,
         agent_session_id=agent_session_id,
+        goal=goal,
     )
     return await task_repo.create(session, task)
 
@@ -99,8 +101,11 @@ async def update_task(
     session: AsyncSession,
     task_id: str,
     title: str | None = None,
+    goal: str | None = None,
+    clear_goal: bool = False,
     is_favorited: bool | None = None,
     is_running: bool | None = None,
+    run_started_at: datetime | None = None,
     current_revision_id: str | None = None,
     current_message_id: str | None = None,
     agent_session_id: str | None = None,
@@ -113,11 +118,19 @@ async def update_task(
     if title is not None:
         task.title = title
 
+    if clear_goal:
+        task.goal = None
+    elif goal is not None:
+        task.goal = goal
+
     if is_favorited is not None:
         task.is_favorited = is_favorited
 
     if is_running is not None:
         task.is_running = is_running
+
+    if run_started_at is not None:
+        task.run_started_at = run_started_at
 
     if current_revision_id is not None:
         task.current_revision_id = current_revision_id

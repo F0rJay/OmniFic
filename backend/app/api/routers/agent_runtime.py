@@ -29,7 +29,10 @@ from app.agent_runtime.persistence.task_projection import (
     load_task_messages_for_agent_session,
 )
 from app.agent_runtime.persistence.model import AgentChildRun
-from app.agent_runtime.revisions import finalize_revision_status, rollback_revision_for_session
+from app.agent_runtime.revisions import (
+    finalize_revision_status,
+    rollback_revision_for_session,
+)
 from app.agent_runtime.fork import fork_agent_session_at_revision
 from app.agent_runtime.model_config import without_api_key
 from app.agent_runtime.runner.checkpointer import (
@@ -129,6 +132,7 @@ TOOL_DISPLAY_ORDER = {
     "reference_skill": 39,
 }
 
+
 def _build_default_agent_session_title(created_at: datetime) -> str:
     timestamp = created_at.astimezone(UTC).isoformat(timespec="milliseconds")
     return f"{DEFAULT_AGENT_SESSION_TITLE_PREFIX}{timestamp.replace('+00:00', 'Z')}"
@@ -138,6 +142,7 @@ def _is_pending_agent_session_title(title: str) -> bool:
     return title == LEGACY_DEFAULT_AGENT_SESSION_TITLE or bool(
         DEFAULT_AGENT_SESSION_TITLE_PATTERN.fullmatch(title)
     )
+
 
 _SESSION_RUNNERS: dict[str, SessionRunner] = {}
 
@@ -250,7 +255,9 @@ async def _cancel_subagent_session_tree(
             await status_publisher.publish_parent_subagent_status(row.id)
 
 
-async def _get_runner(session_id: str, session: AsyncSession | None = None) -> SessionRunner:
+async def _get_runner(
+    session_id: str, session: AsyncSession | None = None
+) -> SessionRunner:
     runner = _SESSION_RUNNERS.get(session_id)
     if runner is not None:
         return runner
@@ -317,10 +324,16 @@ async def _build_model_config(
         "presence_penalty": model.presence_penalty,
         "repetition_penalty": model.repetition_penalty,
     }
-    if reasoning_effort and await ModelProviderCatalogService().supports_provider_model_reasoning(
-        provider.provider_type, provider.url, model.model_id
-    ):
-        model_config["reasoning_effort"] = reasoning_effort
+    if reasoning_effort:
+        supports_reasoning = model.reasoning_capability_override
+        if supports_reasoning is None:
+            supports_reasoning = (
+                await ModelProviderCatalogService().supports_provider_model_reasoning(
+                    provider.provider_type, provider.url, model.model_id
+                )
+            )
+        if supports_reasoning:
+            model_config["reasoning_effort"] = reasoning_effort
     return model_config
 
 
@@ -386,6 +399,7 @@ async def _set_task_running_state(
             status_session,
             task_id=task_id,
             is_running=is_running,
+            run_started_at=datetime.now(UTC) if is_running else None,
         )
         await status_session.commit()
     finally:
@@ -403,7 +417,15 @@ async def _set_task_running_state(
                 "task_id": task_id,
                 "agent_session_id": session_id,
                 "is_running": is_running,
-                "payload": {"is_running": is_running},
+                "run_started_at": task.run_started_at.isoformat()
+                if task.run_started_at
+                else None,
+                "payload": {
+                    "is_running": is_running,
+                    "run_started_at": task.run_started_at.isoformat()
+                    if task.run_started_at
+                    else None,
+                },
                 "created_at": datetime.now(UTC).isoformat(),
                 "updated_at": task.updated_at.isoformat(),
                 "project_revision": time.time_ns(),
@@ -453,7 +475,9 @@ async def _launch_task(
         except asyncio.CancelledError:
             logger.bind(session_id=session_id).info("Agent task cancelled")
         except Exception:
-            logger.bind(session_id=session_id).opt(exception=True).error("Agent task failed")
+            logger.bind(session_id=session_id).opt(exception=True).error(
+                "Agent task failed"
+            )
         finally:
             current_task = asyncio.current_task()
             removed = False
@@ -583,7 +607,9 @@ async def list_agent_tools() -> list[AgentToolMetadataResponse]:
             is_readonly=tool.access_level == "readonly",
         )
 
-    return sorted(items_by_key.values(), key=lambda item: TOOL_DISPLAY_ORDER.get(item.key, 999))
+    return sorted(
+        items_by_key.values(), key=lambda item: TOOL_DISPLAY_ORDER.get(item.key, 999)
+    )
 
 
 @router.post("/sessions", response_model=AgentSessionCreateResponse)
@@ -613,6 +639,9 @@ async def create_agent_session(
             title="New session",
             mode="agent",
             agent_session_id=session_id,
+            goal=request.goal.strip()
+            if request.goal and request.goal.strip()
+            else None,
         )
         task.title = _build_default_agent_session_title(task.created_at)
         runner = SessionRunner(
@@ -639,6 +668,7 @@ async def create_agent_session(
             status="created",
             task_id=task.id,
             task_title=task.title,
+            task_goal=task.goal,
             task_created_at=task.created_at.isoformat(),
             task_updated_at=task.updated_at.isoformat(),
             agent_key=request.agent_key,
@@ -648,7 +678,9 @@ async def create_agent_session(
     except NotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)
+        )
     except Exception as exc:
         logger.opt(exception=True).error("创建 Agent 会话失败")
         raise HTTPException(
@@ -691,7 +723,9 @@ async def send_agent_message(
             )
             model_updated = True
         except NotFoundError as exc:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+            ) from exc
         except ValueError as exc:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -1089,7 +1123,9 @@ async def rollback_agent_session(
     if result.affected_child_run_ids:
         status_publisher = SubagentRunner(
             session_factory=_make_status_session_factory(session),
-            model_config=runner.model_config if runner is not None else {"max_context_tokens": 1},
+            model_config=runner.model_config
+            if runner is not None
+            else {"max_context_tokens": 1},
             project_id=runner.project_id if runner is not None else "",
         )
         for child_run_id in result.affected_child_run_ids:
@@ -1115,7 +1151,9 @@ async def rollback_agent_session(
     for child_thread_id, checkpoint_id in result.child_checkpoint_boundaries:
         try:
             if checkpoint_id:
-                await delete_checkpoints_after_for_thread(child_thread_id, checkpoint_id)
+                await delete_checkpoints_after_for_thread(
+                    child_thread_id, checkpoint_id
+                )
             else:
                 await delete_checkpoints_for_thread(child_thread_id)
         except Exception:
@@ -1184,7 +1222,9 @@ async def fork_agent_session(
     except Exception as exc:
         if fork_session_id:
             _SESSION_RUNNERS.pop(fork_session_id, None)
-        logger.bind(session_id=session_id).opt(exception=True).error("Agent 会话分叉失败")
+        logger.bind(session_id=session_id).opt(exception=True).error(
+            "Agent 会话分叉失败"
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"分叉失败: {exc}",

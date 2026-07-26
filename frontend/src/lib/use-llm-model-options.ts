@@ -79,7 +79,7 @@ export function useLlmModelOptions(): UseLlmModelOptionsResult {
         name: model.name,
         taskType: "llm",
         releaseDate: catalogModel?.releaseDate ?? null,
-        reasoning: catalogModel?.reasoning ?? null,
+        reasoning: model.reasoningCapabilityOverride ?? catalogModel?.reasoning ?? false,
         toolCall: catalogModel?.toolCall ?? null,
         inputModalities: catalogModel?.inputModalities ?? [],
         limit: catalogModel?.limit ?? null,

@@ -1720,6 +1720,80 @@ export async function importWorldInfoEntriesStream(
   return result;
 }
 
+/**
+ * 预览文档导入世界书（MD/PDF/Word）
+ */
+export async function previewDocumentImport(
+  file: File,
+  useAI: boolean,
+): Promise<WorldInfoImportPreviewResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("use_ai", String(useAI));
+
+  const response = await apiClient.post("/world-info/import-document/preview", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+    timeout: 300000,
+  });
+
+  return transformWorldInfoImportPreview(response.data as Record<string, unknown>);
+}
+
+/**
+ * 流式导入文档世界书条目
+ */
+export async function importDocumentStream(
+  worldInfoId: string,
+  file: File,
+  useAI: boolean,
+  mode: WorldInfoImportMode,
+  onEvent: (event: WorldInfoImportEvent) => void,
+): Promise<WorldInfoImportCompleteEvent | null> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("use_ai", String(useAI));
+
+  const response = await fetch(
+    getApiUrl(`/world-info/${worldInfoId}/entries/import-document-stream?mode=${mode}`),
+    { method: "POST", body: formData },
+  );
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error("无法获取响应流");
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let result: WorldInfoImportCompleteEvent | null = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) continue;
+      try {
+        const event = JSON.parse(line.slice(6)) as WorldInfoImportEvent;
+        onEvent(event);
+        if (event.type === "complete") result = event;
+        else if (event.type === "error") throw new Error(event.message);
+      } catch (error) {
+        if (error instanceof SyntaxError) continue;
+        throw error;
+      }
+    }
+  }
+
+  return result;
+}
+
 // ============================================
 // Model API
 // ============================================
@@ -1747,6 +1821,10 @@ function transformModel(raw: ModelResponse): Model {
     repetitionPenalty: raw.repetition_penalty,
     maxTokens: raw.max_tokens,
     contextLength: raw.context_length ?? 128000,
+    reasoningCapabilityOverride:
+      raw.reasoning_capability_override === undefined
+        ? null
+        : (raw.reasoning_capability_override as boolean | null),
     dimensions: raw.dimensions,
     isBuiltin: raw.is_builtin ?? false,
     createdAt: raw.created_at,
@@ -2017,6 +2095,7 @@ function transformTask(raw: Record<string, unknown>): Task {
     id: raw.id as string,
     projectId: raw.project_id as string,
     title: raw.title as string,
+    goal: raw.goal as string | null | undefined,
     messages: ((raw.messages as Record<string, unknown>[] | undefined) ?? []).map(
       transformTaskMessage,
     ),
@@ -2025,6 +2104,7 @@ function transformTask(raw: Record<string, unknown>): Task {
     tokenCache: Number(raw.token_cache ?? raw.tokenCache ?? 0),
     contextInputTokens: Number(raw.context_input_tokens ?? raw.contextInputTokens ?? 0),
     isRunning: raw.is_running === true,
+    runStartedAt: raw.run_started_at ? normalizeUtcDateString(raw.run_started_at) : undefined,
     currentRevisionId: raw.current_revision_id as string | null | undefined,
     currentMessageId: raw.current_message_id as string | null | undefined,
     agentSessionId: raw.agent_session_id as string | null | undefined,
@@ -2044,6 +2124,7 @@ function transformTaskListItem(raw: Record<string, unknown>): TaskListItem {
     tokenCache: Number(raw.token_cache ?? raw.tokenCache ?? 0),
     contextInputTokens: Number(raw.context_input_tokens ?? raw.contextInputTokens ?? 0),
     isRunning: raw.is_running === true,
+    runStartedAt: raw.run_started_at ? normalizeUtcDateString(raw.run_started_at) : undefined,
     isFavorited: raw.is_favorited as boolean,
     createdAt: normalizeUtcDateString(raw.created_at),
     updatedAt: normalizeUtcDateString(raw.updated_at),
@@ -2098,6 +2179,7 @@ export async function fetchTasks(
 export async function updateTask(taskId: string, data: UpdateTaskRequest): Promise<Task> {
   const response = await apiClient.patch(`/tasks/${taskId}`, {
     title: data.title,
+    goal: data.goal,
     is_favorited: data.is_favorited,
   });
   return transformTask(response.data);

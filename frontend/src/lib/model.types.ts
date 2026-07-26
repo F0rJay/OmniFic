@@ -111,6 +111,7 @@ export interface Model {
   repetitionPenalty: number | null;
   maxTokens: number | null;
   contextLength: number;
+  reasoningCapabilityOverride: boolean | null;
   dimensions: number | null;
   isBuiltin: boolean;
   createdAt: string;
@@ -135,6 +136,7 @@ export interface ModelResponse {
   repetition_penalty: number | null;
   max_tokens: number | null;
   context_length: number;
+  reasoning_capability_override?: boolean | null;
   dimensions: number | null;
   is_builtin?: boolean;
   created_at: string;
@@ -144,6 +146,7 @@ export interface ModelResponse {
 /** 创建模型请求 */
 export interface ModelCreateRequest {
   name: string;
+  reasoning_capability_override?: boolean | null;
   provider_id: string;
   model_id: string;
   task_type?: TaskType;
@@ -164,6 +167,7 @@ export interface ModelCreateRequest {
 /** 更新模型请求 */
 export interface ModelUpdateRequest {
   name?: string;
+  reasoning_capability_override?: boolean | null;
   remark?: string;
   provider_id?: string;
   model_id?: string;

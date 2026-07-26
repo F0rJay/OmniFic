@@ -37,11 +37,20 @@ class ModelResponse(BaseModel):
     top_k: int | None = Field(description="Top K 参数（LLM 专用）")
     min_p: float | None = Field(description="Min P 参数（LLM 专用）")
     top_a: float | None = Field(description="Top A 参数（LLM 专用）")
-    frequency_penalty: float | None = Field(description="Frequency Penalty 参数（LLM 专用）")
-    presence_penalty: float | None = Field(description="Presence Penalty 参数（LLM 专用）")
-    repetition_penalty: float | None = Field(description="Repetition Penalty 参数（LLM 专用）")
+    frequency_penalty: float | None = Field(
+        description="Frequency Penalty 参数（LLM 专用）"
+    )
+    presence_penalty: float | None = Field(
+        description="Presence Penalty 参数（LLM 专用）"
+    )
+    repetition_penalty: float | None = Field(
+        description="Repetition Penalty 参数（LLM 专用）"
+    )
     max_tokens: int | None = Field(description="Max Tokens 参数（LLM 专用）")
     context_length: int = Field(description="上下文长度（LLM 专用）")
+    reasoning_capability_override: bool | None = Field(
+        default=None, description="推理能力手动覆盖；null 表示自动识别"
+    )
     dimensions: int | None = Field(description="Embedding 维度（Embedding 专用）")
     is_builtin: bool = Field(default=False, description="是否为内置模型")
     created_at: str = Field(description="创建时间")
@@ -63,12 +72,27 @@ class ModelCreateRequest(BaseModel):
     top_k: int | None = Field(default=DEFAULT_TOP_K, ge=0, le=128)
     min_p: float | None = Field(default=DEFAULT_MIN_P, ge=0.0, le=1.0)
     top_a: float | None = Field(default=DEFAULT_TOP_A, ge=0.0, le=1.0)
-    frequency_penalty: float | None = Field(default=DEFAULT_FREQUENCY_PENALTY, ge=-2.0, le=2.0)
-    presence_penalty: float | None = Field(default=DEFAULT_PRESENCE_PENALTY, ge=-2.0, le=2.0)
-    repetition_penalty: float | None = Field(default=DEFAULT_REPETITION_PENALTY, ge=0.0, le=2.0)
-    max_tokens: int | None = Field(default=None, description="Max Tokens 参数（LLM 专用）")
-    context_length: int = Field(default=DEFAULT_CONTEXT_LENGTH, ge=0, le=MAX_CONTEXT_LENGTH)
-    dimensions: int | None = Field(default=None, description="Embedding 维度（Embedding 专用）")
+    frequency_penalty: float | None = Field(
+        default=DEFAULT_FREQUENCY_PENALTY, ge=-2.0, le=2.0
+    )
+    presence_penalty: float | None = Field(
+        default=DEFAULT_PRESENCE_PENALTY, ge=-2.0, le=2.0
+    )
+    repetition_penalty: float | None = Field(
+        default=DEFAULT_REPETITION_PENALTY, ge=0.0, le=2.0
+    )
+    max_tokens: int | None = Field(
+        default=None, description="Max Tokens 参数（LLM 专用）"
+    )
+    context_length: int = Field(
+        default=DEFAULT_CONTEXT_LENGTH, ge=0, le=MAX_CONTEXT_LENGTH
+    )
+    reasoning_capability_override: bool | None = Field(
+        default=None, description="推理能力手动覆盖；null 表示自动识别"
+    )
+    dimensions: int | None = Field(
+        default=None, description="Embedding 维度（Embedding 专用）"
+    )
 
 
 class ModelUpdateRequest(BaseModel):
@@ -89,6 +113,13 @@ class ModelUpdateRequest(BaseModel):
     frequency_penalty: float | None = Field(default=None, ge=-2.0, le=2.0)
     presence_penalty: float | None = Field(default=None, ge=-2.0, le=2.0)
     repetition_penalty: float | None = Field(default=None, ge=0.0, le=2.0)
-    max_tokens: int | None = Field(default=None, description="Max Tokens 参数（LLM 专用）")
+    max_tokens: int | None = Field(
+        default=None, description="Max Tokens 参数（LLM 专用）"
+    )
     context_length: int | None = Field(default=None, ge=0, le=MAX_CONTEXT_LENGTH)
-    dimensions: int | None = Field(default=None, description="Embedding 维度（Embedding 专用）")
+    reasoning_capability_override: bool | None = Field(
+        default=None, description="推理能力手动覆盖；null 表示自动识别"
+    )
+    dimensions: int | None = Field(
+        default=None, description="Embedding 维度（Embedding 专用）"
+    )

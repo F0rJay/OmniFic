@@ -121,6 +121,7 @@ async def create(
     repetition_penalty: float | None = DEFAULT_REPETITION_PENALTY,
     max_tokens: int | None = None,
     context_length: int = DEFAULT_CONTEXT_LENGTH,
+    reasoning_capability_override: bool | None = None,
     dimensions: int | None = None,
 ) -> Model:
     """
@@ -162,6 +163,7 @@ async def create(
         repetition_penalty=repetition_penalty,
         max_tokens=max_tokens,
         context_length=context_length,
+        reasoning_capability_override=reasoning_capability_override,
         dimensions=dimensions,
     )
     session.add(model)
@@ -188,6 +190,8 @@ async def update(
     repetition_penalty: float | None = None,
     max_tokens: int | None = None,
     context_length: int | None = None,
+    reasoning_capability_override: bool | None = None,
+    update_reasoning_capability_override: bool = False,
     dimensions: int | None = None,
 ) -> Model | None:
     """
@@ -248,6 +252,8 @@ async def update(
         model.max_tokens = max_tokens
     if context_length is not None:
         model.context_length = context_length
+    if update_reasoning_capability_override:
+        model.reasoning_capability_override = reasoning_capability_override
     if dimensions is not None:
         model.dimensions = dimensions
 

@@ -7,6 +7,7 @@ from app.agent_runtime.context.parts.history import build_history
 from app.agent_runtime.context.parts.rules import build_rules
 from app.agent_runtime.context.parts.skills import build_skills
 from app.agent_runtime.context.parts.system_prompt import build_system_prompt
+from app.agent_runtime.context.parts.task_goal import build_task_goal
 from app.agent_runtime.context.processors.filter import (
     filter_invalid,
     filter_tool_result_metadata,
@@ -46,13 +47,17 @@ async def build_context_parts(
         parts.append(m)
     if (m := await build_skills(state, agent_name, db_session)) is not None:
         parts.append(m)
+    if (m := await build_task_goal(state["task_id"], db_session)) is not None:
+        parts.append(m)
     parts.extend(await build_history(node_messages, db_session))
 
     cleaned = _process(parts)
     static = [m for m in cleaned if not _is_history(m)]
     history = [m for m in cleaned if _is_history(m)]
     try:
-        compactions = await compaction_repo.list_by_session(db_session, state["session_id"])
+        compactions = await compaction_repo.list_by_session(
+            db_session, state["session_id"]
+        )
     except Exception as e:
         raise ContextBuildError(
             "compaction",
