@@ -3,13 +3,13 @@ Domain-specific errors.
 """
 
 
-class OpenFicError(Exception):
-    """Base exception for OpenFic."""
+class OmniFicError(Exception):
+    """Base exception for OmniFic."""
 
     pass
 
 
-class ProviderError(OpenFicError):
+class ProviderError(OmniFicError):
     """Error from model provider."""
 
     error_type: str = "provider_error"
@@ -43,43 +43,43 @@ class LLMTimeoutError(ProviderTimeoutError):
     pass
 
 
-class AgentTimeoutError(OpenFicError):
+class AgentTimeoutError(OmniFicError):
     """Agent execution timed out."""
 
     pass
 
 
-class StorageError(OpenFicError):
+class StorageError(OmniFicError):
     """Storage/persistence error."""
 
     pass
 
 
-class NotFoundError(OpenFicError):
+class NotFoundError(OmniFicError):
     """资源不存在错误。"""
 
     pass
 
 
-class ValidationError(OpenFicError):
+class ValidationError(OmniFicError):
     """验证错误。"""
 
     pass
 
 
-class ConflictError(OpenFicError):
+class ConflictError(OmniFicError):
     """资源冲突错误。"""
 
     pass
 
 
-class ProjectAlreadyBoundError(OpenFicError):
+class ProjectAlreadyBoundError(OmniFicError):
     """项目已绑定世界书错误。"""
 
     pass
 
 
-class WorldInfoExistsError(OpenFicError):
+class WorldInfoExistsError(OmniFicError):
     """世界书已存在错误。"""
 
     pass

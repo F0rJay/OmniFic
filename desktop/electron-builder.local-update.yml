@@ -1,5 +1,5 @@
-appId: com.openfic.app
-productName: OpenFic
+appId: com.omnific.app
+productName: OmniFic
 
 directories:
   output: dist-electron
@@ -17,7 +17,7 @@ extraResources:
     to: app-update.yml
 
 win:
-  artifactName: OpenFic-${version}-win-${arch}.${ext}
+  artifactName: OmniFic-${version}-win-${arch}.${ext}
   target:
     - target: nsis
       arch:
@@ -27,10 +27,10 @@ win:
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
-  artifactName: OpenFic-${version}-win-${arch}-setup.${ext}
+  artifactName: OmniFic-${version}-win-${arch}-setup.${ext}
 
 publish:
   provider: generic
   url: http://127.0.0.1:4567
-  updaterCacheDirName: openfic-desktop-updater
+  updaterCacheDirName: omnific-desktop-updater
   useMultipleRangeRequest: false

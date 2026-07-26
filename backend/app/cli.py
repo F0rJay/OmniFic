@@ -1,4 +1,4 @@
-"""OpenFic CLI 入口。
+"""OmniFic CLI 入口。
 
 用于以 pipx/uvx 安装后启动本地服务。
 桌面端（PyInstaller）与 Docker 不走此入口。
@@ -30,25 +30,25 @@ def _get_uvicorn_loop_factory() -> str:
 
 
 def _ensure_data_dir() -> None:
-    """CLI 默认数据目录为 ~/.openfic，仅在未显式设置时生效。"""
-    if os.getenv("OPENFIC_DATA_DIR"):
+    """CLI 默认数据目录为 ~/.omnific，仅在未显式设置时生效。"""
+    if os.getenv("OMNIFIC_DATA_DIR"):
         return
-    data_dir = Path.home() / ".openfic"
+    data_dir = Path.home() / ".omnific"
     data_dir.mkdir(parents=True, exist_ok=True)
-    os.environ["OPENFIC_DATA_DIR"] = str(data_dir)
+    os.environ["OMNIFIC_DATA_DIR"] = str(data_dir)
 
 
 def _read_version() -> str:
     try:
         from importlib.metadata import PackageNotFoundError, version
 
-        return version("openfic")
+        return version("omnific")
     except (PackageNotFoundError, Exception):
         return "0.0.0"
 
 
 def handle_version(_args: argparse.Namespace) -> None:
-    print(f"openfic {_read_version()}")
+    print(f"omnific {_read_version()}")
 
 
 def handle_serve(args: argparse.Namespace) -> None:
@@ -72,7 +72,7 @@ def handle_serve(args: argparse.Namespace) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="openfic",
+        prog="omnific",
         description="OpenFic 本地服务启动器",
     )
 

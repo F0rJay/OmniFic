@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "openfic"
+name = "omnific"
 version = "0.7.5"
 description = "Ready for adding."
 readme = "README.md"
@@ -23,7 +23,7 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
     "Topic :: Software Development :: Libraries :: Application Frameworks",
 ]
-urls = { Homepage = "https://github.com/syrizelink/OpenFic", Repository = "https://github.com/syrizelink/OpenFic" }
+urls = { Homepage = "https://github.com/F0rJay/OmniFic", Repository = "https://github.com/F0rJay/OmniFic" }
 dependencies = [
     "aiocache>=0.12.3",
     "aiofiles>=22.0",
@@ -71,7 +71,7 @@ dependencies = [
 ]
 
 [project.scripts]
-openfic = "app.cli:main"
+omnific = "app.cli:main"
 
 [dependency-groups]
 dev = [

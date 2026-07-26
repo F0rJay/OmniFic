@@ -1,5 +1,5 @@
 """
-OpenFic Backend - FastAPI Application Entry Point.
+OmniFic Backend - FastAPI Application Entry Point.
 """
 
 import asyncio
@@ -76,9 +76,9 @@ ANSI_RESET = "\033[0m"
 def _resolve_frontend_dist_dir() -> Path:
     """解析前端构建产物目录。
 
-    优先级：OPENFIC_FRONTEND_DIST 环境变量 > 打包内置路径 > 开发态相对路径。
+    优先级：OMNIFIC_FRONTEND_DIST 环境变量 > 打包内置路径 > 开发态相对路径。
     """
-    env_dist = getenv("OPENFIC_FRONTEND_DIST")
+    env_dist = getenv("OMNIFIC_FRONTEND_DIST")
     if env_dist:
         return Path(env_dist)
 
@@ -123,8 +123,8 @@ async def _seed_builtin_models() -> None:
 
 
 def _get_server_bind() -> tuple[str, int]:
-    host = getenv("OPENFIC_SERVER_HOST")
-    port = getenv("OPENFIC_SERVER_PORT")
+    host = getenv("OMNIFIC_SERVER_HOST")
+    port = getenv("OMNIFIC_SERVER_PORT")
 
     if host is None:
         host = _get_command_line_option("--host") or app_settings.host
@@ -213,10 +213,10 @@ def _bold_color(text: str, color: str) -> str:
 
 def _style_title_line(version: str, supports_ansi: bool) -> str:
     if not supports_ansi:
-        return f"OpenFic v{version} - Entering the vibe writing era"
+        return f"OmniFic v{version}"
     return (
-        f"{_bold_color('OpenFic', ANSI_GREEN)}"
-        f"{ANSI_BOLD} v{version} - Entering the vibe writing era{ANSI_RESET}"
+        f"{_bold_color('OmniFic', ANSI_GREEN)}"
+        f"{ANSI_BOLD} v{version}{ANSI_RESET}"
     )
 
 
@@ -246,7 +246,7 @@ def _format_banner_lines(version: str, host: str, port: int, supports_ansi: bool
         "",
         _style_title_line(version, supports_ansi),
         "",
-        _style_link_line("https://github.com/syrizelink/OpenFic", supports_ansi),
+        _style_link_line("https://github.com/F0rJay/OmniFic", supports_ansi),
         "",
         *[_style_access_line(line, supports_ansi) for line in _format_access_url_lines(host, port)],
         "",

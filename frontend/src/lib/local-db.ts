@@ -87,9 +87,9 @@ export interface WritingWorkingCopy {
 }
 
 /**
- * OpenFic 本地数据库
+ * OmniFic 本地数据库
  */
-class OpenFicDB extends Dexie {
+class OmniFicDB extends Dexie {
   projectLastChapters!: EntityTable<ProjectLastChapter, "projectId">;
   projectTabs!: EntityTable<ProjectTabs, "projectId">;
   userPreferences!: EntityTable<UserPreference, "key">;
@@ -98,7 +98,7 @@ class OpenFicDB extends Dexie {
   recentProjects!: EntityTable<RecentProject, "slot">;
 
   constructor() {
-    super("OpenFicDB");
+    super("OmniFicDB");
 
     this.version(2).stores({
       // projectId 作为主键
@@ -151,7 +151,7 @@ class OpenFicDB extends Dexie {
 }
 
 // 单例数据库实例
-export const db = new OpenFicDB();
+export const db = new OmniFicDB();
 
 const writingWorkingCopyOperations = new Map<string, Promise<void>>();
 

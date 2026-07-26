@@ -1,6 +1,6 @@
 importScripts("/sw-precache.js");
 
-const CACHE_NAME = "openfic-shell-v1";
+const CACHE_NAME = "omnific-shell-v1";
 
 const BACKEND_PATHS = ["/api/", "/socket.io/", "/covers/", "/icons/"];
 
@@ -21,7 +21,7 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => key.startsWith("openfic-shell-") && key !== CACHE_NAME)
+            .filter((key) => key.startsWith("omnific-shell-") && key !== CACHE_NAME)
             .map((key) => caches.delete(key)),
         ),
       )

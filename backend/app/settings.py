@@ -12,7 +12,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
-BACKEND_DATA_DIR = Path(os.getenv("OPENFIC_DATA_DIR", str(BACKEND_DIR / "data")))
+BACKEND_DATA_DIR = Path(os.getenv("OMNIFIC_DATA_DIR", str(BACKEND_DIR / "data")))
 ENV_FILE_PATH = BACKEND_DATA_DIR / ".env"
 ENCRYPTION_KEY_FILE_PATH = BACKEND_DATA_DIR / ".key"
 
@@ -53,7 +53,7 @@ def _read_package_version() -> str:
     try:
         from importlib.metadata import PackageNotFoundError, version
 
-        return version("openfic")
+        return version("omnific")
     except (PackageNotFoundError, Exception):
         return "0.0.0"
 
@@ -68,7 +68,7 @@ class Settings(BaseSettings):
     )
 
     # Application
-    app_name: str = "OpenFic"
+    app_name: str = "OmniFic"
     app_version: str = _read_package_version()
     debug: bool = False
 
@@ -110,7 +110,7 @@ class Settings(BaseSettings):
     def database_url(self) -> str:
         data_dir = BACKEND_DATA_DIR
         data_dir.mkdir(parents=True, exist_ok=True)
-        return f"sqlite+aiosqlite:///{data_dir}/openfic.db"
+        return f"sqlite+aiosqlite:///{data_dir}/omnific.db"
 
     @property
     def checkpoint_db_path(self) -> Path:

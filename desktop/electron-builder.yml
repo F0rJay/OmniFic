@@ -1,5 +1,5 @@
-appId: com.openfic.app
-productName: OpenFic
+appId: com.omnific.app
+productName: OmniFic
 
 directories:
   output: dist-electron
@@ -7,7 +7,7 @@ directories:
 publish:
   provider: github
   owner: syrizelink
-  repo: OpenFic
+  repo: OmniFic
   releaseType: release
 
 files:
@@ -23,7 +23,7 @@ extraResources:
     to: app-update.yml
 
 win:
-  artifactName: OpenFic-${version}-win-${arch}.${ext}
+  artifactName: OmniFic-${version}-win-${arch}.${ext}
   target:
     - target: nsis
       arch:
@@ -37,10 +37,10 @@ win:
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
-  artifactName: OpenFic-${version}-win-${arch}-setup.${ext}
+  artifactName: OmniFic-${version}-win-${arch}-setup.${ext}
 
 mac:
-  artifactName: OpenFic-${version}-mac-${arch}.${ext}
+  artifactName: OmniFic-${version}-mac-${arch}.${ext}
   target:
     - target: dmg
       arch:
@@ -54,7 +54,7 @@ mac:
   identity: null
 
 linux:
-  artifactName: OpenFic-${version}-linux-${arch}.${ext}
+  artifactName: OmniFic-${version}-linux-${arch}.${ext}
   target:
     - target: AppImage
       arch:
