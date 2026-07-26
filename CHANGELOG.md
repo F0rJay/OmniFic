@@ -1,5 +1,29 @@
 # Changelog
 
+## OmniFic (Fork from OpenFic v0.7.5)
+
+> 以下为 OmniFic Fork 后独立开发的变更。
+
+### ✨ 新增功能
+
+- **中转站/自定义供应商深度支持**：任意 OpenAI 兼容中转站，一键模型发现，URL 优先策略
+- **Codex 风格 / 命令中心**：MCP/推理/模型/状态/目标/技能面板，可视化 Skill Token
+- **任务目标持久化**：通过 Task API 保存，每次 Agent 上下文注入
+- **Agent 推理用时**：服务端 `run_started_at`，跨刷新恢复
+- **世界书多格式导入**：MD/PDF/Word/PPT + MarkItDown + LLM 增强整理
+- **TXT 小说分卷导入**：自动识别卷标题，创建 Volume 结构
+- **模型推理能力手动覆盖**：解决中转站模型无法使用推理强度
+- **Agent 多选交互**：Checkbox 多选替代 Radio
+- **角色页 Agent 助手面板**：三栏布局
+
+### 🔧 项目基础设施
+
+- 全项目重命名为 OmniFic
+- 重构 README 中英文版
+- 完整文档体系：架构/功能/开发指南
+
+---
+
 ## [0.7.5](https://github.com/syrizelink/OpenFic/compare/v0.7.4...v0.7.5) (2026-07-26)
 
 
