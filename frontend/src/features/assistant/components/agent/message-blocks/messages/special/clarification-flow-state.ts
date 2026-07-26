@@ -6,7 +6,7 @@ import type {
 
 export const CUSTOM_CLARIFICATION_ANSWER = "__custom__";
 
-export type ClarificationAnswers = Record<number, string>;
+export type ClarificationAnswers = Record<number, string | string[]>;
 export type ClarificationCustomAnswers = Record<number, string>;
 
 export type { ClarificationAnswerItem };
@@ -44,13 +44,30 @@ function resolveClarificationAnswer(
   answers: ClarificationAnswers,
   customAnswers: ClarificationCustomAnswers,
   index: number,
-): string | undefined {
+): string | string[] | undefined {
   const selected = answers[index];
   if (!selected) return undefined;
-  if (selected !== CUSTOM_CLARIFICATION_ANSWER) return selected;
 
+  // 多选：返回数组（过滤掉自定义选项，单独处理）
+  if (Array.isArray(selected)) {
+    const nonCustom = selected.filter((v) => v !== CUSTOM_CLARIFICATION_ANSWER);
+    if (selected.includes(CUSTOM_CLARIFICATION_ANSWER)) {
+      const customAnswer = customAnswers[index]?.trim();
+      if (customAnswer) return [...nonCustom, customAnswer];
+    }
+    return nonCustom.length > 0 ? nonCustom : undefined;
+  }
+
+  // 单选
+  if (selected !== CUSTOM_CLARIFICATION_ANSWER) return selected;
   const customAnswer = customAnswers[index]?.trim();
   return customAnswer || undefined;
+}
+
+function isAnswerValid(answer: string | string[] | undefined): boolean {
+  if (answer === undefined) return false;
+  if (Array.isArray(answer)) return answer.length > 0;
+  return Boolean(answer);
 }
 
 export function isClarificationStepComplete(
@@ -60,7 +77,7 @@ export function isClarificationStepComplete(
   stepIndex: number,
 ): boolean {
   if (!questions[stepIndex]) return false;
-  return Boolean(resolveClarificationAnswer(answers, customAnswers, stepIndex));
+  return isAnswerValid(resolveClarificationAnswer(answers, customAnswers, stepIndex));
 }
 
 export function canSubmitClarificationAnswers(
@@ -83,6 +100,7 @@ export function buildClarificationAnswerItems(
 
   return questions.map((question, index) => {
     const answer = resolveClarificationAnswer(answers, customAnswers, index) ?? "";
-    return { question: question.title, answer };
+    const answerStr = Array.isArray(answer) ? answer.join("、") : answer;
+    return { question: question.title, answer: answerStr };
   });
 }

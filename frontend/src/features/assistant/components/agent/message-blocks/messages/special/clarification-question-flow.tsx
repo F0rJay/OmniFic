@@ -149,9 +149,9 @@ interface ClarificationQuestionItemProps {
   customValue: string;
   index: number;
   question: ClarificationQuestion;
-  selectedValue?: string;
+  selectedValue?: string | string[];
   onCustomChange: (index: number, value: string) => void;
-  onSelect: (index: number, value: string) => void;
+  onSelect: (index: number, value: string, isMulti?: boolean) => void;
 }
 
 function ClarificationQuestionItem({
@@ -163,6 +163,7 @@ function ClarificationQuestionItem({
   onSelect,
 }: ClarificationQuestionItemProps) {
   const { t } = useTranslation();
+  const isMulti = question.multiSelect === true;
   const options = [
     ...question.options.map((option) => ({
       ...option,
@@ -174,6 +175,13 @@ function ClarificationQuestionItem({
       value: CUSTOM_CLARIFICATION_ANSWER,
     },
   ];
+
+  const isSelected = (value: string): boolean => {
+    if (isMulti && Array.isArray(selectedValue)) {
+      return selectedValue.includes(value);
+    }
+    return selectedValue === value;
+  };
 
   return (
     <fieldset className="agent-clarification-question">
@@ -196,6 +204,7 @@ function ClarificationQuestionItem({
       >
         {options.map((option) => {
           const inputId = `clarification-${index}-${option.value}`;
+          const checked = isSelected(option.value);
 
           return (
             <label
@@ -205,11 +214,11 @@ function ClarificationQuestionItem({
             >
               <input
                 id={inputId}
-                type="radio"
+                type={isMulti ? "checkbox" : "radio"}
                 name={`clarification-${index}`}
                 value={option.value}
-                checked={selectedValue === option.value}
-                onChange={() => onSelect(index, option.value)}
+                checked={checked}
+                onChange={() => onSelect(index, option.value, isMulti)}
               />
               <span className="agent-clarification-option-copy">
                 <span className="agent-clarification-option-label">{option.label}</span>
@@ -223,16 +232,27 @@ function ClarificationQuestionItem({
           );
         })}
       </Flex>
-      {selectedValue === CUSTOM_CLARIFICATION_ANSWER && (
-        <textarea
-          className="ai-sidebar-textarea agent-clarification-custom-input"
-          value={customValue}
-          onChange={(event) => onCustomChange(index, event.target.value)}
-          rows={2}
-          placeholder={t("assistant.clarification.customInputPlaceholder")}
-          aria-label={t("assistant.clarification.customAnswerAriaLabel", { title: question.title })}
-        />
-      )}
+      {isMulti
+        ? Array.isArray(selectedValue) && selectedValue.includes(CUSTOM_CLARIFICATION_ANSWER) && (
+            <textarea
+              className="ai-sidebar-textarea agent-clarification-custom-input"
+              value={customValue}
+              onChange={(event) => onCustomChange(index, event.target.value)}
+              rows={2}
+              placeholder={t("assistant.clarification.customInputPlaceholder")}
+              aria-label={t("assistant.clarification.customAnswerAriaLabel", { title: question.title })}
+            />
+          )
+        : selectedValue === CUSTOM_CLARIFICATION_ANSWER && (
+            <textarea
+              className="ai-sidebar-textarea agent-clarification-custom-input"
+              value={customValue}
+              onChange={(event) => onCustomChange(index, event.target.value)}
+              rows={2}
+              placeholder={t("assistant.clarification.customInputPlaceholder")}
+              aria-label={t("assistant.clarification.customAnswerAriaLabel", { title: question.title })}
+            />
+          )}
     </fieldset>
   );
 }

@@ -18,6 +18,10 @@ class Question(BaseModel):
     options: list[QuestionOption] = Field(
         description="可选项，如有建议选项，将其放在首位",
     )
+    multi_select: bool = Field(
+        default=False,
+        description="是否允许多选。默认为 false（单选）。当问题需要用户同时选择多个选项时设为 true。",
+    )
 
 class AskUserInput(BaseModel):
     questions: list[Question] = Field(

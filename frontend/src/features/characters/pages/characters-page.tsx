@@ -1,13 +1,14 @@
 import { AlertDialog, Box, Button, Flex, IconButton, Tooltip, Text } from "@radix-ui/themes";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { List } from "lucide-react";
+import { Bot, List } from "lucide-react";
 import { motion } from "motion/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import { useSearchParams } from "react-router";
 
 import { toast } from "@/components/toast";
+import { AssistantSidebar, type AssistantSidebarHandle, type AssistantSidebarState } from "@/features/assistant";
 import { MobileAppSidebarTrigger } from "@/features/app-shell";
 import {
   batchDeleteCharacters,
@@ -74,6 +75,12 @@ export function CharactersPage() {
   );
   const [isMobile, setIsMobile] = useState(false);
   const [selectedCharacterLoadVersion, setSelectedCharacterLoadVersion] = useState(0);
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [assistantState, setAssistantState] = useState<AssistantSidebarState>({
+    agentStatus: "idle",
+    isAgentRunning: false,
+  });
+  const assistantSidebarRef = useRef<AssistantSidebarHandle | null>(null);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -364,11 +371,19 @@ export function CharactersPage() {
 
           <Panel
             id="characters-right"
-            defaultSize={350}
-            minSize={260}
-            maxSize={450}
+            defaultSize={400}
+            minSize={300}
+            maxSize={600}
             collapsible={false}
-          ></Panel>
+          >
+            <Box className="characters-panel characters-page-assistant-panel">
+              <AssistantSidebar
+                ref={assistantSidebarRef}
+                projectId={currentProjectId}
+                onStateChange={setAssistantState}
+              />
+            </Box>
+          </Panel>
         </Group>
       ) : currentProjectId ? (
         <Box className="characters-page-body characters-page-body--mobile">
@@ -397,10 +412,40 @@ export function CharactersPage() {
                 </Tooltip>
               </Flex>
 
-              <Box className="characters-page-mobile-topbar-side" />
+              <Tooltip content={t("assistant.mobileTitle")}>
+                <IconButton
+                  variant="ghost"
+                  size="2"
+                  aria-label={t("assistant.mobileTitle")}
+                  onClick={() => setIsAssistantOpen(true)}
+                  color={assistantState.isAgentRunning ? "green" : undefined}
+                >
+                  <Bot size={18} />
+                </IconButton>
+              </Tooltip>
             </Flex>
 
             <Box className="characters-page-content-fill">{editorContent}</Box>
+
+            {/* Mobile assistant overlay */}
+            {isAssistantOpen && (
+              <Box
+                style={{
+                  position: "fixed",
+                  inset: 0,
+                  zIndex: 200,
+                  background: "var(--gray-12)",
+                }}
+              >
+                <AssistantSidebar
+                  ref={assistantSidebarRef}
+                  projectId={currentProjectId}
+                  onStateChange={setAssistantState}
+                  onClose={() => setIsAssistantOpen(false)}
+                  isMobileOverlay
+                />
+              </Box>
+            )}
 
             <motion.div
               initial={false}

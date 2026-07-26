@@ -23,7 +23,7 @@ export interface ClarificationQuestionFlowModel {
   handleCustomAnswerChange: (index: number, value: string) => void;
   handleNext: () => void;
   handlePrev: () => void;
-  handleSelectAnswer: (index: number, value: string) => void;
+  handleSelectAnswer: (index: number, value: string, isMulti?: boolean) => void;
   handleSubmit: () => void;
 }
 
@@ -60,8 +60,19 @@ export function useClarificationQuestionFlow(
     setCurrentStep(0);
   };
 
-  const handleSelectAnswer = (index: number, value: string) => {
-    setAnswers((current) => ({ ...current, [index]: value }));
+  const handleSelectAnswer = (index: number, value: string, isMulti?: boolean) => {
+    if (isMulti) {
+      setAnswers((current) => {
+        const existing = current[index];
+        const arr = Array.isArray(existing) ? existing : [];
+        if (arr.includes(value)) {
+          return { ...current, [index]: arr.filter((v) => v !== value) };
+        }
+        return { ...current, [index]: [...arr, value] };
+      });
+    } else {
+      setAnswers((current) => ({ ...current, [index]: value }));
+    }
   };
 
   const handleCustomAnswerChange = (index: number, value: string) => {
