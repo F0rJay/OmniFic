@@ -4,8 +4,8 @@ import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import type { Editor } from "@tiptap/react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, Ref } from "react";
 
 import type { AssistantMentionCandidate } from "@/features/assistant/lib/mention-text";
 import {
@@ -20,9 +20,12 @@ import {
   parseMentionText,
 } from "@/features/assistant/lib/mention-text";
 import { searchMentionCandidates } from "@/lib/api-client";
+import type { Skill } from "@/lib/skill.types";
 
 import { MentionNode } from "./extensions/mention-node";
 import type { AssistantMentionNodeAttributes } from "./extensions/mention-node";
+import { SkillNode } from "./extensions/skill-node";
+import type { AssistantSkillNodeAttributes } from "./extensions/skill-node";
 
 export type AgentComposerSuggestionStatus = "idle" | "loading" | "empty" | "ready";
 
@@ -37,9 +40,18 @@ export interface AgentComposerSuggestionState {
   onSelectedIndexChange: (index: number) => void;
 }
 
+export type ComposerSkill = Pick<Skill, "id" | "name" | "source">;
+
+export interface AgentComposerEditorHandle {
+  insertSkill: (skill: ComposerSkill) => void;
+  clearSlashQuery: () => void;
+}
+
 interface AgentComposerEditorProps {
+  ref?: Ref<AgentComposerEditorHandle>;
   projectId: string;
   value: string;
+  skills?: Skill[];
   placeholder: string;
   disabled: boolean;
   onOpenMentionChapter?: (chapterId: string, chapterTitle: string) => void;
@@ -74,6 +86,10 @@ function docToCanonicalText(doc: ProseMirrorNode): string {
       }
       if (child.type.name === "assistantMention") {
         current += String(child.attrs.mentionRaw ?? "");
+        return;
+      }
+      if (child.type.name === "assistantSkill") {
+        current += String(child.attrs.skillRaw ?? "");
       }
     });
     paragraphs.push(current);
@@ -133,8 +149,10 @@ function createMentionNodeAttrs(
 }
 
 export function AgentComposerEditor({
+  ref,
   projectId,
   value,
+  skills = [],
   placeholder,
   disabled,
   onOpenMentionChapter,
@@ -197,13 +215,14 @@ export function AgentComposerEditor({
       MentionNode.configure({
         onOpenMentionChapter,
       }),
+      SkillNode,
     ],
     [onOpenMentionChapter, placeholder],
   );
 
   const editor = useEditor({
     extensions,
-    content: mentionTextToHtml(value),
+    content: mentionTextToHtml(value, skills),
     editable: !disabled,
     editorProps: {
       attributes: {
@@ -214,7 +233,7 @@ export function AgentComposerEditor({
       const next = docToCanonicalText(instance.state.doc);
       if (next !== value) {
         isApplyingExternalValueRef.current = true;
-        instance.commands.setContent(mentionTextToHtml(value), { emitUpdate: false });
+        instance.commands.setContent(mentionTextToHtml(value, skills), { emitUpdate: false });
         isApplyingExternalValueRef.current = false;
       }
     },
@@ -283,10 +302,10 @@ export function AgentComposerEditor({
     const nextCanonicalText = docToCanonicalText(editor.state.doc);
     if (nextCanonicalText === value) return;
     isApplyingExternalValueRef.current = true;
-    editor.commands.setContent(mentionTextToHtml(value), { emitUpdate: false });
+    editor.commands.setContent(mentionTextToHtml(value, skills), { emitUpdate: false });
     isApplyingExternalValueRef.current = false;
     updateMentionQuery(editor);
-  }, [editor, updateMentionQuery, value]);
+  }, [editor, skills, updateMentionQuery, value]);
 
   useEffect(() => {
     if (!editor) return;
@@ -298,6 +317,49 @@ export function AgentComposerEditor({
       editor.commands.focus("end");
     }
   }, [editor, value]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      clearSlashQuery() {
+        if (!editor) return;
+        const selectionTo = editor.state.selection.from;
+        const { $from } = editor.state.selection;
+        const textBefore = $from.parent.textBetween(0, $from.parentOffset, undefined, "￼");
+        const match = textBefore.match(/(?:^|\s)\/([^\s/]*)$/u);
+        if (!match) return;
+        const replaceLength = (match[1]?.length ?? 0) + 1;
+        editor
+          .chain()
+          .focus()
+          .deleteRange({ from: selectionTo - replaceLength, to: selectionTo })
+          .run();
+      },
+      insertSkill(skill: ComposerSkill) {
+        if (!editor) return;
+        const selectionTo = editor.state.selection.from;
+        const { $from } = editor.state.selection;
+        const textBefore = $from.parent.textBetween(0, $from.parentOffset, undefined, "￼");
+        const match = textBefore.match(/(?:^|\s)\/([^\s/]*)$/u);
+        const replaceLength = match ? (match[1]?.length ?? 0) + 1 : 0;
+        const replaceFrom = replaceLength > 0 ? selectionTo - replaceLength : selectionTo;
+        const attrs: AssistantSkillNodeAttributes = {
+          skillId: skill.id,
+          skillName: skill.name,
+          skillRaw: `/${skill.name}`,
+          skillSource: skill.source,
+        };
+        editor
+          .chain()
+          .focus()
+          .deleteRange({ from: replaceFrom, to: selectionTo })
+          .insertAssistantSkill(attrs)
+          .insertContent(" ")
+          .run();
+      },
+    }),
+    [editor],
+  );
 
   const closeSuggestions = useCallback(() => {
     setMentionQuery(createClosedMentionQueryState());

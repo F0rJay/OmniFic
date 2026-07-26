@@ -35,14 +35,15 @@ import {
 } from "./display/agent-message-blocks";
 import { buildAgentDisplayItems } from "./display/agent-message-display-items";
 import { normalizeDisplayMessages } from "./display/display-message-normalization";
-
-import "./agent-message-blocks.css";
-
 import type {
   AgentBlockDisplayMessage,
   BlockDisplayMessage,
 } from "./display/display-message-types";
+
+import "./agent-message-blocks.css";
+
 import { ExplorationMessage } from "./message-blocks/blocks/exploration/exploration-message";
+import { useElapsedDuration } from "./use-elapsed-duration";
 
 const COPY_FEEDBACK_MS = 1200;
 
@@ -86,6 +87,7 @@ interface AgentMessagesProps {
   isRollbacking: boolean;
   status: "idle" | "running" | "waiting_answer" | "waiting_approval" | "completed" | "error";
   currentStage: string;
+  runStartedAt?: string | null;
   scrollToBottomKey?: string | null;
   onRollback: (messageId: string) => Promise<string | null>;
   onFork?: (sourceRevisionId: string) => Promise<void>;
@@ -163,6 +165,7 @@ export function AgentMessages({
   isRollbacking,
   status,
   currentStage,
+  runStartedAt,
   scrollToBottomKey,
   onRollback,
   onFork,
@@ -194,6 +197,7 @@ export function AgentMessages({
   const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(() => new Set());
   const streamFollowSignal = getStreamingFollowSignal(messages);
   const runningStatus = useMemo(() => getAgentRunningStatus(messages), [messages]);
+  const elapsed = useElapsedDuration(runStartedAt, status === "running");
   const statusMessage =
     status === "running" && runningStatus
       ? t(`assistant.runningStatus.${runningStatus}`)
@@ -676,7 +680,12 @@ export function AgentMessages({
         })}
 
         {(status === "running" || status === "waiting_answer" || status === "waiting_approval") &&
-          statusMessage && <AgentStatusMessage content={statusMessage} />}
+          statusMessage && (
+            <AgentStatusMessage
+              content={statusMessage}
+              elapsed={status === "running" ? elapsed : undefined}
+            />
+          )}
         <Box
           ref={bottomRef}
           className="agent-message-bottom-anchor"

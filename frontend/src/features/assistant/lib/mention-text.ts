@@ -1,5 +1,6 @@
 import type { AssistantMentionCandidate } from "@/lib/mention.types";
 import { pinyinMatch } from "@/lib/pinyin-search";
+import type { Skill } from "@/lib/skill.types";
 
 export type { AssistantMentionCandidate } from "@/lib/mention.types";
 
@@ -124,7 +125,63 @@ function buildMentionHtml(token: AssistantMentionToken): string {
   );
 }
 
-export function mentionTextToHtml(text: string): string {
+function buildSkillHtml(skill: Skill): string {
+  const raw = `/${skill.name}`;
+  return (
+    `<span data-assistant-skill="true"` +
+    ` data-skill-id="${escapeHtmlAttr(skill.id)}"` +
+    ` data-skill-name="${escapeHtmlAttr(skill.name)}"` +
+    ` data-skill-raw="${escapeHtmlAttr(raw)}"` +
+    ` data-skill-source="${escapeHtmlAttr(skill.source)}"` +
+    `></span>`
+  );
+}
+
+function appendTextWithSkills(
+  value: string,
+  skills: Skill[],
+  appendText: (value: string) => void,
+  appendSkill: (skill: Skill) => void,
+) {
+  if (skills.length === 0 || !value.includes("/")) {
+    appendText(value);
+    return;
+  }
+
+  const orderedSkills = [...skills].sort((left, right) => right.name.length - left.name.length);
+  let cursor = 0;
+
+  while (cursor < value.length) {
+    const slashIndex = value.indexOf("/", cursor);
+    if (slashIndex < 0) {
+      appendText(value.slice(cursor));
+      return;
+    }
+
+    const previous = slashIndex === 0 ? "" : (value[slashIndex - 1] ?? "");
+    const canStartSkill = slashIndex === 0 || /\s/u.test(previous);
+    const skill = canStartSkill
+      ? orderedSkills.find((candidate) => {
+          const raw = `/${candidate.name}`;
+          if (!value.startsWith(raw, slashIndex)) return false;
+          const next = value[slashIndex + raw.length] ?? "";
+          return next === "" || /\s/u.test(next);
+        })
+      : undefined;
+
+    if (!skill) {
+      appendText(value.slice(cursor, slashIndex + 1));
+      cursor = slashIndex + 1;
+      continue;
+    }
+
+    if (slashIndex > cursor) appendText(value.slice(cursor, slashIndex));
+    appendSkill(skill);
+    cursor = slashIndex + skill.name.length + 1;
+  }
+}
+
+export function mentionTextToHtml(text: string, skills: Skill[] = []): string {
   if (!text) return "";
 
   const segments = parseMentionText(text);
@@ -142,7 +199,9 @@ export function mentionTextToHtml(text: string): string {
 
   segments.forEach((segment) => {
     if (typeof segment === "string") {
-      appendText(segment);
+      appendTextWithSkills(segment, skills, appendText, (skill) => {
+        paragraphs[paragraphs.length - 1] += buildSkillHtml(skill);
+      });
       return;
     }
     paragraphs[paragraphs.length - 1] += buildMentionHtml(segment);

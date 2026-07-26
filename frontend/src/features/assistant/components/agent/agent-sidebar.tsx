@@ -20,6 +20,8 @@ interface AgentSidebarProps {
   scrollToBottomKey?: string | null;
   modelId: string;
   reasoningEffort?: ReasoningEffort;
+  goal?: string;
+  runStartedAt?: string | null;
   agentKey?: string;
   inputValue: string;
   onClearInput: () => void;
@@ -53,6 +55,8 @@ export function useAgentSidebar({
   scrollToBottomKey,
   modelId,
   reasoningEffort,
+  goal,
+  runStartedAt,
   agentKey,
   inputValue,
   onClearInput,
@@ -94,6 +98,7 @@ export function useAgentSidebar({
     projectId,
     modelId,
     reasoningEffort,
+    goal,
     agentKey,
     maxIterations: 5,
     onTokenUsage,
@@ -197,6 +202,7 @@ export function useAgentSidebar({
         isRollbacking={isAgentRollbacking}
         status={agentStatus}
         currentStage={agentCurrentStage}
+        runStartedAt={runStartedAt}
         scrollToBottomKey={scrollToBottomKey}
         onRollback={handleRollback}
         onFork={handleFork}

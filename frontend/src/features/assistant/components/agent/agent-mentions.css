@@ -25,6 +25,44 @@
   cursor: pointer;
 }
 
+.agent-skill-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  margin: 0;
+  padding: 0 2px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: #2f8de4;
+  vertical-align: baseline;
+  font: inherit;
+  line-height: inherit;
+  -webkit-user-drag: none;
+}
+
+.agent-skill-chip[data-selected="true"] {
+  border-color: currentColor;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.agent-skill-chip-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: inherit;
+}
+
+.agent-skill-chip-label {
+  min-width: 0;
+  overflow: hidden;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .agent-mention-chip-icon {
   display: inline-flex;
   flex: 0 0 auto;

@@ -133,6 +133,7 @@ interface UseAgentSessionOptions {
   projectId: string;
   modelId: string;
   reasoningEffort?: ReasoningEffort;
+  goal?: string;
   agentKey?: string;
   maxIterations?: number;
   onTokenUsage?: (sessionId: string, usage: TokenUsageState) => void;
@@ -158,6 +159,7 @@ export function useAgentSession({
   projectId,
   modelId,
   reasoningEffort,
+  goal,
   agentKey,
   maxIterations = 5,
   onTokenUsage,
@@ -595,6 +597,7 @@ export function useAgentSession({
           project_id: projectId,
           model_id: modelId,
           ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
+          ...(goal?.trim() ? { goal: goal.trim() } : {}),
           max_iterations: maxIterations,
           ...(agentKey ? { agent_key: agentKey } : {}),
         });
@@ -624,6 +627,7 @@ export function useAgentSession({
       commitTranscriptState,
       maxIterations,
       modelId,
+      goal,
       onSessionCreated,
       projectId,
       queryClient,

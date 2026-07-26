@@ -69,6 +69,7 @@ import { joinSubagentStatusStream, subscribeSubagentStatusEvents } from "../lib/
 import { buildAgentMessagesFromTaskMessages } from "../lib/task-message-agent-mapping";
 import { AgentInput, AgentMessages, useAgentSidebar } from "./agent";
 import { ActiveSubagentList } from "./agent/active-subagent-list";
+import { getAgentRunningStatus } from "./agent/agent-running-status";
 import { AgentSpecialPanels } from "./agent/agent-special-panels";
 import { getAgentSpecialPanels } from "./agent/agent-special-panels-state";
 import { AllTasksPage } from "./tasks/all-tasks-page";
@@ -86,9 +87,9 @@ export interface AssistantSidebarHandle {
   appendToComposer: (markup: string) => void;
 }
 
-const ASSISTANT_MODEL_STORAGE_KEY = "openfic.agent.selectedModelId";
-const ASSISTANT_AGENT_STORAGE_KEY = "openfic.agent.selectedAgentKey";
-const ASSISTANT_REASONING_EFFORT_STORAGE_KEY = "openfic.agent.reasoningEffort";
+const ASSISTANT_MODEL_STORAGE_KEY = "omnific.agent.selectedModelId";
+const ASSISTANT_AGENT_STORAGE_KEY = "omnific.agent.selectedAgentKey";
+const ASSISTANT_REASONING_EFFORT_STORAGE_KEY = "omnific.agent.reasoningEffort";
 const DEFAULT_CONTEXT_LENGTH = 128000;
 
 const CONTEXT_MID_FIELD_CHAPTER_COUNT = 10;
@@ -258,6 +259,8 @@ export const AssistantSidebar = forwardRef<AssistantSidebarHandle, AssistantSide
     const [view, setView] = useState<AssistantView>("tasks");
     const [isLoadingTask, setIsLoadingTask] = useState(false);
     const [currentTaskTitle, setCurrentTaskTitle] = useState<string>("");
+    const [currentTaskGoal, setCurrentTaskGoal] = useState<string>("");
+    const [currentTaskRunStartedAt, setCurrentTaskRunStartedAt] = useState<string | null>(null);
     const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
     const [summaryWarningOpen, setSummaryWarningOpen] = useState(false);
     const [sessionTotalUsage, setSessionTotalUsage] = useState<SessionTotalUsageState>(() =>
@@ -442,6 +445,8 @@ export const AssistantSidebar = forwardRef<AssistantSidebarHandle, AssistantSide
           setIsLoadingTask(false);
           setCurrentTaskId(fullTask.id);
           setCurrentTaskTitle(fullTask.title);
+          setCurrentTaskGoal(fullTask.goal ?? "");
+          setCurrentTaskRunStartedAt(fullTask.runStartedAt ?? null);
           setSessionTotalUsage({
             sessionId,
             taskId: fullTask.id,
@@ -475,6 +480,8 @@ export const AssistantSidebar = forwardRef<AssistantSidebarHandle, AssistantSide
       (response: AgentSessionCreateResponse) => {
         setCurrentTaskId(response.task_id);
         setCurrentTaskTitle(response.task_title);
+        setCurrentTaskGoal(response.task_goal ?? "");
+        setCurrentTaskRunStartedAt(null);
         setSessionTotalUsage(createSessionTotalUsageState(response.session_id, response.task_id));
         setConversationUsageBySession((current) => ({
           ...current,
@@ -564,6 +571,8 @@ export const AssistantSidebar = forwardRef<AssistantSidebarHandle, AssistantSide
       scrollToBottomKey: currentTaskId,
       modelId: effectiveModelId,
       reasoningEffort: currentModel?.reasoning === true ? reasoningEffort : undefined,
+      goal: currentTaskGoal,
+      runStartedAt: currentTaskRunStartedAt,
       agentKey: effectiveAgentKey,
       inputValue,
       onClearInput: () => setInputValue(""),
@@ -629,6 +638,25 @@ export const AssistantSidebar = forwardRef<AssistantSidebarHandle, AssistantSide
       }),
       [sessionTotalUsage.tokenCache, sessionTotalUsage.tokenInput, sessionTotalUsage.tokenOutput],
     );
+
+    const runtimeActivity = getAgentRunningStatus(agentSidebar.messages);
+    const runtimeActivityLabel =
+      agentSidebar.status === "running" && runtimeActivity
+        ? t(`assistant.runningStatus.${runtimeActivity}`)
+        : agentSidebar.currentStage;
+    const runtimeStatus = {
+      taskId: currentTaskId,
+      sessionId: agentSidebar.sessionId,
+      status: agentSidebar.status,
+      activityLabel: runtimeActivityLabel,
+      runStartedAt: currentTaskRunStartedAt,
+      contextInputTokens: currentConversationUsage.contextInputTokens,
+      contextLength: currentConversationUsage.contextLength,
+      tokenInput: sessionTotalUsage.tokenInput,
+      tokenOutput: sessionTotalUsage.tokenOutput,
+      tokenCache: sessionTotalUsage.tokenCache,
+      rateLimits: null,
+    } as const;
 
     const contextUsagePercent = Math.min(
       100,
@@ -869,6 +897,8 @@ export const AssistantSidebar = forwardRef<AssistantSidebarHandle, AssistantSide
           setActiveSubagents(bundle.activeSubagentRows);
           setCurrentTaskId(fullTask.id);
           setCurrentTaskTitle(fullTask.title);
+          setCurrentTaskGoal(fullTask.goal ?? "");
+          setCurrentTaskRunStartedAt(fullTask.runStartedAt ?? null);
           setConversationState((current) => {
             const synced = syncParentConversationState(current, sessionId);
             const parentEntry = synced.entries[0];
@@ -942,6 +972,22 @@ export const AssistantSidebar = forwardRef<AssistantSidebarHandle, AssistantSide
       [updateTaskMutation],
     );
 
+    const handleGoalChange = useCallback(
+      async (goal: string) => {
+        const normalizedGoal = goal.trim();
+        if (!currentTaskId) {
+          setCurrentTaskGoal(normalizedGoal);
+          return;
+        }
+        const updatedTask = await updateTaskMutation.mutateAsync({
+          taskId: currentTaskId,
+          data: { goal: normalizedGoal || null },
+        });
+        setCurrentTaskGoal(updatedTask.goal ?? "");
+      },
+      [currentTaskId, updateTaskMutation],
+    );
+
     const backToTaskList = useCallback(() => {
       setSessionTotalUsage(createSessionTotalUsageState());
       setConversationUsageBySession({});
@@ -954,6 +1000,8 @@ export const AssistantSidebar = forwardRef<AssistantSidebarHandle, AssistantSide
       setIsLoadingTask(false);
       setCurrentTaskId(null);
       setCurrentTaskTitle("");
+      setCurrentTaskGoal("");
+      setCurrentTaskRunStartedAt(null);
       void refetchRecentTasks();
     }, [agentSidebar, refetchRecentTasks]);
 
@@ -1003,6 +1051,7 @@ export const AssistantSidebar = forwardRef<AssistantSidebarHandle, AssistantSide
 
     const performSend = useCallback(() => {
       const hasCurrentTask = Boolean(agentSidebar.sessionId);
+      setCurrentTaskRunStartedAt(new Date().toISOString());
 
       if (!hasCurrentTask && inputValue.trim()) {
         const title = inputValue.trim();
@@ -1553,6 +1602,10 @@ export const AssistantSidebar = forwardRef<AssistantSidebarHandle, AssistantSide
               agentStatus={isViewingSubagent ? subagentSession.status : agentSidebar.status}
               toolApprovalBypassEnabled={isToolApprovalBypassEnabled}
               toolApprovalBypassDisabled={!settings || isTogglingToolApprovalBypass}
+              goal={currentTaskGoal}
+              goalSaving={updateTaskMutation.isPending}
+              runtimeStatus={runtimeStatus}
+              onGoalChange={handleGoalChange}
               onToggleToolApprovalBypass={handleToggleToolApprovalBypass}
               forceSpecialPanels={!isViewingSubagent && projectedSubagentSpecialPanels.length > 0}
               readOnly={isViewingSubagent}

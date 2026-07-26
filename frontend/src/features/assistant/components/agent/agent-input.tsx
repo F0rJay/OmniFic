@@ -1,7 +1,8 @@
 import { Box, Flex, IconButton, Text, Tooltip } from "@radix-ui/themes";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowUp, CircleUserRound, ExternalLink, ShieldCheck, Square } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -9,11 +10,22 @@ import { ModelIdSelect, Spinner, type ModelIdSelectOption } from "@/components";
 import { SimpleSelect, type SelectOption } from "@/components/select";
 import { ProviderIcon } from "@/features/settings/lib/provider-icons";
 import type { AgentPendingMessage, AgentSessionStatus, ReasoningEffort } from "@/lib/agent.types";
+import { fetchSkills } from "@/lib/api-client";
 
-import { AgentComposerEditor, type AgentComposerSuggestionState } from "./agent-composer-editor";
+import {
+  AgentComposerEditor,
+  type AgentComposerEditorHandle,
+  type AgentComposerSuggestionState,
+} from "./agent-composer-editor";
 import { AgentIndexStatusIndicator } from "./agent-index-status-indicator";
 import { canSendAgentInput, getAgentInputBodyMode, isAgentInputLocked } from "./agent-input-state";
 import { AgentMentionSuggestions } from "./agent-mention-suggestions";
+import type { AgentRuntimeStatusInfo } from "./agent-runtime-status.types";
+import {
+  AgentSkillSuggestions,
+  type SkillSuggestionItem,
+  type SlashPanelPage,
+} from "./agent-skill-suggestions";
 import { AgentPendingMessageCard } from "./pending-message-card";
 
 interface AgentInputProps {
@@ -40,6 +52,10 @@ interface AgentInputProps {
   onOpenMentionChapter?: (chapterId: string, chapterTitle: string) => void;
   toolApprovalBypassEnabled?: boolean;
   toolApprovalBypassDisabled?: boolean;
+  goal?: string;
+  goalSaving?: boolean;
+  runtimeStatus?: AgentRuntimeStatusInfo;
+  onGoalChange?: (goal: string) => Promise<void>;
   onToggleToolApprovalBypass?: () => void;
   onCancelPendingMessage?: () => void;
   specialPanels?: ReactNode;
@@ -73,6 +89,10 @@ export function AgentInput({
   onOpenMentionChapter,
   toolApprovalBypassEnabled = false,
   toolApprovalBypassDisabled = false,
+  goal = "",
+  goalSaving = false,
+  runtimeStatus,
+  onGoalChange,
   onToggleToolApprovalBypass,
   onCancelPendingMessage,
   specialPanels,
@@ -100,28 +120,253 @@ export function AgentInput({
   const shouldShowPendingMessage = hasPendingMessage && bodyMode === "composer" && !readOnly;
   const buttonActive = shouldAbort || canSend;
   const inputContainerRef = useRef<HTMLDivElement>(null);
+  const composerEditorRef = useRef<AgentComposerEditorHandle>(null);
   const [pendingClearanceHeight, setPendingClearanceHeight] = useState(0);
   const [mentionSuggestions, setMentionSuggestions] = useState<AgentComposerSuggestionState | null>(
     null,
   );
+
+  // === 斜杠命令状态 ===
+  const [slashOpen, setSlashOpen] = useState(false);
+  const [slashQuery, setSlashQuery] = useState("");
+  const [slashSelectedIndex, setSlashSelectedIndex] = useState(0);
+  const [slashPage, setSlashPage] = useState<SlashPanelPage>("root");
+
+  const { data: skillsData } = useQuery({
+    queryKey: ["skills"],
+    queryFn: () => fetchSkills(),
+    staleTime: 60 * 1000,
+  });
+
+  const allSkills: SkillSuggestionItem[] = useMemo(() => {
+    if (!skillsData) return [];
+    return (skillsData.items ?? [])
+      .filter((s) => s.isEnabled !== false)
+      .map((s) => ({
+        id: s.id,
+        name: s.name,
+        summary: s.summary,
+        source: s.source,
+      }));
+  }, [skillsData]);
+
   const selectedModel = useMemo(
     () => models.find((model) => model.value === modelId || model.id === modelId),
     [modelId, models],
   );
+  const shouldShowReasoningEffort = selectedModel?.reasoning === true;
+  const reasoningEffortOptions = useMemo<SelectOption[]>(
+    () => [
+      { value: "low", label: "Low" },
+      { value: "medium", label: "Medium" },
+      { value: "high", label: "High" },
+      { value: "xhigh", label: "Xhigh" },
+      { value: "max", label: "Max" },
+    ],
+    [],
+  );
+
+  const filteredSkills = useMemo(() => {
+    const query = slashQuery.trim().toLowerCase();
+    if (!query) return allSkills;
+    return allSkills.filter(
+      (s) => s.name.toLowerCase().includes(query) || s.summary.toLowerCase().includes(query),
+    );
+  }, [allSkills, slashQuery]);
+
+  const rootControlCount = useMemo(() => {
+    const query = slashQuery.trim().toLowerCase();
+    if (!query) return 5;
+    const selectedModel = models.find((model) => model.value === modelId || model.id === modelId);
+    const values = [
+      `${t("assistant.slashMcp")} ${t("assistant.slashMcpUnavailableShort")}`,
+      `${t("assistant.slashReasoning")} ${reasoningEffort ?? ""}`,
+      `${t("assistant.slashModel")} ${selectedModel?.name ?? modelId}`,
+      `${t("assistant.slashStatus")} ${runtimeStatus?.activityLabel ?? runtimeStatus?.status ?? ""}`,
+      `${t("assistant.slashGoal")} ${goal || t("assistant.slashGoalEmpty")}`,
+    ];
+    return values.filter((value) => value.toLowerCase().includes(query)).length;
+  }, [goal, modelId, models, reasoningEffort, runtimeStatus, slashQuery, t]);
+
+  const rootSelectableCount = rootControlCount + filteredSkills.length;
+
+  const closeSlashPanel = useCallback(() => {
+    setSlashOpen(false);
+    setSlashPage("root");
+    setSlashSelectedIndex(0);
+  }, []);
+
+  const handleSlashSelect = useCallback((item: SkillSuggestionItem) => {
+    composerEditorRef.current?.insertSkill(item);
+    setSlashOpen(false);
+    setSlashPage("root");
+  }, []);
+
+  const handleSlashPageChange = useCallback((page: SlashPanelPage) => {
+    setSlashPage(page);
+    setSlashSelectedIndex(0);
+  }, []);
+
+  const selectRootItem = useCallback(
+    (index: number) => {
+      if (index < rootControlCount) {
+        const query = slashQuery.trim().toLowerCase();
+        const rootKeys: SlashPanelPage[] = ["mcp", "reasoning", "model", "status", "goal"];
+        const selectedModel = models.find(
+          (model) => model.value === modelId || model.id === modelId,
+        );
+        const searchable = [
+          `${t("assistant.slashMcp")} ${t("assistant.slashMcpUnavailableShort")}`,
+          `${t("assistant.slashReasoning")} ${reasoningEffort ?? ""}`,
+          `${t("assistant.slashModel")} ${selectedModel?.name ?? modelId}`,
+          `${t("assistant.slashStatus")} ${runtimeStatus?.activityLabel ?? runtimeStatus?.status ?? ""}`,
+          `${t("assistant.slashGoal")} ${goal || t("assistant.slashGoalEmpty")}`,
+        ];
+        const visibleKeys = query
+          ? rootKeys.filter((_, keyIndex) => searchable[keyIndex]?.toLowerCase().includes(query))
+          : rootKeys;
+        const page = visibleKeys[index];
+        if (page) handleSlashPageChange(page);
+        return;
+      }
+      const skill = filteredSkills[index - rootControlCount];
+      if (skill) handleSlashSelect(skill);
+    },
+    [
+      filteredSkills,
+      goal,
+      handleSlashPageChange,
+      handleSlashSelect,
+      modelId,
+      models,
+      reasoningEffort,
+      rootControlCount,
+      runtimeStatus,
+      slashQuery,
+      t,
+    ],
+  );
+
+  const handleSlashKeyDownCapture = useCallback(
+    (e: KeyboardEvent) => {
+      if (!slashOpen || slashPage === "goal") return;
+      const count =
+        slashPage === "root"
+          ? rootSelectableCount
+          : slashPage === "reasoning"
+            ? shouldShowReasoningEffort
+              ? reasoningEffortOptions.length
+              : 0
+            : slashPage === "model"
+              ? models.length
+              : 0;
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        if (slashPage !== "root") handleSlashPageChange("root");
+        else closeSlashPanel();
+        return;
+      }
+      if (e.key === "ArrowLeft" && slashPage !== "root") {
+        e.preventDefault();
+        e.stopPropagation();
+        handleSlashPageChange("root");
+        return;
+      }
+      if (count === 0) return;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        e.stopPropagation();
+        setSlashSelectedIndex((prev) => (prev + 1) % count);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        e.stopPropagation();
+        setSlashSelectedIndex((prev) => (prev - 1 + count) % count);
+      } else if (e.key === "Enter" || e.key === "ArrowRight") {
+        e.preventDefault();
+        e.stopPropagation();
+        if (slashPage === "root") {
+          selectRootItem(Math.min(slashSelectedIndex, count - 1));
+        } else if (slashPage === "reasoning" && onReasoningEffortChange) {
+          onReasoningEffortChange(
+            reasoningEffortOptions[slashSelectedIndex]!.value as ReasoningEffort,
+          );
+          composerEditorRef.current?.clearSlashQuery();
+          closeSlashPanel();
+        } else if (slashPage === "model") {
+          const model = models[slashSelectedIndex];
+          if (model) onModelChange(model.value ?? model.id);
+          composerEditorRef.current?.clearSlashQuery();
+          closeSlashPanel();
+        }
+      }
+    },
+    [
+      closeSlashPanel,
+      handleSlashPageChange,
+      models,
+      onModelChange,
+      onReasoningEffortChange,
+      reasoningEffortOptions,
+      rootSelectableCount,
+      selectRootItem,
+      shouldShowReasoningEffort,
+      slashOpen,
+      slashPage,
+      slashSelectedIndex,
+    ],
+  );
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleSlashKeyDownCapture, true);
+    return () => window.removeEventListener("keydown", handleSlashKeyDownCapture, true);
+  }, [handleSlashKeyDownCapture]);
+
+  // 同步检测斜杠命令 — 包装 onChange，在值变化时立即检测
+  const handleEditorChange = useCallback(
+    (newValue: string) => {
+      onChange(newValue);
+
+      if (disabled || readOnly) {
+        setSlashOpen(false);
+        return;
+      }
+
+      const activeSlashQuery = newValue.match(/(?:^|\s)\/([^\s/]*)$/u);
+      if (activeSlashQuery) {
+        setSlashOpen(true);
+        setSlashQuery(activeSlashQuery[1] ?? "");
+        setSlashPage("root");
+        setSlashSelectedIndex(0);
+        return;
+      }
+      setSlashOpen(false);
+    },
+    [onChange, disabled, readOnly],
+  );
+
+  // 检测输入值中的斜杠命令（后备：外部 value 变化时也检测）
+  useEffect(() => {
+    if (disabled || readOnly) {
+      setSlashOpen(false);
+      return;
+    }
+    const activeSlashQuery = value.match(/(?:^|\s)\/([^\s/]*)$/u);
+    if (activeSlashQuery) {
+      setSlashOpen(true);
+      setSlashQuery(activeSlashQuery[1] ?? "");
+      if (!slashOpen) setSlashPage("root");
+      return;
+    }
+    setSlashOpen(false);
+  }, [value, disabled, readOnly, slashOpen]);
+
   const modelTriggerPrefix = selectedModel ? (
     <ProviderIcon
       size={14}
       iconPath={selectedModel.providerIconPath}
     />
   ) : null;
-  const shouldShowReasoningEffort = selectedModel?.reasoning === true;
-  const reasoningEffortOptions: SelectOption[] = [
-    { value: "low", label: "Low" },
-    { value: "medium", label: "Medium" },
-    { value: "high", label: "High" },
-    { value: "xhigh", label: "Xhigh" },
-    { value: "max", label: "Max" },
-  ];
 
   useLayoutEffect(() => {
     const container = inputContainerRef.current;
@@ -190,6 +435,52 @@ export function AgentInput({
           ) : null}
         </AnimatePresence>
 
+        {/* 斜杠命令必须放在 input-container 外部；容器有 overflow:hidden */}
+        {slashOpen && (
+          <Box
+            style={{
+              position: "absolute",
+              bottom: "calc(100% + 4px)",
+              left: 0,
+              right: 0,
+              zIndex: 100,
+            }}
+          >
+            <AgentSkillSuggestions
+              items={filteredSkills}
+              query={slashQuery}
+              selectedIndex={Math.max(0, slashSelectedIndex)}
+              isLoading={!skillsData}
+              page={slashPage}
+              modelId={modelId}
+              models={models}
+              reasoningEffort={reasoningEffort}
+              reasoningSupported={shouldShowReasoningEffort}
+              goal={goal}
+              goalSaving={goalSaving}
+              runtimeStatus={runtimeStatus}
+              onPageChange={handleSlashPageChange}
+              onSelectedIndexChange={setSlashSelectedIndex}
+              onSelectSkill={handleSlashSelect}
+              onModelChange={(nextModelId) => {
+                onModelChange(nextModelId);
+                composerEditorRef.current?.clearSlashQuery();
+                closeSlashPanel();
+              }}
+              onReasoningEffortChange={(nextEffort) => {
+                onReasoningEffortChange?.(nextEffort);
+                composerEditorRef.current?.clearSlashQuery();
+                closeSlashPanel();
+              }}
+              onGoalSave={async (nextGoal) => {
+                await onGoalChange?.(nextGoal);
+                composerEditorRef.current?.clearSlashQuery();
+                closeSlashPanel();
+              }}
+            />
+          </Box>
+        )}
+
         <AnimatePresence initial={false}>
           {shouldShowPendingMessage ? (
             <AgentPendingMessageCard
@@ -257,15 +548,18 @@ export function AgentInput({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.18, ease: "easeOut" }}
+                style={{ position: "relative" }}
               >
                 <AgentComposerEditor
+                  ref={composerEditorRef}
                   projectId={projectId}
+                  skills={(skillsData?.items ?? []).filter((skill) => skill.isEnabled !== false)}
                   placeholder={getPlaceholder()}
                   value={value}
                   disabled={isComposerLocked}
                   onOpenMentionChapter={onOpenMentionChapter}
                   onMentionSuggestionsChange={setMentionSuggestions}
-                  onChange={onChange}
+                  onChange={handleEditorChange}
                   onSubmit={onSend}
                 />
               </motion.div>
