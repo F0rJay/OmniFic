@@ -86,3 +86,7 @@ Electron Main Process
 ```
 
 使用 `electron-builder` 打包，`electron-updater` 自动更新。
+
+---
+
+> **状态**：Active · **代码范围**：全项目 · **审查日期**：2026-07-27 · **触发条件**：新增路由、新增模块、架构变更

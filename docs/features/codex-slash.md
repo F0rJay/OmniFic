@@ -32,3 +32,7 @@ Enter  选择/打开
 →      进入子菜单
 ←/Esc 返回/关闭
 ```
+
+---
+
+> **状态**：Active · **代码范围**：`frontend/src/features/assistant/components/agent/` · **审查日期**：2026-07-27 · **触发条件**：Skill 系统变更、输入框重构
