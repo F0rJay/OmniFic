@@ -15,12 +15,12 @@ interface SocketClientState {
 
 declare global {
   interface Window {
-    __openficSocketClientState?: SocketClientState;
+    __omnificSocketClientState?: SocketClientState;
   }
 }
 
 function getSocketState(): SocketClientState {
-  window.__openficSocketClientState ??= {
+  window.__omnificSocketClientState ??= {
     socket: null,
     socketUrl: undefined,
     connectPromise: null,
@@ -28,7 +28,7 @@ function getSocketState(): SocketClientState {
     statusListeners: new Set<() => void>(),
     statusBoundSocket: null,
   };
-  return window.__openficSocketClientState;
+  return window.__omnificSocketClientState;
 }
 
 function setConnectionStatus(nextStatus: SocketConnectionStatus): void {
@@ -67,7 +67,7 @@ function getSocketUrl(): string | undefined {
   const { protocol, hostname, port } = window.location;
   const isLocalHost = hostname === "localhost" || hostname === "127.0.0.1";
   if (isLocalHost && port !== "8000") {
-    return `${protocol}//${hostname}:8000`;
+    return `${protocol}//${hostname}:8001`;
   }
 
   return undefined;

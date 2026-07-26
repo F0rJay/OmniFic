@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Dialog, Flex, Button, Text, TextField, Box } from "@radix-ui/themes";
 import { Check, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
@@ -11,29 +11,14 @@ import type { ModelProvider, ModelProviderCatalogProvider } from "@/lib/model.ty
 
 import { validateProvider } from "../lib/model-api";
 import { ProviderIcon } from "../lib/provider-icons";
-import { getProviderUrl } from "../lib/provider-utils";
+import { getProviderUrl, isOfficialUrl } from "../lib/provider-utils";
 
-const connectionSchema = z
-  .object({
-    name: z.string().optional(),
-    url: z.string().optional(), // URL 现在是可选的，因为固定提供商会自动填充
-    apiKey: z.string().optional(),
-    providerType: z.string().min(1, "providerTypeRequired"),
-  })
-  .refine(
-    (data) => {
-      // 如果是 OpenAI 兼容模式，URL 是必需的
-      if (data.providerType === "openai-compatible") {
-        return data.url && data.url.trim().length > 0;
-      }
-      // 其他模式，URL 会自动填充，不需要验证
-      return true;
-    },
-    {
-      message: "urlRequired",
-      path: ["url"],
-    },
-  );
+const connectionSchema = z.object({
+  name: z.string().optional(),
+  url: z.string().min(1, "urlRequired"),
+  apiKey: z.string().optional(),
+  providerType: z.string().min(1, "providerTypeRequired"),
+});
 
 type ConnectionFormData = z.infer<typeof connectionSchema>;
 
@@ -97,65 +82,45 @@ export function ConnectionFormDialog({
     [catalogProviders, providerType],
   );
 
-  // 切换到 OpenAI-compatible 时只清空一次 URL，不要在每次输入时重置。
+  // 统一的 URL 预填逻辑：切换 provider 类型时，仅在用户未自定义 URL 时更新
+  const prevProviderTypeRef = useRef<string | undefined>(undefined);
+
   useEffect(() => {
+    const prevType = prevProviderTypeRef.current;
+    prevProviderTypeRef.current = providerType;
     if (!providerType) return;
 
+    const newOfficial = getProviderUrl(providerType, catalogProviders);
+
     if (providerType === "openai-compatible") {
-      // 切换到 OpenAI 兼容模式时，清空 URL（除非是编辑模式且原本就是 OpenAI 兼容）
-      if (!isEditing || connection?.providerType !== "openai-compatible") {
+      // OpenAI 兼容模式没有官方地址，清空（仅在用户未自定义时）
+      const prevOfficial =
+        prevType && prevType !== "openai-compatible"
+          ? getProviderUrl(prevType, catalogProviders)
+          : null;
+      if (!url || url === prevOfficial) {
         setValue("url", "");
       }
-    }
-  }, [providerType, setValue, isEditing, connection]);
-
-  // 当提供商类型改变时，自动设置固定 URL
-  useEffect(() => {
-    if (!providerType || providerType === "openai-compatible") {
       return;
     }
 
-    // 其他提供商类型，使用固定 URL
-    const fixedUrl = getProviderUrl(providerType, catalogProviders);
-    if (fixedUrl) {
-      // 在新建模式下，自动设置固定 URL
-      // 在编辑模式下，如果当前 URL 为空或者是固定 URL，则更新为新的固定 URL
-      if (!isEditing) {
-        setValue("url", fixedUrl);
-      } else {
-        // 编辑模式下，检查当前 URL 是否为空或等于旧的固定 URL
-        const currentUrl = url;
-        const oldFixedUrl = connection?.providerType
-          ? getProviderUrl(connection.providerType, catalogProviders)
-          : null;
+    // 已知 provider：仅在 URL 为空或等于上一个 provider 的官方地址时更新
+    const prevOfficial =
+      prevType && prevType !== "openai-compatible"
+        ? getProviderUrl(prevType, catalogProviders)
+        : null;
 
-        // 如果当前 URL 为空，或者是旧的固定 URL，则更新为新的固定 URL
-        if (!currentUrl || currentUrl.trim() === "" || currentUrl === oldFixedUrl) {
-          setValue("url", fixedUrl);
-        }
-      }
+    if (newOfficial && (!url || url === prevOfficial)) {
+      setValue("url", newOfficial);
     }
-  }, [providerType, setValue, isEditing, url, connection, catalogProviders]);
+  }, [providerType, setValue, url, catalogProviders]);
 
   // 验证连接
   const handleValidate = useCallback(async () => {
     const formData = getValues();
 
-    if (!formData.providerType) {
+    if (!formData.providerType || !formData.url?.trim()) {
       return;
-    }
-
-    // 确定要使用的 URL
-    let validateUrl = formData.url;
-    if (!validateUrl || validateUrl.trim() === "") {
-      const fixedUrl = getProviderUrl(formData.providerType, catalogProviders);
-      if (fixedUrl) {
-        validateUrl = fixedUrl;
-      } else {
-        // OpenAI 兼容模式必须提供 URL
-        setValidationStatus("error");
-        return;
-      }
     }
 
     // 如果没有apiKey且是新建模式，显示错误
@@ -170,7 +135,7 @@ export function ConnectionFormDialog({
       // 通过后端验证连接（后端会访问 URL/models 接口）
       const result = await validateProvider({
         provider_type: formData.providerType,
-        url: validateUrl,
+        url: formData.url,
         api_key: formData.apiKey || "", // 编辑时可以为空
       });
 
@@ -182,7 +147,7 @@ export function ConnectionFormDialog({
     } catch {
       setValidationStatus("error");
     }
-  }, [catalogProviders, getValues, isEditing]);
+  }, [getValues, isEditing]);
 
   // 提交表单
   const onFormSubmit = useCallback(
@@ -190,24 +155,7 @@ export function ConnectionFormDialog({
       const formData = new FormData();
 
       formData.append("name", data.name || "");
-
-      // 确定要使用的 URL
-      let finalUrl = data.url;
-      if (!finalUrl || finalUrl.trim() === "") {
-        // 如果没有 URL，尝试从提供商类型获取固定 URL
-        const fixedUrl = getProviderUrl(data.providerType, catalogProviders);
-        if (fixedUrl) {
-          finalUrl = fixedUrl;
-        }
-      }
-
-      if (!finalUrl) {
-        // 如果还是没有 URL，这是错误情况
-        setValidationStatus("error");
-        return;
-      }
-
-      formData.append("url", finalUrl);
+      formData.append("url", data.url!.trim());
       formData.append("provider_type", data.providerType);
 
       // 只有在提供了 API Key 时才包含它
@@ -219,7 +167,7 @@ export function ConnectionFormDialog({
       reset();
       setValidationStatus("idle");
     },
-    [catalogProviders, onSubmit, reset],
+    [onSubmit, reset],
   );
 
   const handleOpenChange = useCallback(
@@ -234,7 +182,7 @@ export function ConnectionFormDialog({
 
   const canValidate = useMemo(() => {
     if (!providerType) return false;
-    if (providerType === "openai-compatible" && (!url || !url.trim())) return false;
+    if (!url || !url.trim()) return false;
     if (!isEditing && !apiKey) return false;
     return true;
   }, [providerType, url, isEditing, apiKey]);
@@ -359,46 +307,54 @@ export function ConnectionFormDialog({
               </Flex>
             </Flex>
 
-            {/* 服务 URL - 仅 OpenAI 兼容模式显示 */}
-            {providerType === "openai-compatible" && (
-              <Flex
-                direction="column"
-                gap="2"
+            {/* 服务 URL — 对所有提供商类型显示，默认预填官方地址 */}
+            <Flex
+              direction="column"
+              gap="2"
+            >
+              <Text
+                size="2"
+                weight="medium"
+                color="gray"
               >
+                {t("connections.url")}{" "}
                 <Text
-                  size="2"
-                  weight="medium"
+                  color="red"
+                  style={{ display: "inline" }}
+                >
+                  *
+                </Text>
+              </Text>
+              <Controller
+                name="url"
+                control={control}
+                render={({ field }) => (
+                  <TextField.Root
+                    {...field}
+                    placeholder={t("connections.urlPlaceholder")}
+                    disabled={isAgentSettingsLocked}
+                  />
+                )}
+              />
+              {providerType && providerType !== "openai-compatible" && (
+                <Text
+                  size="1"
                   color="gray"
                 >
-                  {t("connections.url")}{" "}
-                  <Text
-                    color="red"
-                    style={{ display: "inline" }}
-                  >
-                    *
-                  </Text>
+                  {isOfficialUrl(providerType, url, catalogProviders)
+                    ? t("connections.urlHint")
+                    : t("connections.urlRelayHint")}
                 </Text>
-                <Controller
-                  name="url"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField.Root
-                      {...field}
-                      placeholder={t("connections.urlPlaceholder")}
-                      disabled={isAgentSettingsLocked}
-                    />
-                  )}
-                />
-                {errors.url && (
-                  <Text
-                    size="1"
-                    color="red"
-                  >
-                    {t(`connections.${errors.url.message}`)}
-                  </Text>
-                )}
-              </Flex>
-            )}
+              )}
+              {errors.url && (
+                <Text
+                  size="1"
+                  color="red"
+                >
+                  {t(`connections.${errors.url.message}`)}
+                </Text>
+              )}
+            </Flex>
 
             {/* API Key */}
             <Flex

@@ -24,11 +24,7 @@ interface ProviderIdSelectOption {
   iconPath: string | null;
 }
 
-const OPENAI_COMPATIBLE_OPTION: ProviderIdSelectOption = {
-  value: "openai-compatible",
-  label: "OpenAI Compatible",
-  iconPath: null,
-};
+const CUSTOM_PROVIDER_VALUE = "openai-compatible";
 
 export function ProviderIdSelect({
   value,
@@ -49,12 +45,19 @@ export function ProviderIdSelect({
       iconPath: provider.iconPath,
     }));
 
-    if (!catalogOptions.some((option) => option.value === OPENAI_COMPATIBLE_OPTION.value)) {
-      catalogOptions.push(OPENAI_COMPATIBLE_OPTION);
-    }
+    // 自定义/中转站选项置顶，仅保留目录中不存在的
+    const customOption: ProviderIdSelectOption = {
+      value: CUSTOM_PROVIDER_VALUE,
+      label: t("connections.customProvider"),
+      iconPath: null,
+    };
 
-    return catalogOptions.sort((left, right) => left.label.localeCompare(right.label));
-  }, [providers]);
+    const sortedCatalog = catalogOptions
+      .filter((option) => option.value !== CUSTOM_PROVIDER_VALUE)
+      .sort((left, right) => left.label.localeCompare(right.label));
+
+    return [customOption, ...sortedCatalog];
+  }, [providers, t]);
   const selectedOption = options.find((option) => option.value === value);
   const filteredOptions = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -182,31 +185,42 @@ export function ProviderIdSelect({
           ) : (
             <Flex direction="column">
               {filteredOptions.length > 0 ? (
-                filteredOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    data-slot="provider-id-select-item"
-                    data-state={option.value === value ? "checked" : "unchecked"}
-                    className="provider-id-select-item"
-                    onClick={() => handleSelect(option.value)}
-                  >
-                    <Flex
-                      align="center"
-                      gap="2"
-                    >
-                      <ProviderOptionIcon
-                        option={option}
-                        size={18}
+                filteredOptions.map((option, index) => (
+                  <Box key={option.value}>
+                    {/* 在自定义选项和目录选项之间添加分隔线 */}
+                    {index === 1 && option.value !== CUSTOM_PROVIDER_VALUE && (
+                      <Box
+                        my="1"
+                        style={{
+                          borderTop: "1px solid var(--gray-a5)",
+                          paddingTop: "1px",
+                        }}
                       />
-                      <Text
-                        size="2"
-                        truncate
+                    )}
+                    <button
+                      type="button"
+                      data-slot="provider-id-select-item"
+                      data-state={option.value === value ? "checked" : "unchecked"}
+                      className="provider-id-select-item"
+                      onClick={() => handleSelect(option.value)}
+                    >
+                      <Flex
+                        align="center"
+                        gap="2"
                       >
-                        {option.label}
-                      </Text>
-                    </Flex>
-                  </button>
+                        <ProviderOptionIcon
+                          option={option}
+                          size={18}
+                        />
+                        <Text
+                          size="2"
+                          truncate
+                        >
+                          {option.label}
+                        </Text>
+                      </Flex>
+                    </button>
+                  </Box>
                 ))
               ) : (
                 <Text

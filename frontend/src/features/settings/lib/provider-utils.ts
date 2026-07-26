@@ -86,3 +86,16 @@ export function resolveProviderDisplayName(
 export function resolveProviderIconPath(provider: Pick<ModelProvider, "iconPath">): string | null {
   return provider.iconPath;
 }
+
+/**
+ * 判断给定 URL 是否为该提供商的官方地址（即用户未自定义）。
+ */
+export function isOfficialUrl(
+  providerType: string,
+  url: string | undefined | null,
+  catalogProviders?: ModelProviderCatalogProvider[],
+): boolean {
+  if (!url || url.trim() === "") return false;
+  const official = getProviderUrl(providerType, catalogProviders);
+  return official !== null && url === official;
+}

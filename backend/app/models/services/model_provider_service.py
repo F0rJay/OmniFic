@@ -128,15 +128,17 @@ class ModelProviderService:
         return provider
 
     async def _resolve_provider_url(self, provider_type: str, url: str) -> str:
-        if provider_type == "openai-compatible":
-            return url
+        # 始终尊重用户提供的 URL（支持中转站/代理服务）
+        if url and url.strip():
+            return url.strip()
 
+        # 用户未提供 URL 时，从目录获取官方地址作为默认值
         try:
             catalog_provider = await self.catalog_service.get_provider(provider_type)
         except KeyError:
             return url
 
-        return catalog_provider.api or url
+        return catalog_provider.default_url or catalog_provider.api or url
 
     async def update_provider(
         self,

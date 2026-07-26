@@ -27,7 +27,7 @@ function cacheFontResponseHeaders(): Plugin {
 
 export default defineConfig({
   define: {
-    __OPENFIC_FRONTEND_VERSION__: JSON.stringify(frontendVersion),
+    __OMNIFIC_FRONTEND_VERSION__: JSON.stringify(frontendVersion),
   },
   plugins: [...(react() as unknown as Plugin[]), cacheFontResponseHeaders()],
   resolve: {
@@ -45,24 +45,24 @@ export default defineConfig({
     cors: true,
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:8000",
+        target: "http://127.0.0.1:8001",
         changeOrigin: true,
       },
       "/icons": {
-        target: "http://127.0.0.1:8000",
+        target: "http://127.0.0.1:8001",
         changeOrigin: true,
       },
       "/socket.io": {
-        target: "http://127.0.0.1:8000",
+        target: "http://127.0.0.1:8001",
         changeOrigin: true,
         ws: true,
       },
       "/covers": {
-        target: "http://127.0.0.1:8000",
+        target: "http://127.0.0.1:8001",
         changeOrigin: true,
       },
       "/character-images": {
-        target: "http://127.0.0.1:8000",
+        target: "http://127.0.0.1:8001",
         changeOrigin: true,
       },
     },

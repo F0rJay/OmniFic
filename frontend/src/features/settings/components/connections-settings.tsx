@@ -23,7 +23,7 @@ import {
   deleteProvider,
 } from "../lib/model-api";
 import { ProviderIcon } from "../lib/provider-icons";
-import { getProviderDisplayName, resolveProviderDisplayName } from "../lib/provider-utils";
+import { getProviderDisplayName, isOfficialUrl, resolveProviderDisplayName } from "../lib/provider-utils";
 import { AgentSettingsLockNotice } from "./agent-settings-lock-notice";
 import { ConnectionFormDialog } from "./connection-form-dialog";
 
@@ -261,7 +261,7 @@ export function ConnectionsSettings({
                           {connection.catalogMatch?.displayName ||
                             getProviderDisplayName(connection.providerType)}
                         </Text>
-                        {/* 仅未匹配目录的 OpenAI Compatible 连接显示自定义 URL。 */}
+                        {/* 未匹配目录的 OpenAI Compatible 连接显示自定义 URL */}
                         {connection.providerType === "openai-compatible" &&
                           !connection.catalogMatch && (
                             <>
@@ -274,6 +274,28 @@ export function ConnectionsSettings({
                               <Text
                                 size="2"
                                 color="gray"
+                              >
+                                {connection.url}
+                              </Text>
+                            </>
+                          )}
+                        {/* 已知 provider 使用了自定义（中转站）地址时显示 */}
+                        {connection.providerType !== "openai-compatible" &&
+                          !isOfficialUrl(
+                            connection.providerType,
+                            connection.url,
+                            catalogProviders,
+                          ) && (
+                            <>
+                              <Text
+                                size="2"
+                                color="amber"
+                              >
+                                •
+                              </Text>
+                              <Text
+                                size="2"
+                                color="amber"
                               >
                                 {connection.url}
                               </Text>
