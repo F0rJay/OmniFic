@@ -3,14 +3,15 @@ import {
   Box,
   Button,
   Card,
+  Checkbox,
   Dialog,
   Flex,
   Progress,
-  SegmentedControl,
   ScrollArea,
+  SegmentedControl,
   Text,
 } from "@radix-ui/themes";
-import { AlertCircle, Check, ChevronLeft, ChevronRight, FileJson, Upload } from "lucide-react";
+import { AlertCircle, Check, ChevronLeft, ChevronRight, FileJson, FileText, Upload } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -18,7 +19,12 @@ import { Spinner } from "@/components";
 
 import "./import-world-info-dialog.css";
 
-import { importWorldInfoEntriesStream, previewWorldInfoImport } from "@/lib/api-client";
+import {
+  importDocumentStream,
+  importWorldInfoEntriesStream,
+  previewDocumentImport,
+  previewWorldInfoImport,
+} from "@/lib/api-client";
 import type { WorldInfoImportMode, WorldInfoImportPreviewResponse } from "@/lib/world-info.types";
 
 interface ImportWorldInfoDialogProps {
@@ -29,6 +35,7 @@ interface ImportWorldInfoDialogProps {
 }
 
 type Step = "select" | "preview" | "importing" | "complete";
+type ImportFormat = "json" | "document";
 
 export function ImportWorldInfoDialog({
   open,
@@ -48,6 +55,8 @@ export function ImportWorldInfoDialog({
   const [currentEntry, setCurrentEntry] = useState(0);
   const [totalEntries, setTotalEntries] = useState(0);
   const [importedCount, setImportedCount] = useState(0);
+  const [importFormat, setImportFormat] = useState<ImportFormat>("json");
+  const [useAI, setUseAI] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const resetState = useCallback(() => {
@@ -62,6 +71,8 @@ export function ImportWorldInfoDialog({
     setCurrentEntry(0);
     setTotalEntries(0);
     setImportedCount(0);
+    setImportFormat("json");
+    setUseAI(false);
   }, []);
 
   const handleOpenChange = useCallback(
@@ -76,7 +87,9 @@ export function ImportWorldInfoDialog({
 
   const handleFileSelect = useCallback(
     async (selectedFile: File) => {
-      if (!selectedFile.name.toLowerCase().endsWith(".json")) {
+      const isDocument = importFormat === "document";
+
+      if (!isDocument && !selectedFile.name.toLowerCase().endsWith(".json")) {
         setError(t("worldInfo.importInvalidFileType"));
         return;
       }
@@ -86,18 +99,23 @@ export function ImportWorldInfoDialog({
       setFile(selectedFile);
 
       try {
-        const result = await previewWorldInfoImport(selectedFile);
+        const result = isDocument
+          ? await previewDocumentImport(selectedFile, useAI)
+          : await previewWorldInfoImport(selectedFile);
         setPreviewData(result);
         setStep("preview");
       } catch (importError) {
-        const message =
-          importError instanceof Error ? importError.message : t("worldInfo.importParseFailed");
+        const message = importError instanceof Error
+          ? importError.message
+          : isDocument
+            ? t("worldInfo.importDocParseFailed")
+            : t("worldInfo.importParseFailed");
         setError(message);
       } finally {
         setLoading(false);
       }
     },
-    [t],
+    [importFormat, useAI, t],
   );
 
   const handleDrop = useCallback(
@@ -124,7 +142,12 @@ export function ImportWorldInfoDialog({
     setStep("importing");
 
     try {
-      const result = await importWorldInfoEntriesStream(worldInfoId, file, mode, (event) => {
+      const streamFn = importFormat === "document"
+        ? (id: string, f: File, m: WorldInfoImportMode, cb: (event: any) => void) =>
+            importDocumentStream(id, f, useAI, m, cb)
+        : importWorldInfoEntriesStream;
+
+      const result = await streamFn(worldInfoId, file, mode, (event) => {
         if (event.type === "progress") {
           setImportProgress(event.progress);
           setImportStage(event.stage);
@@ -151,7 +174,7 @@ export function ImportWorldInfoDialog({
     } finally {
       setLoading(false);
     }
-  }, [file, mode, onSuccess, previewData?.entryCount, t, worldInfoId]);
+  }, [file, importFormat, useAI, mode, onSuccess, previewData?.entryCount, t, worldInfoId]);
 
   const getStageLabel = useCallback(() => {
     if (importStage === "reading") return t("worldInfo.importReading");
@@ -165,11 +188,39 @@ export function ImportWorldInfoDialog({
       case "select":
         return (
           <Box>
+            {/* 格式选择 */}
+            <Flex
+              direction="column"
+              gap="2"
+              mb="4"
+            >
+              <SegmentedControl.Root
+                value={importFormat}
+                onValueChange={(value) => setImportFormat(value as ImportFormat)}
+                size="2"
+              >
+                <SegmentedControl.Item value="json">
+                  <Flex align="center" gap="1">
+                    <FileJson size={14} />
+                    {t("worldInfo.importModeJson")}
+                  </Flex>
+                </SegmentedControl.Item>
+                <SegmentedControl.Item value="document">
+                  <Flex align="center" gap="1">
+                    <FileText size={14} />
+                    {t("worldInfo.importModeDocument")}
+                  </Flex>
+                </SegmentedControl.Item>
+              </SegmentedControl.Root>
+            </Flex>
+
             <input
               className="world-info-import-file-input"
               ref={fileInputRef}
               type="file"
-              accept=".json,application/json"
+              accept={importFormat === "document"
+                ? ".md,.markdown,.txt,.pdf,.docx,.doc,.pptx,.ppt,.xlsx,.xls,.html,.htm"
+                : ".json,application/json"}
               onChange={(event) => {
                 const selectedFile = event.target.files?.[0];
                 if (selectedFile) {
@@ -193,16 +244,55 @@ export function ImportWorldInfoDialog({
                 weight="medium"
                 mb="2"
               >
-                {t("worldInfo.importDragDropHint")}
+                {importFormat === "document"
+                  ? t("worldInfo.importDocDragDropHint")
+                  : t("worldInfo.importDragDropHint")}
               </Text>
               <Text
                 as="p"
                 size="2"
                 color="gray"
               >
-                {t("worldInfo.importSupportedFormats")}
+                {importFormat === "document"
+                  ? t("worldInfo.importDocFormats")
+                  : t("worldInfo.importSupportedFormats")}
               </Text>
             </Box>
+
+            {/* AI 增强选项（仅文档模式） */}
+            {importFormat === "document" && (
+              <Flex
+                direction="column"
+                gap="1"
+                mt="3"
+                px="2"
+              >
+                <label>
+                  <Flex
+                    align="center"
+                    gap="2"
+                  >
+                    <Checkbox
+                      checked={useAI}
+                      onCheckedChange={(checked) => setUseAI(checked === true)}
+                    />
+                    <Text
+                      size="2"
+                      weight="medium"
+                    >
+                      {t("worldInfo.useAiEnhance")}
+                    </Text>
+                  </Flex>
+                </label>
+                <Text
+                  size="1"
+                  color="gray"
+                  style={{ paddingLeft: 24 }}
+                >
+                  {t("worldInfo.useAiEnhanceDesc")}
+                </Text>
+              </Flex>
+            )}
 
             {loading && (
               <Flex
@@ -216,7 +306,9 @@ export function ImportWorldInfoDialog({
                   size="2"
                   color="gray"
                 >
-                  {t("worldInfo.importParsing")}
+                  {useAI && importFormat === "document"
+                    ? t("worldInfo.aiEnhancing")
+                    : t("worldInfo.importParsing")}
                 </Text>
               </Flex>
             )}

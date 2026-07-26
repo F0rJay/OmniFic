@@ -38,15 +38,8 @@ async def confirm_import(
     """
     确认导入，创建项目和所有章节。
 
-    Args:
-        session: 数据库 session。
-        title: 书名。
-        description: 简介，可选。
-        cover_file: 封面文件，可选。
-        chapters: 解析后的章节列表。
-
-    Returns:
-        导入结果。
+    自动按卷标题分组：相同 volume_name 的章节归入同一个 Volume，
+    没有卷信息的章节归入默认卷。
     """
     # 计算总字数
     total_word_count = sum(c.word_count for c in chapters)
@@ -60,15 +53,43 @@ async def confirm_import(
     )
     project = await project_repo.create(session, project)
 
-    volume = Volume(
-        project_id=project.id,
-        title=DEFAULT_VOLUME_TITLE,
-        description=None,
-        order=1,
-        chapter_count=len(chapters),
-    )
-    session.add(volume)
-    await session.flush()
+    # 按卷分组：保持出现顺序
+    volume_order: list[str | None] = []
+    volume_map: dict[str | None, list[ParsedChapter]] = {}
+    for chapter in chapters:
+        vol = chapter.volume_name
+        if vol not in volume_map:
+            volume_map[vol] = []
+            volume_order.append(vol)
+        volume_map[vol].append(chapter)
+
+    # 如果有未分卷章节（None），且存在真实卷名，则合并到第一个卷
+    has_real_volumes = any(v is not None for v in volume_order)
+    if has_real_volumes and None in volume_map:
+        first_real_vol = next(v for v in volume_order if v is not None)
+        volume_map[first_real_vol] = volume_map[None] + volume_map[first_real_vol]
+        volume_order.remove(None)
+        del volume_map[None]
+
+    # 如果没有卷，创建默认卷
+    if not volume_order:
+        volume_order = [None]
+        volume_map[None] = []
+
+    # 为每个卷创建 Volume 记录
+    volume_ids: dict[str | None, str] = {}
+    for vol_index, vol_name in enumerate(volume_order, start=1):
+        vol_chapters = volume_map.get(vol_name, [])
+        volume = Volume(
+            project_id=project.id,
+            title=vol_name if vol_name else DEFAULT_VOLUME_TITLE,
+            description=None,
+            order=vol_index,
+            chapter_count=len(vol_chapters),
+        )
+        session.add(volume)
+        await session.flush()
+        volume_ids[vol_name] = volume.id
 
     # 如果提供了封面文件，保存封面
     if cover_file:
@@ -76,18 +97,23 @@ async def confirm_import(
         project.cover_path = cover_path
         project = await project_repo.update(session, project)
 
-    # 批量创建章节对象
-    chapter_objects = [
-        Chapter(
-            project_id=project.id,
-            volume_id=volume.id,
-            title=parsed_chapter.title,
-            content=parsed_chapter.content,
-            word_count=parsed_chapter.word_count,
-            order=order,
-        )
-        for order, parsed_chapter in enumerate(chapters, start=1)
-    ]
+    # 按卷顺序创建章节
+    chapter_objects = []
+    global_order = 0
+    for vol_name in volume_order:
+        vol_id = volume_ids[vol_name]
+        for parsed_chapter in volume_map.get(vol_name, []):
+            global_order += 1
+            chapter_objects.append(
+                Chapter(
+                    project_id=project.id,
+                    volume_id=vol_id,
+                    title=parsed_chapter.title,
+                    content=parsed_chapter.content,
+                    word_count=parsed_chapter.word_count,
+                    order=global_order,
+                )
+            )
 
     # 批量插入所有章节
     session.add_all(chapter_objects)

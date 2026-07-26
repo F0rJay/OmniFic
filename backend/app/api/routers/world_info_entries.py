@@ -6,7 +6,7 @@ WorldInfo Entries Router - 世界书条目 CRUD API。
 import json
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,13 +29,23 @@ from app.api.schemas.world_info import (
     WorldInfoImportPreviewResponse,
     WorldInfoEntryUpdate,
 )
+from app.core.document_parser import SUPPORTED_EXTENSIONS, parse_document_to_sections
+from app.core.encryption import EncryptionService
 from app.core.errors import NotFoundError
+from app.models.repos import model_repo, model_provider_repo
+from app.settings import settings as app_settings
 from app.storage.database import get_session
+from app.storage.repos import setting_repo
 from app.storage.services import world_info_entry_service
+from app.storage.services.world_info_convert_service import (
+    convert_sections_to_entries,
+    enhance_entries_with_ai,
+)
 
 router = APIRouter(tags=["world-info"])
 
 MAX_IMPORT_FILE_SIZE = 10 * 1024 * 1024
+MAX_DOCUMENT_FILE_SIZE = 50 * 1024 * 1024
 
 
 def _entry_to_response(entry) -> WorldInfoEntryResponse:
@@ -190,6 +200,191 @@ async def import_entries_stream(
             yield f"data: {json.dumps({'type': 'error', 'message': str(exc)}, ensure_ascii=False)}\n\n"
         except Exception as exc:
             logger.exception(f"导入世界书失败: {exc}")
+            yield f"data: {json.dumps({'type': 'error', 'message': str(exc)}, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(
+        generate_progress(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+# ============================================================
+# 文档导入（MD/PDF/Word → 世界书条目）
+# ============================================================
+
+def _validate_document_file(filename: str | None, content_size: int) -> None:
+    """验证文档文件类型和大小。"""
+    if not filename:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="文件名缺失")
+
+    ext = "." + filename.lower().rsplit(".", 1)[-1] if "." in filename else ""
+    if ext not in SUPPORTED_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"不支持的文件格式: {ext}，支持: {', '.join(sorted(SUPPORTED_EXTENSIONS))}",
+        )
+
+    if content_size > MAX_DOCUMENT_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="文件大小超过限制（最大 50MB）",
+        )
+
+
+async def _resolve_default_model_config(session: AsyncSession) -> dict | None:
+    """从设置中获取默认模型并解析为完整配置。"""
+    settings_dict = await setting_repo.get_all(session)
+    model_record_id = settings_dict.get("default_model", "")
+    if not model_record_id:
+        return None
+
+    model = await model_repo.get_by_id(session, model_record_id)
+    if model is None:
+        return None
+
+    provider = await model_provider_repo.get_by_id(session, model.provider_id)
+    if provider is None:
+        return None
+
+    encryption_service = EncryptionService(app_settings.encryption_key)
+    try:
+        api_key = encryption_service.decrypt(provider.api_key_encrypted)
+    except Exception:
+        return None
+
+    return {
+        "provider_type": provider.provider_type,
+        "base_url": provider.url,
+        "api_key": api_key,
+        "model_id": model.model_id,
+        "max_context_tokens": model.context_length,
+        "temperature": model.temperature,
+        "top_p": model.top_p,
+        "top_k": model.top_k,
+        "min_p": model.min_p,
+        "top_a": model.top_a,
+        "max_tokens": model.max_tokens,
+        "frequency_penalty": model.frequency_penalty,
+        "presence_penalty": model.presence_penalty,
+        "repetition_penalty": model.repetition_penalty,
+    }
+
+
+async def _parse_document_to_entries(
+    content: bytes,
+    filename: str,
+    use_ai: bool,
+    session: AsyncSession,
+) -> list[world_info_entry_service.WorldInfoImportEntry]:
+    """解析文档为世界书条目，可选 AI 增强。"""
+    sections = parse_document_to_sections(content, filename)
+    if not sections:
+        raise ValueError("文档内容为空或无法解析")
+
+    entries = convert_sections_to_entries(sections)
+
+    if use_ai:
+        model_config = await _resolve_default_model_config(session)
+        if model_config is None:
+            logger.warning("AI 增强已请求但未配置默认模型，跳过 AI 增强")
+        else:
+            entries = await enhance_entries_with_ai(entries, model_config)
+
+    return entries
+
+
+@router.post(
+    "/world-info/import-document/preview",
+    response_model=WorldInfoImportPreviewResponse,
+    summary="预览文档导入世界书",
+)
+async def preview_document_import(
+    file: Annotated[UploadFile, File(description="文档文件 (MD/PDF/Word/PPT/TXT)")],
+    use_ai: Annotated[bool, Form(description="是否使用 AI 增强")] = False,
+    session: Annotated[AsyncSession, Depends(get_session)] = None,
+) -> WorldInfoImportPreviewResponse:
+    """上传文档文件，解析（可选 AI 增强），返回条目预览。"""
+    content = await file.read()
+    _validate_document_file(file.filename, len(content))
+
+    if len(content) == 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="文件内容为空")
+
+    try:
+        entries = await _parse_document_to_entries(content, file.filename, use_ai, session)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+    return WorldInfoImportPreviewResponse(
+        entry_count=len(entries),
+        enabled_count=sum(1 for entry in entries if entry.is_enabled),
+        entries=[_preview_entry_to_response(entry) for entry in entries],
+    )
+
+
+@router.post(
+    "/world-info/{world_info_id}/entries/import-document-stream",
+    response_model=None,
+    summary="流式导入文档世界书条目",
+)
+async def import_document_stream(
+    world_info_id: str,
+    file: Annotated[UploadFile, File(description="文档文件")],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    use_ai: Annotated[bool, Form(description="是否使用 AI 增强")] = False,
+    mode: Annotated[
+        Literal["append", "overwrite"],
+        Query(description="导入模式"),
+    ] = "append",
+) -> StreamingResponse:
+    """流式导入文档条目并返回实时进度。"""
+
+    async def generate_progress():
+        try:
+            _validate_document_file(file.filename, 0)
+
+            yield f"data: {json.dumps({'type': 'progress', 'stage': 'reading', 'progress': 5}, ensure_ascii=False)}\n\n"
+            content = await file.read()
+
+            if len(content) > MAX_DOCUMENT_FILE_SIZE:
+                yield f"data: {json.dumps({'type': 'error', 'message': '文件大小超过限制（最大 50MB）'}, ensure_ascii=False)}\n\n"
+                return
+            if len(content) == 0:
+                yield f"data: {json.dumps({'type': 'error', 'message': '文件内容为空'}, ensure_ascii=False)}\n\n"
+                return
+
+            yield f"data: {json.dumps({'type': 'progress', 'stage': 'parsing', 'progress': 20}, ensure_ascii=False)}\n\n"
+            entries = await _parse_document_to_entries(content, file.filename, use_ai, session)
+            total_entries = len(entries)
+
+            for index in range(total_entries):
+                progress = 35 + int(((index + 1) / total_entries) * 60)
+                yield f"data: {json.dumps({'type': 'progress', 'stage': 'importing_entries', 'progress': progress, 'current': index + 1, 'total': total_entries}, ensure_ascii=False)}\n\n"
+
+            result = await world_info_entry_service.import_entries(
+                session=session,
+                world_info_id=world_info_id,
+                entries=entries,
+                mode=mode,
+            )
+
+            complete_event = {
+                "type": "complete",
+                "world_info_id": result.world_info_id,
+                "imported_count": result.imported_count,
+            }
+            yield f"data: {json.dumps(complete_event, ensure_ascii=False)}\n\n"
+        except NotFoundError as exc:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(exc)}, ensure_ascii=False)}\n\n"
+        except ValueError as exc:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(exc)}, ensure_ascii=False)}\n\n"
+        except Exception as exc:
+            logger.exception(f"文档导入世界书失败: {exc}")
             yield f"data: {json.dumps({'type': 'error', 'message': str(exc)}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(

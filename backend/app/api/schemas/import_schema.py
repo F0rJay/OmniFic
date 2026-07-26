@@ -12,6 +12,7 @@ class PreviewChapter(BaseModel):
     title: str = Field(description="章节标题")
     word_count: int = Field(description="章节字数")
     content_preview: str = Field(description="内容预览（前 200 字）")
+    volume_name: str | None = Field(default=None, description="所属卷名")
 
 
 class ImportPreviewResponse(BaseModel):
@@ -21,6 +22,7 @@ class ImportPreviewResponse(BaseModel):
     total_word_count: int = Field(description="总字数")
     chapter_count: int = Field(description="章节数")
     detected_encoding: str = Field(description="检测到的编码")
+    volume_names: list[str] = Field(default_factory=list, description="识别到的卷名列表")
 
 
 class ImportConfirmRequest(BaseModel):

@@ -343,7 +343,7 @@ export function ImportDialog({ open, onOpenChange, onSuccess }: ImportDialogProp
                 >
                   {t("import.chapterPreview")}
                 </Text>
-                <ScrollArea className="import-dialog-preview-scroll">
+                <ScrollArea className="import-dialog-preview-scroll" style={{ maxHeight: "350px" }}>
                   <Box p="2">
                     {previewData.chapters.map((chapter, index) => (
                       <Flex
@@ -644,7 +644,15 @@ export function ImportDialog({ open, onOpenChange, onSuccess }: ImportDialogProp
       open={open}
       onOpenChange={handleOpenChange}
     >
-      <Dialog.Content maxWidth="600px">
+      <Dialog.Content
+        maxWidth="600px"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          maxHeight: "85vh",
+          overflow: "hidden",
+        }}
+      >
         <Dialog.Title>{t("import.title")}</Dialog.Title>
         <Dialog.Description
           size="2"
@@ -654,7 +662,9 @@ export function ImportDialog({ open, onOpenChange, onSuccess }: ImportDialogProp
           {getStepTitle()}
         </Dialog.Description>
 
-        {renderStepContent()}
+        <Box style={{ flex: 1, overflowY: "auto", overflowX: "hidden", minHeight: 0 }}>
+          {renderStepContent()}
+        </Box>
 
         {error && step !== "select" && (
           <Flex

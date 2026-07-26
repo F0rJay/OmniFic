@@ -22,6 +22,7 @@ class ParsedChapter:
     title: str
     content: str
     word_count: int
+    volume_name: str | None = None
 
 
 @dataclass
@@ -232,6 +233,96 @@ def _select_best_toc_rule(text: str) -> re.Pattern[str] | None:
     return None
 
 
+# 卷标题正则：匹配"第X卷/部/篇"或"卷/部/篇 X"格式的标题（不含章/节）
+_VOLUME_KEYWORD_RE = re.compile(
+    r"(?:第\s{0,4}[\d〇零一二两三四五六七八九十百千万壹贰叁肆伍陆柒捌玖拾佰仟]+?\s{0,4}"
+    r"(?:卷|部(?![分赛游])|篇(?!张)))"
+    r"|"
+    r"(?:^卷\s{0,4}[\d〇零一二两三四五六七八九十百千万壹贰叁肆伍陆柒捌玖拾佰仟]+?\s{0,4}.{0,20}$)",
+    re.MULTILINE,
+)
+
+# 明确的章节关键词（用于排除：标题含"章"或"节"的不是卷标题）
+_CHAPTER_KEYWORD_RE = re.compile(r"(?:章|节(?!课))")
+
+
+def _is_volume_heading(title: str, content: str) -> bool:
+    """判断一个解析出的标题是否实际上是卷标题而非章节标题。
+
+    判定规则：
+    - 标题匹配卷关键词（卷/部/篇）且不含章节关键词（章/节）
+    - 且内容很少（少于 100 字），说明它只是一个卷分隔标记
+    """
+    if not title:
+        return False
+
+    # 标题包含"章"或"节"→ 一定是章节，不是卷
+    if _CHAPTER_KEYWORD_RE.search(title):
+        return False
+
+    # 标题匹配卷关键词
+    if not _VOLUME_KEYWORD_RE.search(title):
+        return False
+
+    # 内容很少 → 是卷标记；内容多 → 保留为章节（可能只是碰巧匹配）
+    if len(content.strip()) > 100:
+        return False
+
+    return True
+
+
+def _separate_volumes(
+    chapters: list[ParsedChapter],
+    raw_text: str = "",
+    first_chapter_pos: int = -1,
+) -> list[ParsedChapter]:
+    """识别卷标题，将其从章节列表中分离，并为后续章节标记所属卷。
+
+    - 卷标题（如"第一卷"）不作为章节保留，而是作为卷名赋给后续章节
+    - 第一个卷标题之前的章节归入默认卷（volume_name=None）
+    - 额外扫描 raw_text 在 first_chapter_pos 之前的内容，检测被 TOC 规则遗漏的卷标题
+    """
+    if not chapters:
+        return chapters
+
+    # 扫描第一个章节之前的原文，检测遗漏的卷标题
+    leading_volume: str | None = None
+    if raw_text and first_chapter_pos > 0:
+        preface = raw_text[:first_chapter_pos]
+        for line in preface.split("\n"):
+            line_stripped = line.strip()
+            if line_stripped and _is_volume_heading(line_stripped, ""):
+                leading_volume = line_stripped
+                break
+
+    result: list[ParsedChapter] = []
+    # 如果检测到前置卷标题，标记前面的章节
+    current_volume = leading_volume
+
+    for chapter in chapters:
+        if _is_volume_heading(chapter.title, chapter.content):
+            # 这是一个卷标题，更新当前卷名
+            current_volume = chapter.title.strip()
+            # 如果卷标题下有少量内容，附加为一条笔记式章节
+            content_stripped = chapter.content.strip()
+            if content_stripped and len(content_stripped) > 20:
+                result.append(ParsedChapter(
+                    title=f"{current_volume} · 卷首语",
+                    content=content_stripped,
+                    word_count=chapter.word_count,
+                    volume_name=current_volume,
+                ))
+        else:
+            result.append(ParsedChapter(
+                title=chapter.title,
+                content=chapter.content,
+                word_count=chapter.word_count,
+                volume_name=current_volume,
+            ))
+
+    return result
+
+
 def parse_txt_content(content: bytes) -> ParseResult:
     """
     解析 TXT 文件内容。
@@ -267,6 +358,7 @@ def parse_txt_content(content: bytes) -> ParseResult:
     toc_pattern = _select_best_toc_rule(text)
 
     chapters: list[ParsedChapter] = []
+    first_ch_pos = -1
 
     if toc_pattern is None:
         # 没有识别到章节，整个内容作为一个章节
@@ -292,6 +384,8 @@ def parse_txt_content(content: bytes) -> ParseResult:
     else:
         # 使用正则切分章节
         matches = list(toc_pattern.finditer(text))
+        if matches:
+            first_ch_pos = matches[0].start()
 
         if not matches:
             # 没有匹配，整个内容作为一个章节
@@ -350,6 +444,9 @@ def parse_txt_content(content: bytes) -> ParseResult:
                         word_count=word_count,
                     )
                 )
+
+    # 识别卷标题，分离卷和章
+    chapters = _separate_volumes(chapters, raw_text=text, first_chapter_pos=first_ch_pos)
 
     # 计算总字数
     total_word_count = sum(c.word_count for c in chapters)

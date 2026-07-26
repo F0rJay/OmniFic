@@ -81,15 +81,25 @@ async def preview_txt_file(
             title=chapter.title,
             word_count=chapter.word_count,
             content_preview=chapter.content[:200] if chapter.content else "",
+            volume_name=chapter.volume_name,
         )
         for chapter in result.chapters
     ]
+
+    # 提取去重的卷名列表（保持顺序）
+    volume_names: list[str] = []
+    seen = set()
+    for chapter in result.chapters:
+        if chapter.volume_name and chapter.volume_name not in seen:
+            volume_names.append(chapter.volume_name)
+            seen.add(chapter.volume_name)
 
     return ImportPreviewResponse(
         chapters=preview_chapters,
         total_word_count=result.total_word_count,
         chapter_count=result.chapter_count,
         detected_encoding=result.detected_encoding,
+        volume_names=volume_names,
     )
 
 
