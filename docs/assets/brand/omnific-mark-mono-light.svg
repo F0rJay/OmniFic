@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">OmniFic monochrome light mark</title>
+  <defs>
+    <mask id="mark" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512" style="mask-type:alpha">
+      <image width="512" height="512" href="generated/omnific-logo-transparent.png"/>
+    </mask>
+  </defs>
+  <rect width="512" height="512" fill="#F7F8FC" mask="url(#mark)"/>
+</svg>

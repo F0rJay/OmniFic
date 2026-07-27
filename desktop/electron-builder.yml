@@ -3,6 +3,7 @@ productName: OmniFic
 
 directories:
   output: dist-electron
+  buildResources: build
 
 publish:
   provider: github
@@ -23,6 +24,7 @@ extraResources:
     to: app-update.yml
 
 win:
+  icon: build/icon.ico
   artifactName: OmniFic-${version}-win-${arch}.${ext}
   target:
     - target: nsis
@@ -40,6 +42,7 @@ nsis:
   artifactName: OmniFic-${version}-win-${arch}-setup.${ext}
 
 mac:
+  icon: build/icon.icns
   artifactName: OmniFic-${version}-mac-${arch}.${ext}
   target:
     - target: dmg
@@ -54,6 +57,7 @@ mac:
   identity: null
 
 linux:
+  icon: build/icon.png
   artifactName: OmniFic-${version}-linux-${arch}.${ext}
   target:
     - target: AppImage

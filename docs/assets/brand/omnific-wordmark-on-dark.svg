@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1160 320" role="img" aria-labelledby="title desc">
+  <title id="title">OmniFic wordmark on dark background</title>
+  <desc id="desc">The OmniFic turning-page mark followed by the OmniFic name.</desc>
+  <rect width="1160" height="320" rx="48" fill="#070A12"/>
+  <image width="320" height="320" href="generated/omnific-logo-transparent.png" preserveAspectRatio="xMidYMid meet"/>
+  <text x="340" y="218" fill="#F7F8FC" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="176" font-weight="750" letter-spacing="-7">OmniFic</text>
+</svg>

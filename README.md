@@ -1,142 +1,146 @@
-# OmniFic
+![OmniFic：由翻动书页与数字字流构成的品牌横幅](./docs/assets/readme/omnific-hero.webp)
 
-> 从 [OpenFic](https://github.com/syrizelink/OpenFic) v0.7.5 Fork 并独立发展的 AI 辅助长篇小说创作工具。
+<h1 align="center">OmniFic</h1>
 
-![License](https://img.shields.io/badge/License-Apache_2.0-red)
-![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)
-![Based on OpenFic](https://img.shields.io/badge/Based%20on-OpenFic%20v0.7.5-blue)
+<p align="center">
+  <strong>一份由真实创作体验推动的 AI 辅助长篇小说写作实验。</strong>
+</p>
 
-中文 | [English](./README_EN.md)
+<p align="center">
+  中文 · <a href="./README_EN.md">English</a>
+</p>
 
-## 定位
+<p align="center">
+  <img alt="Apache 2.0 License" src="https://img.shields.io/badge/License-Apache_2.0-8B5CF6">
+  <img alt="Python 3.12–3.13" src="https://img.shields.io/badge/Python-3.12%E2%80%933.13-22D3EE">
+  <img alt="Based on OpenFic v0.7.5" src="https://img.shields.io/badge/Based_on-OpenFic_v0.7.5-070A12">
+</p>
 
-**OmniFic Fork 自 OpenFic，现已作为独立项目发展，不再跟踪上游更新。**
+## 写在前面
 
-OpenFic 是一款优秀的 AI Native 小说写作工具，提供了扎实的世界观管理、Agent 协作和本地持久化能力。在此基础上，OmniFic 选择了自己的发展方向——这些改进并非“通用功能请求”，而是一位重度用户在实际使用中遇到真实痛点后，自己动手优化的结果。
+> OmniFic 不是 OpenFic 的替代，也不是一个“更正确”的版本。它只是我在真实使用中，按照自己的写作习惯、模型接入方式和交互偏好做出的分支。
 
-如果你满足以下条件，OmniFic 可能比 OpenFic 更适合你：
+我很感谢 [OpenFic](https://github.com/syrizelink/OpenFic)。它提供了这个项目最重要的基础：世界观管理、写作编辑器、Agent Runtime、本地数据能力，以及一套让我愿意继续动手改造的完整产品形态。OmniFic 从 OpenFic v0.7.5 Fork，之后选择了独立发展。
 
-- 使用公司或个人的模型中转站/API 代理，而非直接对接官方 API
-- 追求 Codex / Claude Code 级别的高效交互体验，希望用 `/` 完成一切操作
-- 需要将 Markdown、PDF、Word 等格式的设定文档快速转为可用的世界书
-- 创作百万字级长篇小说，对上下文管理、任务目标和 Agent 推理透明化有真实需求
-- 不满足于“使用现有功能”，愿意自己动手优化工具的深度用户
+做出这个决定，不是因为上游的方向有问题。恰恰相反，是因为我逐渐意识到，自己的许多改动带有很强的个人偏好：我使用中转站接入模型，习惯命令式的 Agent 交互，也特别在意长篇创作中的资料导入、任务连续性和推理过程。这些取舍未必适合每个人，也不应该要求原项目接受。
 
-## 相比 OpenFic 的核心差异
+所以我把它作为一个独立项目公开。它首先服务于我自己的创作实践，也希望能用来分享实现、交流想法和共同学习。
+
+## OmniFic 是什么
+
+OmniFic 是一款本地运行的 AI 辅助长篇小说创作工具。它以 OpenFic v0.7.5 为基础，保留了项目、角色、世界书、章节编辑与 Agent 协作等核心能力，并围绕我自己的工作流继续实验。
+
+项目由 Python 后端、React 前端和可选的 Electron 桌面壳组成。当前推荐入口是从源码在本地运行；系统结构与模块边界见[架构文档](./docs/architecture.md)。
+
+## 我做出的取舍
+
+这些不是对上游的功能评判，而是我在日常使用中选择优先解决的问题。
 
 ### 模型接入
 
-| 能力 | OpenFic | OmniFic |
-|---|---|---|
-| 支持官方模型目录 | ✅ | ✅ |
-| 支持任意 OpenAI 兼容中转站 | ⚠️ 有限 | ✅ 一级支持 |
-| 中转站模型自动发现 | ❌ | ✅ 一键拉取全部模型 |
-| 手动指定模型推理能力 | ❌ | ✅ 可按模型覆盖 |
+- 将 OpenAI 兼容的中转站或 API 代理视为常用接入方式
+- 支持从中转站发现模型，并按模型覆盖推理能力
+- 在多个供应商、基础 URL 与能力声明之间提供更直接的配置路径
 
-中转站用户不需要再“碰运气”确认模型是否支持推理强度，也不需要在多个供应商页面之间反复切换对比。
+详见[中转站供应商](./docs/features/relay-provider.md)与[模型推理能力](./docs/features/model-reasoning.md)。
 
-### 交互体验
+### Agent 交互
 
-| 能力 | OpenFic | OmniFic |
-|---|---|---|
-| Agent 对话输入 | 普通文本框 | 支持 `@` 引用 + `/` 命令中心 |
-| 技能选择 | 无快捷入口 | `/` 菜单 + 蓝色可视化 Skill Token |
-| 会话配置 | 底部选择器分散 | `/推理` `/模型` 统一入口 |
-| Agent 推理用时 | 无 | 实时显示，刷新/重连后仍可恢复 |
-| 运行状态面板 | 头部摘要 | `/状态` 展示完整会话详情 |
+- 用 `/` 命令集中处理模型、推理、状态、目标和技能等会话操作
+- 用 `@` 引用项目资料，让输入框更接近创作控制台
+- 保留任务目标与运行状态，减少长会话中的上下文断裂感
 
-输入框不再是“聊天框”，而是 Agent 的控制中心。
+详见[`/` 命令中心](./docs/features/codex-slash.md)与[任务目标](./docs/features/task-goal.md)。
 
-### 创作辅助
+### 资料导入
 
-| 能力 | OpenFic | OmniFic |
-|---|---|---|
-| 世界书导入 | SillyTavern JSON | + Markdown / PDF / Word / PPT / TXT |
-| AI 整理世界书 | ❌ | ✅ 导入时可 LLM 增强 |
-| 小说 TXT 分卷导入 | ❌ | ✅ 自动识别卷-章结构 |
-| 任务目标 | ❌ | ✅ 持久化目标，随上下文传递 |
+- 将 Markdown、PDF、Word、PPT 与 TXT 等资料整理为世界书候选内容
+- 支持在导入阶段使用模型辅助整理
+- 从小说 TXT 中识别卷章结构，降低旧稿迁移和资料重建的成本
 
-### Agent 系统
+详见[世界书导入](./docs/features/worldbook-import.md)与[TXT 分卷导入](./docs/features/txt-volume-import.md)。
 
-| 能力 | OpenFic | OmniFic |
-|---|---|---|
-| 多选 Agent 提问 | ❌ | ✅ Checkbox 多选 |
-| 角色页 Agent 助手 | ❌ | ✅ 三栏式 Agent 面板 |
+### 长篇创作体验
 
-## 产品架构
+- 更重视任务连续性、上下文管理和 Agent 推理状态
+- 针对角色页、多人选择和长任务交互继续做小范围实验
+- 优先解决我在真实写作中反复遇到的问题，而不是追求功能数量
 
-```
-OmniFic
-├── OpenFic v0.7.5 核心         ← 世界观管理 / Agent Runtime / RAG / 写作编辑器
-├── 中转站/代理深度支持         ← 模型发现、能力覆盖、URL 优先策略
-├── Codex 风格命令中心          ← /MCP /推理 /模型 /状态 /目标 /技能
-├── 多格式世界书导入            ← MarkItDown 解析 + LLM 增强整理
-├── 小说 TXT 智能导入           ← 分卷解析 + Volume 自动创建
-└── 创作效率增强                ← 任务目标持久化 / 推理用时 / 多选交互
-```
+## 它可能适合谁
+
+它可能适合：
+
+- 使用个人或团队中转站、OpenAI 兼容端点的人
+- 喜欢 `/` 命令、`@` 引用和 Agent 式工作流的人
+- 需要整理大量设定资料、旧稿或长篇小说结构的人
+- 愿意本地部署、阅读文档，并接受实验性变化的人
+
+它可能不适合：
+
+- 希望下载安装后立即使用、无需配置的用户
+- 需要稳定桌面安装包、云服务或长期版本支持的用户
+- 希望项目持续同步 OpenFic，或保证与上游数据无损互迁的用户
+- 希望产品路线以大众需求或社区投票为主导的用户
+
+## 当前状态
+
+OmniFic 目前由个人维护，处于实验性开发阶段。
+
+- 项目从 OpenFic v0.7.5 分支而来，但不承诺继续同步上游
+- 功能、交互与数据结构可能随着个人使用继续调整
+- Issue、讨论和 PR 都很欢迎，但不代表相关需求一定会进入路线图
+- 桌面版、PyPI 包和远程 Docker 镜像暂不作为稳定发行渠道
+- 涉及数据库升级或从 OpenFic 迁移时，请先完整备份数据；目前不承诺直接复制数据即可无损迁移
 
 ## 快速开始
 
-> OmniFic 与 OpenFic 使用完全相同的技术栈和部署方式。
-
 ### 环境要求
 
-- Python 3.12+
+- Python 3.12 或 3.13
 - Node.js 22+
-- pnpm
+- pnpm 8+
+- [uv](https://docs.astral.sh/uv/)
 
-### 本地开发
+### 从源码运行
 
 ```bash
-# 克隆仓库
 git clone https://github.com/F0rJay/OmniFic.git
 cd OmniFic
 
-# 后端
+# 终端 1：后端
 cd backend
 uv sync
 uv run uvicorn app.main:app --host 127.0.0.1 --port 8001 --app-dir .
+```
 
-# 前端
-cd frontend
+另开一个终端：
+
+```bash
+cd OmniFic/frontend
 pnpm install
 pnpm dev
 ```
 
-前端默认运行在 `http://127.0.0.1:9000`，后端默认 `http://127.0.0.1:8001`。
+前端默认运行在 `http://127.0.0.1:9000`，后端默认运行在 `http://127.0.0.1:8001`。
 
-### Docker
+更完整的环境配置、数据库初始化和桌面端开发说明请阅读[开发环境搭建](./docs/develop/setup.md)。所有现有文档可从[文档导航](./docs/README.md)进入。
 
-```bash
-docker run -d -p 8000:8000 -v "omnific:/data" --name omnific ghcr.io/F0rJay/omnific:latest
-```
+## 参与交流
 
-## 从 OpenFic 迁移
+公开这个项目的主要目的，是分享实践、交换想法和一起学习。你可以提交 [Issue](https://github.com/F0rJay/OmniFic/issues)、发起 [Pull Request](https://github.com/F0rJay/OmniFic/pulls)，或从[贡献指南](./CONTRIBUTING.md)了解基本约定。
 
-如果你已有 OpenFic 的项目数据，直接复制数据目录即可：
-
-```bash
-cp -r ~/openfic-data ~/omnific-data
-```
-
-OmniFic 与 OpenFic 数据库 schema 向后兼容，新增字段均有默认值，已有数据无需转换。
+如果你的想法没有被采用，也通常只是因为它与这个个人分支的取舍不同，并不意味着想法本身没有价值。
 
 ## 致谢
 
-本项目基于 [OpenFic](https://github.com/syrizelink/OpenFic)，感谢原作者的卓越工作。
+首先感谢 [OpenFic](https://github.com/syrizelink/OpenFic) 及其作者。OmniFic 的基础架构、主要产品形态和许多核心能力都来自 OpenFic；没有这项工作，就不会有这个分支。
 
-OpenFic 的设计哲学——“让 Agent 适应你的写作流程，而非反之”——也是 OmniFic 的出发点。我们做的所有定制化改进，都是为了把这个理念推向更极致的方向。
+其他启发来源包括：
 
-其他灵感来源：
-
-- [SillyTavern](https://github.com/SillyTavern/SillyTavern) — 世界书格式参考
-- [Claude Code](https://claude.ai/code) — `/` 命令交互范式
-- [oh-story-claudecode](https://github.com/worldwonderer/oh-story-claudecode) — 内置写作 Skill 参考
+- [SillyTavern](https://github.com/SillyTavern/SillyTavern)：世界书格式与生态参考
+- [Claude Code](https://claude.ai/code)：命令式 Agent 交互参考
+- [oh-story-claudecode](https://github.com/worldwonderer/oh-story-claudecode)：写作 Skill 参考
 
 ## 许可证
 
-[Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
-
-## 交流
-
-欢迎对 AI 辅助小说创作有兴趣的朋友交流学习，提交 Issue 或直接联系。
+OmniFic 依据 [Apache License 2.0](./LICENSE) 开源。使用或分发时，也请保留上游项目要求的版权与许可证声明。

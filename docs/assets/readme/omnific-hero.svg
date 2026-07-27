@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 560" role="img" aria-labelledby="title desc">
+  <title id="title">OmniFic</title>
+  <desc id="desc">OmniFic's page-loop mark among violet and cyan streams of digital pages.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#070A12"/>
+      <stop offset=".55" stop-color="#0A1020"/>
+      <stop offset="1" stop-color="#080B14"/>
+    </linearGradient>
+    <radialGradient id="violetGlow" cx="0" cy="0" r="1" gradientTransform="translate(420 265) rotate(8) scale(570 360)">
+      <stop stop-color="#8B5CF6" stop-opacity=".26"/>
+      <stop offset="1" stop-color="#8B5CF6" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="cyanGlow" cx="0" cy="0" r="1" gradientTransform="translate(1360 200) rotate(155) scale(520 320)">
+      <stop stop-color="#22D3EE" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#22D3EE" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="stream" x1="0" y1="1" x2="1" y2="0">
+      <stop stop-color="#8B5CF6" stop-opacity="0"/>
+      <stop offset=".35" stop-color="#8B5CF6" stop-opacity=".65"/>
+      <stop offset=".72" stop-color="#22D3EE" stop-opacity=".72"/>
+      <stop offset="1" stop-color="#22D3EE" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="18"/></filter>
+    <filter id="lineGlow"><feGaussianBlur stdDeviation="3"/></filter>
+    <clipPath id="round"><rect width="1600" height="560" rx="34"/></clipPath>
+  </defs>
+  <g clip-path="url(#round)">
+    <rect width="1600" height="560" fill="url(#bg)"/>
+    <rect width="1600" height="560" fill="url(#violetGlow)"/>
+    <rect width="1600" height="560" fill="url(#cyanGlow)"/>
+    <g fill="none" stroke="url(#stream)" stroke-linecap="round">
+      <path d="M-90 524C330 450 690 520 1014 341c249-138 398-298 696-280" stroke-width="4" opacity=".8"/>
+      <path d="M-80 488c426-63 744 18 1071-157 259-139 426-274 706-250" stroke-width="2" opacity=".5"/>
+      <path d="M-110 550c468-72 751 29 1103-148 238-120 410-286 706-253" stroke-width="1.5" opacity=".35"/>
+      <path d="M934 615c126-238 309-303 735-316" stroke-width="3" opacity=".45"/>
+    </g>
+    <g fill="none" stroke="url(#stream)" stroke-linecap="round" filter="url(#lineGlow)" opacity=".45">
+      <path d="M-90 524C330 450 690 520 1014 341c249-138 398-298 696-280" stroke-width="8"/>
+      <path d="M934 615c126-238 309-303 735-316" stroke-width="7"/>
+    </g>
+    <g fill="#F7F8FC" opacity=".22">
+      <rect x="1060" y="360" width="8" height="22" rx="2" transform="rotate(-33 1060 360)"/>
+      <rect x="1115" y="319" width="5" height="14" rx="1.5" transform="rotate(-39 1115 319)"/>
+      <rect x="1180" y="276" width="10" height="28" rx="2" transform="rotate(-42 1180 276)"/>
+      <rect x="1252" y="226" width="6" height="17" rx="2" transform="rotate(-50 1252 226)"/>
+      <rect x="1329" y="177" width="9" height="25" rx="2" transform="rotate(-55 1329 177)"/>
+      <rect x="1444" y="125" width="5" height="15" rx="1.5" transform="rotate(-65 1444 125)"/>
+      <path d="M991 409l18-8 7 16-18 8zM1150 352l25-15 12 20-25 15zM1290 258l31-22 15 24-31 22zM1404 190l21-18 13 16-21 18z"/>
+    </g>
+    <g opacity=".32" fill="#22D3EE">
+      <circle cx="1040" cy="401" r="2"/><circle cx="1092" cy="367" r="2.5"/><circle cx="1218" cy="289" r="2"/><circle cx="1377" cy="191" r="2.5"/><circle cx="1508" cy="129" r="2"/>
+    </g>
+    <image x="84" y="78" width="380" height="380" href="../brand/generated/omnific-logo-transparent.png" preserveAspectRatio="xMidYMid meet"/>
+    <text x="482" y="278" fill="#F7F8FC" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="112" font-weight="750" letter-spacing="-4">OmniFic</text>
+    <text x="490" y="336" fill="#B8C4D9" font-family="ui-sans-serif, system-ui, sans-serif" font-size="24" letter-spacing="4">WRITE IN YOUR OWN DIRECTION</text>
+    <rect x="491" y="366" width="94" height="3" rx="1.5" fill="#8B5CF6"/>
+    <rect x="585" y="366" width="94" height="3" rx="1.5" fill="#22D3EE"/>
+  </g>
+</svg>

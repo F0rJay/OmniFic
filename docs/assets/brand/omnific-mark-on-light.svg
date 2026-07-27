@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">OmniFic mark on light background</title>
+  <desc id="desc">Two turning pages form a violet-to-cyan circular story loop.</desc>
+  <rect width="512" height="512" rx="72" fill="#F7F8FC"/>
+  <image width="512" height="512" href="generated/omnific-logo-transparent.png" preserveAspectRatio="xMidYMid meet"/>
+</svg>

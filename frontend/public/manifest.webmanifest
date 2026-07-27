@@ -1,12 +1,12 @@
 {
   "name": "OmniFic",
   "short_name": "OmniFic",
-  "description": "AI Agent时代专为小说创作打造的一站式Vibe Wrting平台",
+  "description": "由真实创作体验推动的 AI 辅助长篇小说写作实验",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#18181b",
+  "background_color": "#070A12",
+  "theme_color": "#070A12",
   "lang": "zh-CN",
   "icons": [
     {

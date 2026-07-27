@@ -1,142 +1,146 @@
-# OmniFic
+![OmniFic brand banner with a turning-page loop and flowing digital text](./docs/assets/readme/omnific-hero.webp)
 
-> Forked from [OpenFic](https://github.com/syrizelink/OpenFic) v0.7.5 and developed independently — an AI-assisted long-form fiction writing tool.
+<h1 align="center">OmniFic</h1>
 
-![License](https://img.shields.io/badge/License-Apache_2.0-red)
-![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)
-![Based on OpenFic](https://img.shields.io/badge/Based%20on-OpenFic%20v0.7.5-blue)
+<p align="center">
+  <strong>A personal experiment in AI-assisted long-form fiction, shaped by actual writing practice.</strong>
+</p>
 
-[中文](./README.md) | English
+<p align="center">
+  <a href="./README.md">中文</a> · English
+</p>
 
-## Positioning
+<p align="center">
+  <img alt="Apache 2.0 License" src="https://img.shields.io/badge/License-Apache_2.0-8B5CF6">
+  <img alt="Python 3.12–3.13" src="https://img.shields.io/badge/Python-3.12%E2%80%933.13-22D3EE">
+  <img alt="Based on OpenFic v0.7.5" src="https://img.shields.io/badge/Based_on-OpenFic_v0.7.5-070A12">
+</p>
 
-**OmniFic is forked from OpenFic and now develops independently. It no longer tracks upstream updates.**
+## A personal note
 
-OpenFic is an excellent AI-native fiction writing tool with solid worldbuilding management, Agent collaboration, and local persistence. OmniFic builds on all of this and takes a different path — these improvements are not generic feature requests, but the result of a heavy user optimizing the tool after hitting real pain points in daily use.
+> OmniFic is not a replacement for OpenFic, nor is it a claim to be the “more correct” version. It is simply the branch I made while adapting the project to my own writing habits, model setup, and interaction preferences.
 
-OmniFic may suit you better than OpenFic if:
+I am deeply grateful to [OpenFic](https://github.com/syrizelink/OpenFic). It supplied everything that matters most here: worldbuilding tools, the editor, the Agent runtime, local data management, and a complete product worth building upon. OmniFic was forked from OpenFic v0.7.5 and has since taken an independent path.
 
-- You use a company or personal model relay / API proxy instead of official provider endpoints
-- You want a Codex / Claude Code-level interaction experience, operating everything with `/`
-- You need to quickly turn Markdown, PDF, Word, and other setting documents into usable worldbook entries
-- You write million-word novels and have real needs around context management, task goals, and Agent transparency
-- You're a power user who prefers to optimize your own tools rather than wait for features
+That decision is not a criticism of upstream. Over time, I realized that many of my changes were highly personal. I rely on model relays, prefer command-driven Agent interaction, and care disproportionately about importing research, maintaining task continuity, and understanding reasoning state during long-form work. Those choices will not suit everyone, and upstream should not be expected to adopt them.
 
-## Key Differences from OpenFic
+I keep OmniFic public primarily to share what I have learned, exchange ideas, and learn alongside others. It remains a tool shaped first by my own writing practice.
 
-### Model Integration
+## What is OmniFic?
 
-| Capability | OpenFic | OmniFic |
-|---|---|---|
-| Official model catalog | ✅ | ✅ |
-| Arbitrary OpenAI-compatible relay | ⚠️ Limited | ✅ First-class support |
-| Auto-discover relay models | ❌ | ✅ One-click fetch all |
-| Per-model reasoning capability override | ❌ | ✅ Manual override supported |
+OmniFic is a locally run, AI-assisted environment for long-form fiction. Built on OpenFic v0.7.5, it retains project, character, worldbook, chapter-editing, and Agent collaboration capabilities while experimenting around my own workflow.
 
-Relay users no longer need to guess whether a model supports reasoning effort, or switch between multiple provider pages to compare options.
+The project combines a Python backend, a React frontend, and an optional Electron shell. Running from source is currently the recommended way to use it. See the [architecture overview](./docs/architecture.md) for the system structure.
 
-### Interaction Experience
+## The choices I made
 
-| Capability | OpenFic | OmniFic |
-|---|---|---|
-| Agent input | Plain text | `@` references + `/` command center |
-| Skill selection | No shortcut | `/` menu + blue visual Skill Token |
-| Session config | Scattered selectors | `/reasoning` `/model` unified entry |
-| Agent reasoning timer | None | Real-time display, survives refresh/reconnect |
-| Runtime status panel | Header summary | `/status` full session details |
+These are not judgments about upstream. They are the areas I chose to prioritize after repeatedly encountering them in daily use.
 
-The input box is no longer a chat box — it's the Agent control center.
+### Model access
 
-### Writing Assistance
+- Treat OpenAI-compatible relays and API proxies as a normal setup
+- Discover models from a relay and override reasoning capabilities per model
+- Make provider, base-URL, and capability configuration more direct
 
-| Capability | OpenFic | OmniFic |
-|---|---|---|
-| Worldbook import | SillyTavern JSON | + Markdown / PDF / Word / PPT / TXT |
-| AI-organized worldbook | ❌ | ✅ LLM enhancement during import |
-| Novel TXT volume-aware import | ❌ | ✅ Auto-detect volume-chapter structure |
-| Task goal | ❌ | ✅ Persistent goal, injected into context |
+See [relay providers](./docs/features/relay-provider.md) and [model reasoning capabilities](./docs/features/model-reasoning.md).
 
-### Agent System
+### Agent interaction
 
-| Capability | OpenFic | OmniFic |
-|---|---|---|
-| Multi-select Agent questions | ❌ | ✅ Checkbox multi-select |
-| Character page Agent assistant | ❌ | ✅ Three-column Agent panel |
+- Use `/` commands for model, reasoning, status, goal, and skill operations
+- Use `@` references to bring project material into a conversation
+- Preserve task goals and runtime state to reduce discontinuity in long sessions
 
-## Architecture
+See the [`/` command center](./docs/features/codex-slash.md) and [persistent task goals](./docs/features/task-goal.md).
 
-```
-OmniFic
-├── OpenFic v0.7.5 core          ← Worldbuilding / Agent Runtime / RAG / Writing editor
-├── Deep relay/proxy support      ← Model discovery, capability override, URL-first strategy
-├── Codex-style command center    ← /MCP /Reasoning /Model /Status /Goal /Skills
-├── Multi-format worldbook import ← MarkItDown parsing + LLM enhancement
-├── Novel TXT smart import        ← Volume parsing + auto Volume creation
-└── Writing efficiency            ← Task goal persistence / Reasoning timer / Multi-select
-```
+### Source-material import
 
-## Quick Start
+- Turn Markdown, PDF, Word, PowerPoint, and TXT material into worldbook candidates
+- Optionally use a model to organize material during import
+- Detect volume and chapter structure in existing novel TXT files
 
-> OmniFic shares the exact same tech stack and deployment approach as OpenFic.
+See [worldbook import](./docs/features/worldbook-import.md) and [volume-aware TXT import](./docs/features/txt-volume-import.md).
+
+### Long-form writing
+
+- Give more attention to task continuity, context management, and Agent reasoning state
+- Continue small experiments around character pages, multi-select questions, and long-running tasks
+- Prioritize recurring problems in actual writing over feature count
+
+## Who might enjoy it?
+
+OmniFic may suit you if you:
+
+- Use a personal or team relay, or another OpenAI-compatible endpoint
+- Prefer `/` commands, `@` references, and Agent-oriented workflows
+- Need to organize extensive research, setting material, old drafts, or long novel structures
+- Are comfortable running software locally, reading documentation, and accepting experimental change
+
+It may not suit you if you:
+
+- Want a zero-configuration download-and-run product
+- Require stable desktop installers, a hosted service, or long-term release support
+- Expect continuous OpenFic synchronization or guaranteed lossless data migration
+- Expect the roadmap to be driven primarily by broad community demand
+
+## Current status
+
+OmniFic is personally maintained and experimental.
+
+- It forked from OpenFic v0.7.5 but does not promise ongoing upstream synchronization
+- Features, interactions, and data structures may change as my own usage evolves
+- Issues, discussions, and pull requests are welcome, but acceptance is not a roadmap commitment
+- Desktop builds, a PyPI package, and remote Docker images are not currently presented as stable distribution channels
+- Back up all data before database upgrades or OpenFic migration; copying an existing data directory is not guaranteed to be lossless
+
+## Quick start
 
 ### Requirements
 
-- Python 3.12+
+- Python 3.12 or 3.13
 - Node.js 22+
-- pnpm
+- pnpm 8+
+- [uv](https://docs.astral.sh/uv/)
 
-### Local Development
+### Run from source
 
 ```bash
-# Clone the repository
 git clone https://github.com/F0rJay/OmniFic.git
 cd OmniFic
 
-# Backend
+# Terminal 1: backend
 cd backend
 uv sync
 uv run uvicorn app.main:app --host 127.0.0.1 --port 8001 --app-dir .
+```
 
-# Frontend
-cd frontend
+Open a second terminal:
+
+```bash
+cd OmniFic/frontend
 pnpm install
 pnpm dev
 ```
 
-Frontend runs at `http://127.0.0.1:9000` by default, backend at `http://127.0.0.1:8001`.
+The frontend runs at `http://127.0.0.1:9000` by default, with the backend at `http://127.0.0.1:8001`.
 
-### Docker
+For database setup, desktop development, and more detailed instructions, see the [development setup guide](./docs/develop/setup.md). The [documentation index](./docs/README.md) links to all current technical notes.
 
-```bash
-docker run -d -p 8000:8000 -v "omnific:/data" --name omnific ghcr.io/F0rJay/omnific:latest
-```
+## Join the conversation
 
-## Migrating from OpenFic
+This repository is public to share practice, compare approaches, and learn together. You are welcome to open an [Issue](https://github.com/F0rJay/OmniFic/issues), send a [Pull Request](https://github.com/F0rJay/OmniFic/pulls), or read the [contribution guide](./CONTRIBUTING.md).
 
-If you already have OpenFic project data, simply copy the data directory:
-
-```bash
-cp -r ~/openfic-data ~/omnific-data
-```
-
-OmniFic's database schema is backward-compatible with OpenFic. All new fields have defaults, and existing data requires no conversion.
+If an idea is not adopted, it will usually mean that it does not fit the choices of this personal branch—not that the idea lacks merit.
 
 ## Acknowledgements
 
-This project is based on [OpenFic](https://github.com/syrizelink/OpenFic). Thanks to the original authors for their outstanding work.
+My first thanks go to [OpenFic](https://github.com/syrizelink/OpenFic) and its author. OmniFic's foundation, primary product shape, and many of its core capabilities come from OpenFic. This branch would not exist without that work.
 
-OpenFic's design philosophy — "let the Agent fit your writing process, not the other way around" — is also OmniFic's starting point. Every customization we've made is about pushing that philosophy further.
+Other sources of inspiration include:
 
-Other inspirations:
-
-- [SillyTavern](https://github.com/SillyTavern/SillyTavern) — worldbook format reference
-- [Claude Code](https://claude.ai/code) — `/` command interaction paradigm
-- [oh-story-claudecode](https://github.com/worldwonderer/oh-story-claudecode) — built-in writing Skill reference
-
-## Communication
-
-Anyone interested in AI-assisted fiction writing is welcome to exchange ideas and learn together — open an Issue or reach out directly.
+- [SillyTavern](https://github.com/SillyTavern/SillyTavern): worldbook formats and ecosystem references
+- [Claude Code](https://claude.ai/code): command-driven Agent interaction
+- [oh-story-claudecode](https://github.com/worldwonderer/oh-story-claudecode): writing Skill references
 
 ## License
 
-[Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
+OmniFic is released under the [Apache License 2.0](./LICENSE). Please retain any copyright and license notices required by the upstream project when using or redistributing it.
