@@ -1,6 +1,6 @@
 import { net } from "electron";
 import { spawn } from "node:child_process";
-import { access, mkdir, rm } from "node:fs/promises";
+import { access, appendFile, mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { findFreePort } from "../ports.js";
 import { startBackendProcess, stopBackendProcess, type BackendProcessHandle } from "../process.js";
@@ -21,11 +21,18 @@ const ANSI_ESCAPE_SEQUENCE = new RegExp(`${String.fromCharCode(0x1b)}\\[[0-9;]*[
 const DEFAULT_PYPI_INDEX_URL = "https://pypi.org/simple/";
 const TSINGHUA_PYPI_INDEX_URL = "https://pypi.tuna.tsinghua.edu.cn/simple/";
 const PYPI_INDEX_PROBE_TIMEOUT_MS = 5_000;
-const PYPI_INDEX_PROBE_PACKAGE = "omnific";
+const INSTALL_COMMAND_TIMEOUT_MS = 15 * 60_000;
+const INSTALL_LOG_FILE = "install.log";
 
 interface PypiIndexProbe {
   indexUrl: string;
   elapsedMs: number;
+}
+
+interface PypiEnvironment {
+  environment: NodeJS.ProcessEnv;
+  indexUrl: string;
+  proxyStatus: string;
 }
 
 function getVenvDir(runtimeDir: string): string {
@@ -62,7 +69,8 @@ async function pathExists(filePath: string): Promise<boolean> {
 function forwardLines(
   stream: NodeJS.ReadableStream | null,
   writer: NodeJS.WriteStream,
-  onLine?: (line: string) => void,
+  source: "stdout" | "stderr",
+  onLine?: (source: "stdout" | "stderr", line: string) => void,
 ): void {
   if (!stream) return;
 
@@ -76,13 +84,13 @@ function forwardLines(
     buffer = lines.pop() ?? "";
     for (const line of lines) {
       const trimmed = line.trim();
-      if (trimmed) onLine?.(trimmed);
+      if (trimmed) onLine?.(source, trimmed);
     }
   });
 
   stream.on("end", () => {
     const trimmed = buffer.trim();
-    if (trimmed) onLine?.(trimmed);
+    if (trimmed) onLine?.(source, trimmed);
   });
 }
 
@@ -90,19 +98,23 @@ function stripAnsi(value: string): string {
   return value.replace(ANSI_ESCAPE_SEQUENCE, "");
 }
 
-async function probePypiIndex(indexUrl: string, expectedVersion: string): Promise<PypiIndexProbe | null> {
+async function probePypiIndex(
+  indexUrl: string,
+  packageName: string,
+  expectedVersion?: string,
+): Promise<PypiIndexProbe | null> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), PYPI_INDEX_PROBE_TIMEOUT_MS);
   const startedAt = performance.now();
   try {
-    const response = await net.fetch(`${indexUrl}${PYPI_INDEX_PROBE_PACKAGE}/`, {
+    const response = await net.fetch(`${indexUrl}${packageName}/`, {
       cache: "no-store",
       signal: controller.signal,
     });
     if (!response.ok) return null;
     const packageIndex = await response.text();
     const elapsedMs = performance.now() - startedAt;
-    if (!packageIndex.includes(`omnific-${expectedVersion}`)) return null;
+    if (expectedVersion && !packageIndex.includes(`${packageName}-${expectedVersion}`)) return null;
     return { indexUrl, elapsedMs };
   } catch {
     return null;
@@ -111,10 +123,12 @@ async function probePypiIndex(indexUrl: string, expectedVersion: string): Promis
   }
 }
 
-async function getFastestPypiEnvironment(expectedVersion: string): Promise<NodeJS.ProcessEnv> {
+async function getFastestPypiEnvironment(packageName: string, expectedVersion?: string): Promise<PypiEnvironment> {
   await configureDefaultSystemProxy();
   const probes = await Promise.all(
-    [DEFAULT_PYPI_INDEX_URL, TSINGHUA_PYPI_INDEX_URL].map((indexUrl) => probePypiIndex(indexUrl, expectedVersion)),
+    [DEFAULT_PYPI_INDEX_URL, TSINGHUA_PYPI_INDEX_URL].map((indexUrl) =>
+      probePypiIndex(indexUrl, packageName, expectedVersion),
+    ),
   );
   let fastestProbe: PypiIndexProbe | null = null;
   for (const probe of probes) {
@@ -123,13 +137,30 @@ async function getFastestPypiEnvironment(expectedVersion: string): Promise<NodeJ
 
   const indexUrl = fastestProbe?.indexUrl ?? DEFAULT_PYPI_INDEX_URL;
   const proxyEnvironment = await getSystemProxyEnvironment(indexUrl);
+  const proxyStatus = proxyEnvironment.HTTPS_PROXY || proxyEnvironment.https_proxy ? "系统代理：已使用" : "系统代理：未检测到";
   return {
-    ...proxyEnvironment,
-    PIP_INDEX_URL: indexUrl,
-    UV_INDEX_URL: indexUrl,
-    pip_index_url: indexUrl,
-    uv_index_url: indexUrl,
+    indexUrl,
+    proxyStatus,
+    environment: {
+      ...proxyEnvironment,
+      // Keep network failures bounded and actionable instead of leaving setup on
+      // an indeterminate progress screen.
+      PIP_DEFAULT_TIMEOUT: "30",
+      PIP_RETRIES: "2",
+      UV_HTTP_TIMEOUT: "30",
+      PIP_INDEX_URL: indexUrl,
+      UV_INDEX_URL: indexUrl,
+      pip_index_url: indexUrl,
+      uv_index_url: indexUrl,
+    },
   };
+}
+
+function writeInstallLog(cwd: string, source: "stdout" | "stderr", message: string): void {
+  const timestamp = new Date().toISOString();
+  void appendFile(path.join(cwd, INSTALL_LOG_FILE), `[${timestamp}] [${source}] ${message}\n`, "utf8").catch(() => {
+    // Setup must not fail solely because diagnostics cannot be written.
+  });
 }
 
 function run(
@@ -140,21 +171,42 @@ function run(
   environment?: NodeJS.ProcessEnv,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
+    const recentOutput: string[] = [];
+    let timedOut = false;
     const child = spawn(command, args, {
       cwd,
       env: { ...process.env, ...environment },
       windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],
     });
-    forwardLines(child.stdout, process.stdout, (line) => {
+    const onLine = (source: "stdout" | "stderr", line: string) => {
       const text = stripAnsi(line).trim();
-      if (text) onStdoutLine?.(text);
+      if (!text) return;
+      const message = `[${source}] ${text}`;
+      recentOutput.push(message);
+      if (recentOutput.length > 12) recentOutput.shift();
+      writeInstallLog(cwd, source, text);
+      onStdoutLine?.(message);
+    };
+    forwardLines(child.stdout, process.stdout, "stdout", onLine);
+    forwardLines(child.stderr, process.stderr, "stderr", onLine);
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      child.kill();
+    }, INSTALL_COMMAND_TIMEOUT_MS);
+    child.on("error", (error) => {
+      clearTimeout(timeout);
+      reject(error);
     });
-    forwardLines(child.stderr, process.stderr);
-    child.on("error", reject);
     child.on("exit", (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`${command} ${args.join(" ")} exited with code ${code}`));
+      clearTimeout(timeout);
+      if (code === 0 && !timedOut) {
+        resolve();
+        return;
+      }
+      const recent = recentOutput.length ? `\n最近输出：\n${recentOutput.join("\n")}` : "";
+      const reason = timedOut ? `在 ${Math.round(INSTALL_COMMAND_TIMEOUT_MS / 60_000)} 分钟后超时` : `退出码 ${code ?? "未知"}`;
+      reject(new Error(`${command} ${args.join(" ")} ${reason}。请检查网络或开启系统代理。${recent}`));
     });
   });
 }
@@ -229,8 +281,12 @@ export async function ensureOmniFicRuntime(
   const venvDir = getVenvDir(runtimeDir);
   const venvPythonPath = getVenvPythonPath(runtimeDir);
   const uvPath = getUvPath(runtimeDir);
-  let pypiEnvironment: Promise<NodeJS.ProcessEnv> | null = null;
-  const getPypiEnvironment = () => (pypiEnvironment ??= getFastestPypiEnvironment(expectedVersion));
+  let bootstrapPypiEnvironment: Promise<PypiEnvironment> | null = null;
+  let omnificPypiEnvironment: Promise<PypiEnvironment> | null = null;
+  const getBootstrapPypiEnvironment = () =>
+    (bootstrapPypiEnvironment ??= getFastestPypiEnvironment("uv"));
+  const getOmnificPypiEnvironment = () =>
+    (omnificPypiEnvironment ??= getFastestPypiEnvironment("omnific", expectedVersion));
 
   await mkdir(runtimeDir, { recursive: true });
 
@@ -246,14 +302,14 @@ export async function ensureOmniFicRuntime(
 
   const uvIsUsable = (await pathExists(uvPath)) && Boolean(await readOutput(uvPath, ["--version"], runtimeDir));
   if (!uvIsUsable) {
-    onProgress("install-uv", "安装 uv");
-    const packageIndexEnvironment = await getPypiEnvironment();
+    const packageIndex = await getBootstrapPypiEnvironment();
+    onProgress("install-uv", `安装 uv（${new URL(packageIndex.indexUrl).host}，${packageIndex.proxyStatus}）`);
     await run(
       venvPythonPath,
       ["-m", "pip", "install", "--force-reinstall", "uv"],
       runtimeDir,
       (message) => onProgress("install-uv", message),
-      packageIndexEnvironment,
+      packageIndex.environment,
     );
   }
 
@@ -263,8 +319,11 @@ export async function ensureOmniFicRuntime(
   const omniFicCliIsUsable =
     (await pathExists(omniFicCliPath)) && (await succeeds(omniFicCliPath, ["--help"], runtimeDir));
   if (installedVersion !== expectedVersion || !omniFicCliIsUsable) {
-    onProgress("install-omnific", installedVersion ? "更新 OmniFic 后端" : "安装 OmniFic 后端");
-    const packageIndexEnvironment = await getPypiEnvironment();
+    const packageIndex = await getOmnificPypiEnvironment();
+    onProgress(
+      "install-omnific",
+      `${installedVersion ? "更新" : "安装"} OmniFic 后端（${new URL(packageIndex.indexUrl).host}，${packageIndex.proxyStatus}）`,
+    );
     const installCommand = createOmniFicInstallCommand(
       venvPythonPath,
       expectedVersion,
@@ -275,7 +334,7 @@ export async function ensureOmniFicRuntime(
       installCommand.args,
       runtimeDir,
       (message) => onProgress("install-omnific", message),
-      packageIndexEnvironment,
+      packageIndex.environment,
     );
   }
 

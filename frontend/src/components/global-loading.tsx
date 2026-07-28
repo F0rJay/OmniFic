@@ -8,7 +8,7 @@ import { Spinner } from "./spinner";
 import "./global-loading.css";
 
 interface GlobalLoadingProps {
-  error?: boolean;
+  error?: string | null;
   onRetry?: () => void;
 }
 
@@ -19,7 +19,8 @@ interface GlobalLoadingProps {
  */
 export function GlobalLoading({ error, onRetry }: GlobalLoadingProps) {
   const { t } = useTranslation();
-  const spinnerLabel = error ? t("common.retryInitialization") : t("common.loading");
+  const hasError = Boolean(error);
+  const spinnerLabel = hasError ? t("common.retryInitialization") : t("common.loading");
 
   return (
     <Box className="global-loading-shell">
@@ -31,9 +32,9 @@ export function GlobalLoading({ error, onRetry }: GlobalLoadingProps) {
       >
         <Box
           className="global-loading-spinner-shell"
-          data-error={error ? "true" : "false"}
+          data-error={hasError ? "true" : "false"}
         >
-          {error ? (
+          {hasError ? (
             <ProductLogo
               className="global-loading-logo"
               size={56}
@@ -49,16 +50,19 @@ export function GlobalLoading({ error, onRetry }: GlobalLoadingProps) {
           )}
         </Box>
 
-        {error ? (
-          <Button
-            className="global-loading-retry"
-            onClick={onRetry}
-            variant="ghost"
-            color="gray"
-            aria-label={t("common.retryInitialization")}
-          >
-            <RefreshCw size={18} />
-          </Button>
+        {hasError ? (
+          <>
+            <p className="global-loading-error">{error}</p>
+            <Button
+              className="global-loading-retry"
+              onClick={onRetry}
+              variant="ghost"
+              color="gray"
+              aria-label={t("common.retryInitialization")}
+            >
+              <RefreshCw size={18} />
+            </Button>
+          </>
         ) : null}
       </Flex>
     </Box>

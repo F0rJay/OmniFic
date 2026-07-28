@@ -5,6 +5,8 @@ directories:
   output: dist-electron
   buildResources: build
 
+afterPack: ./scripts/after-pack.mjs
+
 publish:
   provider: github
   owner: F0rJay

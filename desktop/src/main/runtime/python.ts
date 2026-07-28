@@ -4,7 +4,10 @@ import { access, mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { downloadFile, extractTarGz } from "./archive.js";
 import { resolvePythonAsset } from "./python-assets.js";
+import { getPortablePythonPath } from "./python-paths.js";
 import { matchesPortablePythonVersion } from "./python-version.js";
+
+export { getPortablePythonPath } from "./python-paths.js";
 
 export interface PortablePython {
   pythonPath: string;
@@ -33,11 +36,6 @@ export function resolveRuntimeDir(installDir: string | null): string {
 
 export function getPortablePythonRoot(runtimeDir: string): string {
   return path.join(runtimeDir, "python");
-}
-
-export function getPortablePythonPath(rootDir: string): string {
-  if (process.platform === "win32") return path.join(rootDir, "python", "python.exe");
-  return path.join(rootDir, "python", "install", "bin", "python3");
 }
 
 async function pathExists(filePath: string): Promise<boolean> {

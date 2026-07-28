@@ -13,6 +13,7 @@ export const IpcChannels = {
   pingInstance: "instance:ping",
   selectDirectory: "dialog:select-directory",
   inspectLocalRuntime: "setup:inspect-local-runtime",
+  logFrontendDiagnostic: "diagnostics:frontend",
   setupProgress: "setup:progress",
   getStartupProgress: "app:get-startup-progress",
   startupProgress: "app:startup-progress",

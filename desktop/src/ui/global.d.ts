@@ -24,6 +24,7 @@ declare global {
       pingInstance: (instance: DesktopInstance) => Promise<PingInstanceResult>;
       selectDirectory: () => Promise<string | null>;
       inspectLocalRuntime: (installDir: string) => Promise<InspectLocalRuntimeResult>;
+      logFrontendDiagnostic: (message: string) => Promise<void>;
       closeSetup: () => Promise<void>;
       showSetup: () => Promise<void>;
       frontendHostPreloadPath: string;

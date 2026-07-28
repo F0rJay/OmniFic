@@ -21,6 +21,7 @@ import { inspectLocalRuntime, installLocalRuntime, startLocalBackendFromInstall 
 import { getDefaultInstallDir } from "./runtime/python.js";
 import { cancelUpdateDownload, checkForUpdates, downloadUpdate, getUpdateState, installUpdate, openUpdateRelease } from "./updater.js";
 import { createStartupProgressTracker, getStartupProgress } from "./startup-progress.js";
+import { writeWindowLog } from "./windows.js";
 import type { BackendProcessHandle } from "./process.js";
 import type { DesktopConfig, DesktopInstance } from "../shared/config.js";
 
@@ -57,6 +58,10 @@ export function registerIpc(context: IpcContext): void {
 
   ipcMain.handle(IpcChannels.ensureInstanceSession, (_event, request: EnsureInstanceSessionRequest) => {
     return ensureAppProtocolForPartition(request.partition);
+  });
+  ipcMain.handle(IpcChannels.logFrontendDiagnostic, (_event, request: { message?: unknown }) => {
+    if (typeof request.message !== "string") return;
+    writeWindowLog(`frontend diagnostic: ${request.message.slice(0, 2_000)}`);
   });
 
   ipcMain.handle(IpcChannels.getDefaultInstallDir, () => getDefaultInstallDir());

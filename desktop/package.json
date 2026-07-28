@@ -1,7 +1,7 @@
 {
   "name": "omnific-desktop",
   "private": true,
-  "version": "0.8.0",
+  "version": "0.8.1",
   "omnificMacAutoUpdate": false,
   "type": "module",
   "main": "dist/main/main.js",
@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "pnpm build:setup && pnpm build:main && electron .",
     "build": "pnpm build:setup && pnpm build:main",
+    "test:runtime-paths": "pnpm build:main && node --test tests/runtime-paths.test.mjs",
     "build:main": "tsc -p tsconfig.main.json",
     "build:setup": "vp build",
     "type-check": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.renderer.json --noEmit",

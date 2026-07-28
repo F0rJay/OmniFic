@@ -1,0 +1,106 @@
+name: Release Audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to audit
+        required: true
+        default: '0.8.0'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  pypi:
+    name: PyPI smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Install published package
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install "omnific==${{ inputs.version }}"
+          omnific version
+      - name: Start published CLI and verify health
+        run: |
+          . .venv/bin/activate
+          audit_data="$(mktemp -d)"
+          OMNIFIC_DATA_DIR="$audit_data" omnific serve --host 127.0.0.1 --port 8765 > omnific.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; cat omnific.log' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:8765/api/v1/health; then
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
+
+  docker:
+    name: Docker smoke test (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            platform: linux/amd64
+          - runner: ubuntu-24.04-arm
+            platform: linux/arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Pull published image
+        run: docker pull "ghcr.io/f0rjay/omnific:${{ inputs.version }}"
+      - name: Start container and verify health
+        run: |
+          container_id="$(docker run -d -p 127.0.0.1::8000 "ghcr.io/f0rjay/omnific:${{ inputs.version }}")"
+          trap 'docker logs "$container_id"; docker rm -f "$container_id"' EXIT
+          port="$(docker port "$container_id" 8000/tcp | sed 's/.*://')"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error "http://127.0.0.1:${port}/api/v1/health"; then
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
+
+  pypi-remediation:
+    needs: [pypi]
+    if: ${{ needs.pypi.result == 'failure' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report manual PyPI remediation
+        run: |
+          echo "::error title=PyPI audit failed::Mark omnific ${{ inputs.version }} as yanked in the PyPI project settings. Trusted Publisher credentials cannot perform yanking."
+          exit 1
+
+  docker-remediation:
+    needs: [docker]
+    if: ${{ needs.docker.result == 'failure' }}
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      AUDIT_VERSION: ${{ inputs.version }}
+    steps:
+      - name: Delete failed GHCR versions and tags
+        run: |
+          major_minor="$(echo "$AUDIT_VERSION" | cut -d. -f1,2)"
+          tags_to_remove="latest $AUDIT_VERSION $major_minor latest-linux-x86_64 latest-linux-aarch64 ${AUDIT_VERSION}-linux-x86_64 ${AUDIT_VERSION}-linux-aarch64 ${major_minor}-linux-x86_64 ${major_minor}-linux-aarch64"
+          gh api --paginate "/users/F0rJay/packages/container/omnific/versions?per_page=100" --jq '.[] | [.id, (.metadata.container.tags // [])] | @base64' |
+            while read -r encoded; do
+              decoded="$(echo "$encoded" | base64 --decode)"
+              version_id="$(echo "$decoded" | jq -r '.[0]')"
+              if echo "$decoded" | jq -e --arg tags "$tags_to_remove" '[.[1][]? | . as $tag | select($tags | split(" ") | index($tag))] | length > 0' >/dev/null; then
+                gh api --method DELETE "/users/F0rJay/packages/container/omnific/versions/${version_id}"
+              fi
+            done

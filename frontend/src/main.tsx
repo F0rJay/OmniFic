@@ -47,6 +47,17 @@ const queryClient = new QueryClient({
 });
 
 const FRONTEND_VERSION = __OMNIFIC_FRONTEND_VERSION__;
+const STARTUP_TASK_TIMEOUT_MS = 30_000;
+
+function withStartupTimeout<T>(label: string, task: Promise<T>): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_resolve, reject) => {
+    timeout = setTimeout(() => reject(new Error(`${label}超时（${STARTUP_TASK_TIMEOUT_MS / 1000} 秒）`)), STARTUP_TASK_TIMEOUT_MS);
+  });
+  return Promise.race([task, timeoutPromise]).finally(() => {
+    if (timeout) clearTimeout(timeout);
+  });
+}
 
 const DashboardPage = lazy(() =>
   import("./features/dashboard/pages/dashboard-page").then((module) => ({
@@ -115,7 +126,7 @@ function AppContent({
 function AppRoot() {
   const [appearance, setAppearance] = useState<"light" | "dark">("light");
   const [isReady, setIsReady] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const toggleTheme = () => {
     setAppearance((prev) => (prev === "light" ? "dark" : "light"));
@@ -129,33 +140,46 @@ function AppRoot() {
 
   useEffect(() => {
     let mounted = true;
-    let timer: ReturnType<typeof setTimeout>;
-    const startTime = Date.now();
 
     const initializeApp = async () => {
       try {
-        await loadRuntimeConfig();
+        await withStartupTimeout("读取运行时配置", loadRuntimeConfig());
 
-        await Promise.all([
-          queryClient.prefetchQuery({
-            queryKey: ["settings"],
-            queryFn: fetchSettings,
-          }),
-          checkHealth(),
-          preloadTiktokenEncoding(),
-          connectSocket(),
-        ]);
+        const startupTasks = [
+          {
+            label: "读取设置",
+            task: withStartupTimeout(
+              "读取设置",
+              queryClient.prefetchQuery({ queryKey: ["settings"], queryFn: fetchSettings }),
+            ),
+          },
+          { label: "检查本地服务", task: withStartupTimeout("检查本地服务", checkHealth()) },
+          { label: "连接实时服务", task: withStartupTimeout("连接实时服务", connectSocket()) },
+        ];
+        const results = await Promise.allSettled(startupTasks.map(({ task }) => task));
+        const failures = results.flatMap((result, index) => {
+          if (result.status !== "rejected") return [];
+          const detail = result.reason instanceof Error ? result.reason.message : String(result.reason);
+          return [`${startupTasks[index].label}失败：${detail}`];
+        });
+        if (failures.length) {
+          throw new Error(failures.join("；"));
+        }
+
+        // Token counting improves editor features but must never block the entire
+        // workspace when a dynamically imported encoding fails to load.
+        void preloadTiktokenEncoding().catch((preloadError) => {
+          console.warn("Tiktoken preload failed; token estimation fallback remains active:", preloadError);
+        });
 
         if (mounted) {
+          setError(null);
           setIsReady(true);
         }
-      } catch {
+      } catch (initializationError) {
         if (mounted) {
-          if (Date.now() - startTime > 30000) {
-            setError(true);
-            return;
-          }
-          timer = setTimeout(initializeApp, 500);
+          const detail = initializationError instanceof Error ? initializationError.message : String(initializationError);
+          setError(`初始化失败：${detail}`);
         }
       }
     };
@@ -164,7 +188,6 @@ function AppRoot() {
 
     return () => {
       mounted = false;
-      clearTimeout(timer);
     };
   }, []);
 

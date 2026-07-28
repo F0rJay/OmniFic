@@ -158,6 +158,25 @@ jobs:
       - name: 构建后端 Python 包
         working-directory: backend
         run: uv build
+      - name: 冒烟验证本地 wheel
+        working-directory: backend
+        run: |
+          smoke_root="$(mktemp -d)"
+          smoke_venv="$smoke_root/venv"
+          smoke_data="$smoke_root/data"
+          python -m venv "$smoke_venv"
+          "$smoke_venv/bin/python" -m pip install dist/omnific-*.whl
+          "$smoke_venv/bin/omnific" version | grep "${{ needs.context.outputs.version }}"
+          OMNIFIC_DATA_DIR="$smoke_data" "$smoke_venv/bin/omnific" serve --host 127.0.0.1 --port 8765 > "$smoke_root/server.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; cat "$smoke_root/server.log"' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:8765/api/v1/health; then
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
       - uses: actions/cache/save@v5
         if: ${{ steps.pnpm-cache.outputs.cache-hit != 'true' }}
         with:
@@ -209,11 +228,36 @@ jobs:
         with:
           context: .
           platforms: ${{ matrix.platform }}
-          push: true
+          # Load the native image into the runner first. The registry is only
+          # updated after the health endpoint has passed below.
+          load: true
+          push: false
           provenance: false
           tags: ${{ steps.tags.outputs.tags }}
           cache-from: type=gha,scope=docker-${{ matrix.suffix }}
           cache-to: type=gha,mode=max,scope=docker-${{ matrix.suffix }}
+      - name: 冒烟验证发布镜像
+        run: |
+          image="${{ needs.context.outputs.image }}:${{ needs.context.outputs.version }}-${{ matrix.suffix }}"
+          container_id="$(docker run -d -p 127.0.0.1::8000 "$image")"
+          trap 'docker logs "$container_id"; docker rm -f "$container_id"' EXIT
+          port="$(docker port "$container_id" 8000/tcp | sed 's/.*://')"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error "http://127.0.0.1:${port}/api/v1/health"; then
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
+      - name: 推送已验证的架构镜像
+        run: |
+          image="${{ needs.context.outputs.image }}"
+          version="${{ needs.context.outputs.version }}"
+          major_minor="${{ needs.context.outputs.major_minor }}"
+          suffix="${{ matrix.suffix }}"
+          docker push "${image}:latest-${suffix}"
+          docker push "${image}:${version}-${suffix}"
+          docker push "${image}:${major_minor}-${suffix}"
 
   docker-manifest:
     needs: [context, docker]
@@ -308,12 +352,19 @@ jobs:
       - name: 构建桌面端
         working-directory: desktop
         run: pnpm build
+      - name: 验证便携 Python 路径
+        working-directory: desktop
+        run: pnpm test:runtime-paths
       - name: 构建 Electron 安装包
         working-directory: desktop
         run: pnpm exec electron-builder --config electron-builder.yml ${{ matrix.electron_args }} --publish never
       - name: 统一安装包架构命名
         working-directory: desktop
         run: node scripts/normalize-artifact-names.mjs
+      - name: 校验 macOS 安装包完整性
+        if: runner.os == 'macOS'
+        working-directory: desktop
+        run: node scripts/verify-macos-artifacts.mjs
 
       - uses: actions/upload-artifact@v7
         with:
@@ -393,8 +444,8 @@ jobs:
 
   # ---------------------------------------------------------------- release
   publish-release:
-    needs: [context, ensure-release, desktop, desktop-windows-update, desktop-macos-update]
-    if: ${{ always() && needs.ensure-release.result == 'success' && needs.desktop.result == 'success' && needs.desktop-windows-update.result == 'success' && needs.desktop-macos-update.result == 'success' }}
+    needs: [context, ensure-release, desktop, desktop-windows-update, desktop-macos-update, docker-manifest]
+    if: ${{ always() && needs.ensure-release.result == 'success' && needs.desktop.result == 'success' && needs.desktop-windows-update.result == 'success' && needs.desktop-macos-update.result == 'success' && needs.docker-manifest.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v8

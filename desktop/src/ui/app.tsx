@@ -28,6 +28,11 @@ interface WebviewIpcMessageEvent extends Event {
   args: unknown[];
 }
 
+interface WebviewDiagnosticPayload {
+  kind?: unknown;
+  detail?: unknown;
+}
+
 function isDesktopAppearancePayload(value: unknown): value is DesktopAppearancePayload {
   if (!value || typeof value !== "object") return false;
   const candidate = value as DesktopAppearancePayload;
@@ -155,9 +160,15 @@ export function App() {
 
     const handleIpcMessage = (event: Event) => {
       const { channel, args } = event as WebviewIpcMessageEvent;
-      if (channel !== "omnific:appearance") return;
       const payload = args[0];
-      if (!isDesktopAppearancePayload(payload)) return;
+      if (channel === "omnific:diagnostic") {
+        const diagnostic = payload as WebviewDiagnosticPayload | undefined;
+        if (typeof diagnostic?.kind === "string" && typeof diagnostic.detail === "string") {
+          void window.omnificDesktop.logFrontendDiagnostic(`[${diagnostic.kind}] ${diagnostic.detail}`);
+        }
+        return;
+      }
+      if (channel !== "omnific:appearance" || !isDesktopAppearancePayload(payload)) return;
 
       setShellAppearance((current) => ({
         appearance: payload.appearance ?? current.appearance,
@@ -169,6 +180,10 @@ export function App() {
     webview.addEventListener("ipc-message", handleIpcMessage);
     return () => webview.removeEventListener("ipc-message", handleIpcMessage);
   }, [webviewKey]);
+
+  const logFrontendDiagnostic = (message: string) => {
+    void window.omnificDesktop.logFrontendDiagnostic(message);
+  };
 
   const refreshConfig = async () => {
     const nextConfig = await window.omnificDesktop.getConfig();
@@ -368,7 +383,12 @@ export function App() {
           />
         ) : null}
         {shellState === "frontend" && frontendReadyPartition ? (
-          <FrontendPage webviewKey={webviewKey} partition={frontendReadyPartition} webviewRef={frontendWebviewRef} />
+          <FrontendPage
+            webviewKey={webviewKey}
+            partition={frontendReadyPartition}
+            webviewRef={frontendWebviewRef}
+            onDiagnostic={logFrontendDiagnostic}
+          />
         ) : null}
       </section>
       <DesktopNotices

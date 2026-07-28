@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const preloadPath = fileURLToPath(new URL("../preload/preload.mjs", import.meta.url));
 
-function writeWindowLog(message: string): void {
+export function writeWindowLog(message: string): void {
   try {
     const logDir = path.join(process.env.APPDATA ?? app.getPath("userData"), "omnific-desktop");
     mkdirSync(logDir, { recursive: true });
