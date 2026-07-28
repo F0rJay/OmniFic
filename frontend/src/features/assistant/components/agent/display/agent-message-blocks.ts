@@ -1,4 +1,4 @@
-import type { AgentMessage, AgentSessionStatus } from "@/lib/agent.types";
+import type { AgentMessage } from "@/lib/agent.types";
 
 import type { BlockDisplayMessage } from "./display-message-types";
 
@@ -17,19 +17,17 @@ export interface AgentMessageBlock {
   nodeStatus?: AgentMessage["status"];
 }
 
-export interface AgentRoundToolbarTarget {
+export interface AgentMessageRound {
   id: string;
-  roundId: string;
-  anchorBlockId: string;
+  blocks: AgentMessageBlock[];
+  messages: BlockDisplayMessage[];
   sourceRevisionId?: string;
-  copyContent: string;
-  timestamp?: number;
+  userTimestamp?: number;
 }
 
-interface AgentRoundToolbarOptions {
-  isRunning?: boolean;
-  status?: AgentSessionStatus;
-}
+export type AgentConversationItem =
+  | { type: "user"; block: AgentMessageBlock }
+  | { type: "round"; round: AgentMessageRound };
 
 interface BuildAgentMessageBlocksOptions {
   closeOpenNodeAt?: number;
@@ -203,131 +201,52 @@ export function buildAgentMessageBlocks(
   return blocks;
 }
 
-export function getVisibleAgentMessageBlocks(
-  blocks: AgentMessageBlock[],
-  collapsedNodeIds: ReadonlySet<string>,
-): AgentMessageBlock[] {
-  return blocks.filter((block) => {
-    if (block.type === "node") return true;
-    return !block.nodeId || !collapsedNodeIds.has(block.nodeId);
-  });
-}
+export function buildAgentConversationItems(blocks: AgentMessageBlock[]): AgentConversationItem[] {
+  const items: AgentConversationItem[] = [];
+  const rounds = new Map<string, AgentMessageRound>();
 
-function hasRunningMessage(block: AgentMessageBlock): boolean {
-  return block.messages.some((message) =>
-    Boolean(message.isStreaming || message.status === "running"),
-  );
-}
-
-function getLatestRoundTimestamp(blocks: AgentMessageBlock[]): number | undefined {
-  for (let blockIndex = blocks.length - 1; blockIndex >= 0; blockIndex -= 1) {
-    const block = blocks[blockIndex];
-    if (!block) continue;
-    for (let messageIndex = block.messages.length - 1; messageIndex >= 0; messageIndex -= 1) {
-      const timestamp = block.messages[messageIndex]?.timestamp;
-      if (typeof timestamp === "number" && Number.isFinite(timestamp)) return timestamp;
+  const ensureRound = (
+    roundId: string,
+    sourceRevisionId?: string,
+    userTimestamp?: number,
+  ): AgentMessageRound => {
+    const existing = rounds.get(roundId);
+    if (existing) {
+      if (!existing.sourceRevisionId && sourceRevisionId)
+        existing.sourceRevisionId = sourceRevisionId;
+      if (existing.userTimestamp === undefined && userTimestamp !== undefined) {
+        existing.userTimestamp = userTimestamp;
+      }
+      return existing;
     }
-  }
-  return undefined;
-}
 
-function getLatestAssistantTimestampFromBlock(block: AgentMessageBlock): number | undefined {
-  for (let index = block.messages.length - 1; index >= 0; index -= 1) {
-    const message = block.messages[index];
-    if (
-      message?.type === "agent_output" &&
-      typeof message.timestamp === "number" &&
-      Number.isFinite(message.timestamp)
-    ) {
-      return message.timestamp;
-    }
-  }
-  return undefined;
-}
-
-function getLatestAssistantToolbarTimestamp(blocks: AgentMessageBlock[]): number | undefined {
-  for (let blockIndex = blocks.length - 1; blockIndex >= 0; blockIndex -= 1) {
-    const block = blocks[blockIndex];
-    if (!block || block.type !== "agent") continue;
-    const timestamp = getLatestAssistantTimestampFromBlock(block);
-    if (typeof timestamp === "number") return timestamp;
-  }
-  return getLatestRoundTimestamp(blocks);
-}
-
-export function getAgentRoundToolbarTargets(
-  blocks: AgentMessageBlock[],
-  visibleBlocks: AgentMessageBlock[],
-  options: AgentRoundToolbarOptions = {},
-): AgentRoundToolbarTarget[] {
-  if (
-    options.isRunning ||
-    options.status === "waiting_approval" ||
-    options.status === "waiting_answer"
-  ) {
-    return [];
-  }
-
-  const roundOrder: string[] = [];
-  const rounds = new Map<
-    string,
-    {
-      blocks: AgentMessageBlock[];
-      visibleBlocks: AgentMessageBlock[];
-      sourceRevisionId?: string;
-    }
-  >();
+    const round: AgentMessageRound = {
+      id: roundId,
+      blocks: [],
+      messages: [],
+      sourceRevisionId,
+      userTimestamp,
+    };
+    rounds.set(roundId, round);
+    items.push({ type: "round", round });
+    return round;
+  };
 
   for (const block of blocks) {
-    if (!block.agentRoundId || (block.type !== "agent" && block.type !== "node")) continue;
-    let round = rounds.get(block.agentRoundId);
-    if (!round) {
-      round = { blocks: [], visibleBlocks: [], sourceRevisionId: block.sourceRevisionId };
-      rounds.set(block.agentRoundId, round);
-      roundOrder.push(block.agentRoundId);
+    if (block.type === "user") {
+      items.push({ type: "user", block });
+      const message = block.messages[0];
+      ensureRound(`round:${message?.id ?? block.id}`, block.sourceRevisionId, message?.timestamp);
+      continue;
     }
+
+    const roundId = block.agentRoundId ?? `round:orphan:${block.id}`;
+    const round = ensureRound(roundId, block.sourceRevisionId);
     round.blocks.push(block);
-    if (!round.sourceRevisionId && block.sourceRevisionId) {
-      round.sourceRevisionId = block.sourceRevisionId;
-    }
+    if (block.type === "agent") round.messages.push(...block.messages);
   }
 
-  const visibleBlockIds = new Set(visibleBlocks.map((block) => block.id));
-  for (const block of blocks) {
-    if (!block.agentRoundId || !visibleBlockIds.has(block.id)) continue;
-    const round = rounds.get(block.agentRoundId);
-    if (round) round.visibleBlocks.push(block);
-  }
-
-  return roundOrder.flatMap((roundId) => {
-    const round = rounds.get(roundId);
-    if (!round) return [];
-    const hasAgentWork = round.blocks.some((block) => block.type === "agent");
-    const isRunning = round.blocks.some(
-      (block) => block.type === "agent" && hasRunningMessage(block),
-    );
-    const anchorBlock = round.visibleBlocks.at(-1);
-    if (!hasAgentWork || isRunning || !anchorBlock) return [];
-
-    let copyContent = "";
-    for (let index = round.blocks.length - 1; index >= 0; index -= 1) {
-      const block = round.blocks[index];
-      if (block?.type !== "agent") continue;
-      copyContent = getLatestAssistantContentFromBlock(block);
-      if (copyContent) break;
-    }
-
-    return [
-      {
-        id: `toolbar:${roundId}`,
-        roundId,
-        anchorBlockId: anchorBlock.id,
-        sourceRevisionId: round.sourceRevisionId,
-        copyContent,
-        timestamp: getLatestAssistantToolbarTimestamp(round.blocks),
-      },
-    ];
-  });
+  return items;
 }
 
 export function getNodeElapsedMs(block: AgentMessageBlock, now = Date.now()): number {
@@ -336,6 +255,43 @@ export function getNodeElapsedMs(block: AgentMessageBlock, now = Date.now()): nu
   if (typeof block.nodeStartedAt !== "number") return elapsedBaseMs;
   const end = typeof block.nodeEndedAt === "number" ? block.nodeEndedAt : now;
   return Math.max(0, elapsedBaseMs + end - block.nodeStartedAt);
+}
+
+export function getAgentRoundLatestTimestamp(round: AgentMessageRound): number | undefined {
+  let latest = round.userTimestamp;
+  for (const block of round.blocks) {
+    for (const message of block.messages) {
+      if (!Number.isFinite(message.timestamp)) continue;
+      latest = latest === undefined ? message.timestamp : Math.max(latest, message.timestamp);
+    }
+  }
+  return latest;
+}
+
+interface AgentRoundElapsedOptions {
+  now?: number;
+  activeStartedAt?: number;
+}
+
+export function getAgentRoundElapsedMs(
+  round: AgentMessageRound,
+  options: AgentRoundElapsedOptions = {},
+): number {
+  const now = options.now ?? Date.now();
+  const nodeBlocks = round.blocks.filter((block) => block.type === "node");
+  if (nodeBlocks.length > 0) {
+    return nodeBlocks.reduce((total, block) => total + getNodeElapsedMs(block, now), 0);
+  }
+
+  const timestamps = round.messages
+    .map((message) => message.timestamp)
+    .filter((timestamp) => Number.isFinite(timestamp));
+  const earliestMessageTimestamp = timestamps.length > 0 ? Math.min(...timestamps) : undefined;
+  const latestMessageTimestamp = timestamps.length > 0 ? Math.max(...timestamps) : undefined;
+  const startedAt =
+    options.activeStartedAt ?? earliestMessageTimestamp ?? round.userTimestamp ?? now;
+  const endedAt = options.now ?? latestMessageTimestamp ?? startedAt;
+  return Math.max(0, endedAt - startedAt);
 }
 
 export function getLatestAssistantContentFromBlock(block: AgentMessageBlock): string {

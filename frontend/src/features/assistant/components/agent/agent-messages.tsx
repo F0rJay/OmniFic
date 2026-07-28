@@ -25,26 +25,28 @@ import {
   shouldTrackStreamingFollowBottom,
   type ScrollViewportMetrics,
 } from "./agent-messages-scroll";
+import { AgentProcessSummary, type AgentProcessStatus } from "./agent-process-summary";
 import { getAgentRunningStatus } from "./agent-running-status";
-import { AgentStatusMessage, type AgentExecutionStep } from "./agent-status-message";
 import {
+  buildAgentConversationItems,
   buildAgentMessageBlocks,
-  getAgentRoundToolbarTargets,
-  getVisibleAgentMessageBlocks,
+  getAgentRoundElapsedMs,
+  getAgentRoundLatestTimestamp,
   type AgentMessageBlock,
-  type AgentRoundToolbarTarget,
+  type AgentMessageRound,
 } from "./display/agent-message-blocks";
 import { buildAgentDisplayItems } from "./display/agent-message-display-items";
 import { normalizeDisplayMessages } from "./display/display-message-normalization";
 import type {
   AgentBlockDisplayMessage,
+  AgentOutputDisplayMessage,
   BlockDisplayMessage,
+  ErrorDisplayMessage,
 } from "./display/display-message-types";
 
 import "./agent-message-blocks.css";
 
 import { ExplorationMessage } from "./message-blocks/blocks/exploration/exploration-message";
-import { useElapsedDuration } from "./use-elapsed-duration";
 
 const COPY_FEEDBACK_MS = 1200;
 const NAVIGATION_TITLE_MAX_LENGTH = 72;
@@ -55,6 +57,14 @@ interface AgentMessageNavigationItem {
   targetBlockId: string;
   title: string;
   preview: string;
+}
+
+interface AgentRoundToolbarTarget {
+  id: string;
+  roundId: string;
+  sourceRevisionId?: string;
+  copyContent: string;
+  timestamp?: number;
 }
 
 function normalizeNavigationText(value: string | undefined): string {
@@ -181,6 +191,65 @@ function isAgentBlockDisplayMessage(
   );
 }
 
+interface AgentRoundDisplayContent {
+  processMessages: AgentBlockDisplayMessage[];
+  finalMessage?: AgentOutputDisplayMessage;
+  errorMessages: ErrorDisplayMessage[];
+}
+
+function getAgentRoundStatus(
+  round: AgentMessageRound,
+  isLatestRound: boolean,
+  sessionStatus: AgentMessagesProps["status"],
+): AgentProcessStatus {
+  if (round.messages.some((message) => message.type === "error")) return "error";
+  if (!isLatestRound) return "completed";
+  if (sessionStatus === "running") return "running";
+  if (sessionStatus === "waiting_answer") return "waiting_answer";
+  if (sessionStatus === "waiting_approval") return "waiting_approval";
+  if (sessionStatus === "error") return "error";
+  return "completed";
+}
+
+function splitAgentRoundDisplayContent(
+  round: AgentMessageRound,
+  status: AgentProcessStatus,
+): AgentRoundDisplayContent {
+  const errorMessages = round.messages.filter(
+    (message): message is ErrorDisplayMessage => message.type === "error",
+  );
+  let finalMessageIndex = -1;
+
+  if (status === "completed") {
+    finalMessageIndex = round.messages.findLastIndex(
+      (message) => message.type === "agent_output" && Boolean(message.content?.trim()),
+    );
+  }
+
+  const finalMessage =
+    finalMessageIndex >= 0
+      ? (round.messages[finalMessageIndex] as AgentOutputDisplayMessage)
+      : undefined;
+  const processMessages = round.messages.filter(
+    (message, index): message is AgentBlockDisplayMessage =>
+      index !== finalMessageIndex &&
+      message.type !== "error" &&
+      isAgentBlockDisplayMessage(message),
+  );
+
+  return { processMessages, finalMessage, errorMessages };
+}
+
+function getActiveRoundStartedAt(runStartedAt?: string | null): number | undefined {
+  if (!runStartedAt) return undefined;
+  const timestamp = Date.parse(runStartedAt);
+  return Number.isFinite(timestamp) ? timestamp : undefined;
+}
+
+function hasActiveRoundMessage(messages: AgentBlockDisplayMessage[]): boolean {
+  return messages.some((message) => message.isStreaming || message.status === "running");
+}
+
 function areBlockMessageListsEqual(previous: BlockDisplayMessage[], next: BlockDisplayMessage[]) {
   if (previous === next) return true;
   if (previous.length !== next.length) return false;
@@ -268,14 +337,9 @@ export function AgentMessages({
     null,
   );
   const [pendingForkTarget, setPendingForkTarget] = useState<AgentRoundToolbarTarget | null>(null);
-  const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(() => new Set());
-  const [executionSteps, setExecutionSteps] = useState<AgentExecutionStep[]>([]);
-  const executionSequenceRef = useRef(0);
-  const executionRunKeyRef = useRef<string | null>(null);
-  const wasExecutionActiveRef = useRef(false);
+  const [durationNow, setDurationNow] = useState(() => Date.now());
   const streamFollowSignal = getStreamingFollowSignal(messages);
   const runningStatus = useMemo(() => getAgentRunningStatus(messages), [messages]);
-  const elapsed = useElapsedDuration(runStartedAt, status === "running");
   const statusMessage =
     status === "running" && runningStatus
       ? t(`assistant.runningStatus.${runningStatus}`)
@@ -284,34 +348,11 @@ export function AgentMessages({
     status === "running" || status === "waiting_answer" || status === "waiting_approval";
 
   useEffect(() => {
-    if (!isExecutionActive || !statusMessage) {
-      wasExecutionActiveRef.current = false;
-      return;
-    }
-
-    const runKey = runStartedAt ?? null;
-    const isNewRun =
-      !wasExecutionActiveRef.current || (runKey !== null && executionRunKeyRef.current !== runKey);
-    const stepKey = status === "running" ? `running:${runningStatus ?? statusMessage}` : status;
-
-    wasExecutionActiveRef.current = true;
-    executionRunKeyRef.current = runKey;
-    setExecutionSteps((current) => {
-      const nextStep = {
-        id: (executionSequenceRef.current += 1),
-        key: stepKey,
-        content: statusMessage,
-      };
-      if (isNewRun || current.length === 0) return [nextStep];
-
-      const lastStep = current[current.length - 1];
-      if (lastStep?.key === stepKey) {
-        if (lastStep.content === statusMessage) return current;
-        return [...current.slice(0, -1), { ...lastStep, content: statusMessage }];
-      }
-      return [...current, nextStep].slice(-5);
-    });
-  }, [isExecutionActive, runStartedAt, runningStatus, status, statusMessage]);
+    if (status !== "running") return;
+    setDurationNow(Date.now());
+    const timer = window.setInterval(() => setDurationNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [status, runStartedAt]);
 
   const getScrollContainer = useCallback(
     () => scrollContainerRef.current ?? bottomRef.current?.closest(".ai-sidebar-messages"),
@@ -538,25 +579,19 @@ export function AgentMessages({
     () => buildAgentMessageBlocks(displayMessages, { closeOpenNodeAt }),
     [closeOpenNodeAt, displayMessages],
   );
-  const visibleMessageBlocks = useMemo(
-    () => getVisibleAgentMessageBlocks(messageBlocks, collapsedNodeIds),
-    [collapsedNodeIds, messageBlocks],
+  const conversationItems = useMemo(
+    () => buildAgentConversationItems(messageBlocks),
+    [messageBlocks],
   );
-  const toolbarTargets = useMemo(
-    () => getAgentRoundToolbarTargets(messageBlocks, visibleMessageBlocks, { isRunning, status }),
-    [isRunning, messageBlocks, status, visibleMessageBlocks],
+  const roundItems = useMemo(
+    () => conversationItems.filter((item) => item.type === "round"),
+    [conversationItems],
   );
-  const toolbarTargetByAnchorId = useMemo(
-    () => new Map(toolbarTargets.map((target) => [target.anchorBlockId, target])),
-    [toolbarTargets],
-  );
+  const latestRoundId = roundItems.at(-1)?.round.id;
+  const activeRoundStartedAt = useMemo(() => getActiveRoundStartedAt(runStartedAt), [runStartedAt]);
   const navigationItems = useMemo(
-    () =>
-      buildAgentMessageNavigationItems(
-        visibleMessageBlocks,
-        t("assistant.messageNavigationUntitled"),
-      ),
-    [t, visibleMessageBlocks],
+    () => buildAgentMessageNavigationItems(messageBlocks, t("assistant.messageNavigationUntitled")),
+    [messageBlocks, t],
   );
 
   const setMessageBlockElement = useCallback((blockId: string, element: HTMLDivElement | null) => {
@@ -629,15 +664,6 @@ export function AgentMessages({
     },
     [getScrollContainer],
   );
-
-  const toggleNodeCollapsed = useCallback((nodeId: string) => {
-    setCollapsedNodeIds((current) => {
-      const next = new Set(current);
-      if (next.has(nodeId)) next.delete(nodeId);
-      else next.add(nodeId);
-      return next;
-    });
-  }, []);
 
   const copyText = useCallback(
     async (content: string, emptyMessage: string, actionId: string) => {
@@ -788,40 +814,9 @@ export function AgentMessages({
         ref={contentRef}
         className="agent-message-scroll-content"
       >
-        {visibleMessageBlocks.map((block) => {
-          const toolbarTarget = toolbarTargetByAnchorId.get(block.id);
-          if (block.type === "node") {
-            const message = block.messages[0];
-            if (!message || message.type !== "node_start") return null;
-            const nodeId = block.nodeId ?? message.id;
-            const isCollapsed = collapsedNodeIds.has(nodeId);
-            return (
-              <Box
-                key={block.id}
-                ref={(element) => setMessageBlockElement(block.id, element)}
-                className="agent-message-block-stack"
-                data-block-type="node"
-              >
-                <Box
-                  className="agent-message-block"
-                  data-block-type="node"
-                >
-                  <AgentMessageRenderer
-                    message={message}
-                    nodeStartedAt={block.nodeStartedAt}
-                    nodeEndedAt={block.nodeEndedAt}
-                    nodeElapsedBaseMs={block.nodeElapsedBaseMs}
-                    isNodeCollapsed={isCollapsed}
-                    onToggleNode={() => toggleNodeCollapsed(nodeId)}
-                    onOpenMentionChapter={onOpenMentionChapter}
-                  />
-                </Box>
-                {toolbarTarget ? renderAgentRoundToolbar(toolbarTarget) : null}
-              </Box>
-            );
-          }
-
-          if (block.type === "user") {
+        {conversationItems.map((item) => {
+          if (item.type === "user") {
+            const block = item.block;
             const message = block.messages[0];
             if (!message || message.type !== "user_request") return null;
             const canShowRollback =
@@ -894,35 +889,101 @@ export function AgentMessages({
             );
           }
 
+          const round = item.round;
+          const isLatestRound = round.id === latestRoundId;
+          const roundStatus = getAgentRoundStatus(round, isLatestRound, status);
+          const { processMessages, finalMessage, errorMessages } = splitAgentRoundDisplayContent(
+            round,
+            roundStatus,
+          );
+          const isActiveRound = isLatestRound && isExecutionActive;
+          const stageMessage =
+            isActiveRound && statusMessage && !hasActiveRoundMessage(processMessages)
+              ? statusMessage
+              : "";
+          const hasProcessContent = processMessages.length > 0 || Boolean(stageMessage);
+          const hasRoundContent = round.blocks.length > 0 || round.messages.length > 0;
+          if (!hasRoundContent && !isActiveRound) return null;
+
+          const latestTimestamp = getAgentRoundLatestTimestamp(round);
+          const elapsedNow =
+            roundStatus === "running"
+              ? durationNow
+              : roundStatus === "waiting_answer" || roundStatus === "waiting_approval"
+                ? latestTimestamp
+                : undefined;
+          const elapsedMs = getAgentRoundElapsedMs(round, {
+            now: elapsedNow,
+            activeStartedAt: isLatestRound ? activeRoundStartedAt : undefined,
+          });
+          const toolbarTarget: AgentRoundToolbarTarget | null =
+            roundStatus === "completed" || roundStatus === "error"
+              ? {
+                  id: `toolbar:${round.id}`,
+                  roundId: round.id,
+                  sourceRevisionId: round.sourceRevisionId,
+                  copyContent: finalMessage?.content?.trim() ?? "",
+                  timestamp:
+                    finalMessage?.timestamp ?? errorMessages.at(-1)?.timestamp ?? latestTimestamp,
+                }
+              : null;
+
           return (
             <Box
-              key={block.id}
-              ref={(element) => setMessageBlockElement(block.id, element)}
+              key={round.id}
               className="agent-message-block-stack"
-              data-block-type="agent"
+              data-block-type="round"
             >
-              <Box
-                className="agent-message-block"
-                data-block-type="agent"
+              <AgentProcessSummary
+                status={roundStatus}
+                elapsedMs={elapsedMs}
+                expandable={hasProcessContent}
               >
-                <AgentBlockContent
-                  messages={block.messages}
-                  onOpenMentionChapter={onOpenMentionChapter}
-                />
-              </Box>
+                {processMessages.length > 0 ? (
+                  <AgentBlockContent
+                    messages={processMessages}
+                    onOpenMentionChapter={onOpenMentionChapter}
+                  />
+                ) : null}
+                {stageMessage ? (
+                  <div className="agent-process-summary__stage">
+                    <span
+                      className="agent-process-summary__stage-dot"
+                      aria-hidden="true"
+                    />
+                    <span>{stageMessage}</span>
+                  </div>
+                ) : null}
+              </AgentProcessSummary>
+
+              {finalMessage ? (
+                <Box
+                  className="agent-message-block"
+                  data-block-type="agent-final"
+                >
+                  <AgentBlockContent
+                    messages={[finalMessage]}
+                    onOpenMentionChapter={onOpenMentionChapter}
+                  />
+                </Box>
+              ) : null}
+
+              {errorMessages.length > 0 ? (
+                <Box
+                  className="agent-message-block"
+                  data-block-type="agent-error"
+                >
+                  <AgentBlockContent
+                    messages={errorMessages}
+                    onOpenMentionChapter={onOpenMentionChapter}
+                  />
+                </Box>
+              ) : null}
+
               {toolbarTarget ? renderAgentRoundToolbar(toolbarTarget) : null}
             </Box>
           );
         })}
-
-        {(status === "running" || status === "waiting_answer" || status === "waiting_approval") &&
-          statusMessage && (
-            <AgentStatusMessage
-              steps={executionSteps}
-              currentContent={statusMessage}
-              elapsed={status === "running" ? elapsed : undefined}
-            />
-          )}
         <Box
           ref={bottomRef}
           className="agent-message-bottom-anchor"

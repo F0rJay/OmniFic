@@ -1,0 +1,103 @@
+.agent-process-summary {
+  width: 100%;
+  min-width: 0;
+}
+
+.agent-process-summary__toggle {
+  display: flex;
+  width: 100%;
+  min-height: 37px;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 8px 0 9px;
+  border: 0;
+  border-bottom: 1px solid var(--gray-a4);
+  background: transparent;
+  color: var(--gray-10);
+  cursor: pointer;
+  font: inherit;
+  line-height: 1.3;
+  text-align: left;
+}
+
+.agent-process-summary__toggle[data-expandable="false"] {
+  cursor: default;
+}
+
+.agent-process-summary__toggle:disabled {
+  opacity: 1;
+}
+
+.agent-process-summary__toggle[data-expandable="true"]:hover {
+  color: var(--gray-12);
+}
+
+.agent-process-summary__toggle:focus-visible {
+  border-bottom-color: var(--gray-a5);
+  background: var(--gray-a2);
+  outline: none;
+}
+
+.agent-process-summary__label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.agent-process-summary[data-status="running"] .agent-process-summary__label,
+.agent-process-summary[data-status="waiting_answer"] .agent-process-summary__label,
+.agent-process-summary[data-status="waiting_approval"] .agent-process-summary__label {
+  color: var(--gray-12);
+}
+
+.agent-process-summary[data-status="error"] .agent-process-summary__label {
+  color: var(--red-10);
+}
+
+.agent-process-summary__duration {
+  color: var(--gray-9);
+  font-family: "JetBrainsMapleMono", monospace;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.agent-process-summary__chevron {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  color: var(--gray-9);
+}
+
+.agent-process-summary__content {
+  overflow: hidden;
+}
+
+.agent-process-summary__content-inner {
+  padding: 14px 0 4px;
+}
+
+.agent-process-summary__stage {
+  display: flex;
+  min-height: 26px;
+  align-items: center;
+  gap: 9px;
+  color: var(--gray-10);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.agent-process-summary__stage-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--blue-9);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue-9) 14%, transparent);
+  animation: motion-breathe 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-process-summary__stage-dot {
+    animation: none;
+  }
+}

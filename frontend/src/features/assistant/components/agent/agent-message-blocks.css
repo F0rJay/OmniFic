@@ -153,6 +153,10 @@
   flex-direction: column;
 }
 
+.agent-message-block-stack[data-block-type="round"] {
+  gap: 14px;
+}
+
 .agent-message-scroll-content {
   width: 100%;
   min-width: 0;

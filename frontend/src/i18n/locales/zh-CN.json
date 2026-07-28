@@ -1736,6 +1736,15 @@
       "reviewer": "质量审核",
       "unknown": "Agent"
     },
+    "processSummary": {
+      "running": "处理中",
+      "completed": "已处理",
+      "error": "处理失败",
+      "waiting_answer": "等待回答",
+      "waiting_approval": "等待审批",
+      "expandAriaLabel": "展开{{status}}的过程详情",
+      "collapseAriaLabel": "收起{{status}}的过程详情"
+    },
     "node": {
       "processed": "已处理",
       "expanded": "已展开",
