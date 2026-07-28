@@ -17,7 +17,7 @@
   "packages": {
     ".": {
       "release-type": "python",
-      "package-name": "openfic",
+      "package-name": "omnific",
       "changelog-path": "CHANGELOG.md",
       "extra-files": [
         {

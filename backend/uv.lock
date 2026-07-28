@@ -1907,7 +1907,7 @@ wheels = [
 ]
 
 [[package]]
-name = "openfic"
+name = "omnific"
 version = "0.7.4"
 source = { editable = "." }
 dependencies = [

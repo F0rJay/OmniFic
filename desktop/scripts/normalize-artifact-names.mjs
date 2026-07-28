@@ -26,7 +26,7 @@ for (const entry of await readdir(outputDirectory, { withFileTypes: true })) {
 
 for (const entry of await readdir(outputDirectory, { withFileTypes: true })) {
   if (!entry.isFile()) continue;
-  if (!/^OpenFic-.+-win-setup\.exe(?:\.blockmap)?$/.test(entry.name)) continue;
+  if (!/^OmniFic-.+-win-setup\.exe(?:\.blockmap)?$/.test(entry.name)) continue;
   if (entry.name.includes("-win-x86_64-setup") || entry.name.includes("-win-aarch64-setup")) continue;
   await rm(path.join(outputDirectory, entry.name));
 }

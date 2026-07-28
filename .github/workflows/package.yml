@@ -33,7 +33,7 @@ jobs:
         run: |
           RELEASE_TAG=${GITHUB_REF#refs/tags/}
           VERSION=${RELEASE_TAG#v}
-          IMAGE=ghcr.io/${{ github.repository_owner }}/openfic
+          IMAGE=ghcr.io/${{ github.repository_owner }}/omnific
           IMAGE=$(echo "$IMAGE" | tr '[:upper:]' '[:lower:]')
           MAJOR_MINOR=$(echo "$VERSION" | cut -d. -f1,2)
 
@@ -68,7 +68,7 @@ jobs:
         working-directory: frontend
         run: |
           pnpm install --frozen-lockfile
-          OPENFIC_BUILD_VERSION=${{ needs.context.outputs.version }} pnpm build
+          OMNIFIC_BUILD_VERSION=${{ needs.context.outputs.version }} pnpm build
       - uses: actions/upload-artifact@v7
         with:
           name: frontend-dist
@@ -115,15 +115,15 @@ jobs:
           target = Path("backend/.uv-cache-key.lock")
           lines = source.read_text(encoding="utf-8").splitlines()
           normalized: list[str] = []
-          is_openfic_package = False
+          is_omnific_package = False
 
           for line in lines:
               if line == "[[package]]":
-                  is_openfic_package = False
-              elif line == 'name = "openfic"':
-                  is_openfic_package = True
+                  is_omnific_package = False
+              elif line == 'name = "omnific"':
+                  is_omnific_package = True
 
-              if is_openfic_package and line.startswith("version = "):
+              if is_omnific_package and line.startswith("version = "):
                   continue
 
               normalized.append(line)
@@ -247,10 +247,10 @@ jobs:
             artifact_name: desktop-linux-aarch64
           - os: macos-15-intel
             electron_args: '--mac --x64'
-            artifact_name: desktop-mac-x86_64
+            artifact_name: macos-update-x86_64
           - os: macos-15
             electron_args: '--mac --arm64'
-            artifact_name: desktop-mac-aarch64
+            artifact_name: macos-update-aarch64
     runs-on: ${{ matrix.os }}
     env:
       ELECTRON_CACHE: ${{ github.workspace }}/.electron-cache
@@ -313,6 +313,7 @@ jobs:
             desktop/dist-electron/*.tar.gz
             desktop/dist-electron/*.zip
             desktop/dist-electron/*.dmg
+            desktop/dist-electron/*.yml
       - uses: actions/cache/save@v5
         if: ${{ steps.pnpm-cache.outputs.cache-hit != 'true' }}
         with:
@@ -348,16 +349,42 @@ jobs:
       - name: 发布 Windows 自动更新产物
         run: |
           gh release upload "${{ needs.context.outputs.release_tag }}" \
-            desktop/dist-electron/OpenFic-*-win-*-setup.exe \
-            desktop/dist-electron/OpenFic-*-win-*-setup.exe.blockmap \
-            desktop/dist-electron/OpenFic-*-win-*.zip \
+            desktop/dist-electron/OmniFic-*-win-*-setup.exe \
+            desktop/dist-electron/OmniFic-*-win-*-setup.exe.blockmap \
+            desktop/dist-electron/OmniFic-*-win-*.zip \
             desktop/dist-electron/latest*.yml \
+            --clobber
+
+  desktop-macos-update:
+    needs: [context, desktop]
+    if: ${{ always() && needs.desktop.result == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: macos-update-*
+          merge-multiple: true
+          path: desktop/dist-electron
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: 整理 macOS 自动更新产物
+        working-directory: desktop
+        run: node scripts/prepare-macos-update.mjs
+      - name: 发布 macOS 自动更新产物
+        run: |
+          gh release upload "${{ needs.context.outputs.release_tag }}" \
+            desktop/dist-electron/OmniFic-*-mac-*.zip \
+            desktop/dist-electron/latest-mac.yml \
             --clobber
 
   # ---------------------------------------------------------------- release
   publish-release:
-    needs: [context, desktop, desktop-windows-update]
-    if: ${{ always() && needs.desktop.result == 'success' && needs.desktop-windows-update.result == 'success' }}
+    needs: [context, desktop, desktop-windows-update, desktop-macos-update]
+    if: ${{ always() && needs.desktop.result == 'success' && needs.desktop-windows-update.result == 'success' && needs.desktop-macos-update.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v8

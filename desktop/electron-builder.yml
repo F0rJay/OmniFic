@@ -7,7 +7,7 @@ directories:
 
 publish:
   provider: github
-  owner: syrizelink
+  owner: F0rJay
   repo: OmniFic
   releaseType: release
 

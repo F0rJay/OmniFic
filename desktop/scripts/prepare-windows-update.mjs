@@ -4,7 +4,7 @@ import path from "node:path";
 
 const outputDirectory = path.resolve(process.argv[2] ?? "dist-electron");
 const packageJson = JSON.parse(await readFile(path.resolve("package.json"), "utf8"));
-const version = process.env.OPENFIC_UPDATE_VERSION ?? packageJson.version;
+const version = process.env.OMNIFIC_UPDATE_VERSION ?? packageJson.version;
 const architectures = ["x86_64", "aarch64"];
 
 async function exists(filePath) {
@@ -27,7 +27,7 @@ async function getFileInfo(fileName) {
   };
 }
 
-const universalInstaller = `OpenFic-${version}-win-setup.exe`;
+const universalInstaller = `OmniFic-${version}-win-setup.exe`;
 for (const fileName of [universalInstaller, `${universalInstaller}.blockmap`]) {
   const filePath = path.join(outputDirectory, fileName);
   if (await exists(filePath)) await rm(filePath);
@@ -36,7 +36,7 @@ for (const fileName of [universalInstaller, `${universalInstaller}.blockmap`]) {
 const files = await Promise.all(
   architectures.map(async (architecture) => ({
     architecture,
-    ...(await getFileInfo(`OpenFic-${version}-win-${architecture}-setup.exe`)),
+    ...(await getFileInfo(`OmniFic-${version}-win-${architecture}-setup.exe`)),
   })),
 );
 const releaseDate = new Date().toISOString();

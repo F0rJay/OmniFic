@@ -3,7 +3,7 @@ import { stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
 
-const port = Number(process.env.OPENFIC_UPDATE_PORT ?? "4567");
+const port = Number(process.env.OMNIFIC_UPDATE_PORT ?? "4567");
 const updateDirectory = path.resolve(process.argv[2] ?? "dist-electron");
 const contentTypes = new Map([
   [".exe", "application/vnd.microsoft.portable-executable"],
@@ -12,7 +12,7 @@ const contentTypes = new Map([
 ]);
 
 if (!Number.isInteger(port) || port < 1 || port > 65535) {
-  throw new Error("OPENFIC_UPDATE_PORT must be an integer between 1 and 65535.");
+  throw new Error("OMNIFIC_UPDATE_PORT must be an integer between 1 and 65535.");
 }
 
 if (!existsSync(updateDirectory)) {

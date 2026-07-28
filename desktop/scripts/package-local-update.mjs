@@ -1,10 +1,10 @@
 import { spawn } from "node:child_process";
 
 const pnpm = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
-const version = process.env.OPENFIC_UPDATE_VERSION;
+const version = process.env.OMNIFIC_UPDATE_VERSION;
 
 if (version && !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(version)) {
-  throw new Error(`OPENFIC_UPDATE_VERSION is not a valid semantic version: ${version}`);
+  throw new Error(`OMNIFIC_UPDATE_VERSION is not a valid semantic version: ${version}`);
 }
 
 function run(args) {

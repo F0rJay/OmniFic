@@ -36,8 +36,8 @@ COPY backend/ ./
 # 前端构建产物打入包内
 COPY --from=frontend /build/dist ./app/frontend_dist
 
-ENV OPENFIC_FRONTEND_DIST=/app/app/frontend_dist \
-    OPENFIC_DATA_DIR=/data
+ENV OMNIFIC_FRONTEND_DIST=/app/app/frontend_dist \
+    OMNIFIC_DATA_DIR=/data
 
 RUN mkdir -p /data
 
