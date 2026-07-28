@@ -3,7 +3,11 @@
 <h1 align="center">OmniFic</h1>
 
 <p align="center">
-  <strong>A personal experiment in AI-assisted long-form fiction, shaped by actual writing practice.</strong>
+  <strong>A local-first AI writing workspace for long-form fiction.</strong>
+</p>
+
+<p align="center">
+  Keep projects, volumes, chapters, notes, characters, worldbooks, and Agents in one continuous creative workspace.
 </p>
 
 <p align="center">
@@ -16,90 +20,157 @@
   <img alt="Based on OpenFic v0.7.5" src="https://img.shields.io/badge/Based_on-OpenFic_v0.7.5-070A12">
 </p>
 
-## A personal note
+OmniFic combines a conventional fiction-writing environment with AI Agents that can carry out project-level tasks. You can organize a long manuscript and its story bible, then allow an Agent—under explicit tool permissions—to read, search, and edit chapters, volumes, notes, characters, and worldbook entries instead of treating every conversation as a context-free chat.
 
-> OmniFic is not a replacement for OpenFic, nor is it a claim to be the “more correct” version. It is simply the branch I made while adapting the project to my own writing habits, model setup, and interaction preferences.
+The project uses a Python backend, a React frontend, and an optional Electron shell. Primary application data is stored locally in SQLite. Running from source is currently the recommended way to use it.
 
-I am deeply grateful to [OpenFic](https://github.com/syrizelink/OpenFic). It supplied everything that matters most here: worldbuilding tools, the editor, the Agent runtime, local data management, and a complete product worth building upon. OmniFic was forked from OpenFic v0.7.5 and has since taken an independent path.
+---
 
-That decision is not a criticism of upstream. Over time, I realized that many of my changes were highly personal. I rely on model relays, prefer command-driven Agent interaction, and care disproportionately about importing research, maintaining task continuity, and understanding reasoning state during long-form work. Those choices will not suit everyone, and upstream should not be expected to adopt them.
+## 📍 Quick navigation
 
-I keep OmniFic public primarily to share what I have learned, exchange ideas, and learn alongside others. It remains a tool shaped first by my own writing practice.
+- [Product overview](#-product-overview)
+- [Writing workflow](#-writing-workflow)
+- [Core capabilities](#-core-capabilities)
+- [Who it is for](#-who-it-is-for)
+- [Quick start](#-quick-start)
+- [Project status](#-project-status)
+- [Documentation and contribution](#-documentation-and-contribution)
+- [Relationship to OpenFic](#-relationship-to-openfic)
 
-## What is OmniFic?
+## 📋 Product overview
 
-OmniFic is a locally run, AI-assisted environment for long-form fiction. Built on OpenFic v0.7.5, it retains project, character, worldbook, chapter-editing, and Agent collaboration capabilities while experimenting around my own workflow.
+| Area | What OmniFic provides |
+| --- | --- |
+| **Long-form writing** | Projects, covers, volumes, chapters, nested notes, multi-tab editing, autosave, find and replace, and chapter ordering |
+| **Characters and lore** | Project-scoped character profiles, portraits, worldbooks, searchable entries, and project associations |
+| **Material import** | TXT novel import with volume and chapter structure, plus worldbook import from SillyTavern JSON and common document formats |
+| **Agent collaboration** | Persistent tasks and transcripts, with tools that let Agents search the manuscript, inspect context, and edit creative material |
+| **Long-context support** | Chapter and range summaries, chapter retrieval indexes, conversation compaction, and persistent task goals |
+| **Models and prompts** | Providers, relays, LLM, Embedding and Rerank models, reasoning configuration, versioned prompt chains, rules, and skills |
+| **Multi-agent work** | Configurable primary and delegated Agents with model, tool, skill, and delegation assignments for planning, drafting, and review |
+| **Creative analytics** | Writing activity, source attribution, model calls, tokens, latency, and individual request records |
 
-The project combines a Python backend, a React frontend, and an optional Electron shell. Running from source is currently the recommended way to use it. See the [architecture overview](./docs/architecture.md) for the system structure.
+## 🔄 Writing workflow
 
-## The choices I made
+OmniFic is designed around a loop in which source material enters the project, the project supports drafting, and each round of writing produces better context for the next one. The editor, story bible, and AI conversation are parts of the same workflow.
 
-These are not judgments about upstream. They are the areas I chose to prioritize after repeatedly encountering them in daily use.
+```mermaid
+flowchart LR
+    accTitle: OmniFic Long-Form Writing Workflow
+    accDescr: Source material becomes a structured project, moves through drafting and Agent collaboration, produces summary and retrieval context, and returns to continued writing and review.
 
-### Model access
+    source_material[📥 Import source material] --> organize_project[📚 Organize project structure]
+    organize_project --> write_content[✏️ Edit chapters and notes]
+    story_bible[🗂️ Maintain story bible] --> write_content
+    write_content <--> agent_work[🤖 Collaborate with Agents]
+    agent_work --> context_memory[🧠 Build context memory]
+    context_memory --> write_content
+    write_content --> review_stats[📊 Review creative analytics]
 
-- Treat OpenAI-compatible relays and API proxies as a normal setup
-- Discover models from a relay and override reasoning capabilities per model
-- Make provider, base-URL, and capability configuration more direct
+    classDef content fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e3a5f
+    classDef intelligence fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#3b0764
+    classDef insight fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#14532d
 
-See [relay providers](./docs/features/relay-provider.md) and [model reasoning capabilities](./docs/features/model-reasoning.md).
+    class source_material,organize_project,write_content,story_bible content
+    class agent_work,context_memory intelligence
+    class review_stats insight
+```
 
-### Agent interaction
+## 📚 Core capabilities
 
-- Use `/` commands for model, reasoning, status, goal, and skill operations
-- Use `@` references to bring project material into a conversation
-- Preserve task goals and runtime state to reduce discontinuity in long sessions
+### Projects, volumes, chapters, and editing
+
+- Create, search, sort, and manage fiction projects with descriptions, cover uploads, and cover cropping
+- Organize manuscripts into volumes and chapters with create, rename, duplicate, move, delete, and drag-to-reorder operations
+- Open chapters and notes in multiple tabs in the desktop layout while preserving the most recently edited location
+- Write with a TipTap rich-text editor supporting headings, lists, quotes, code blocks, undo, redo, and in-editor find and replace
+- Keep an autosaved working copy with explicit saving, saved, failed, and retry states
+- Build categorized note trees with nested categories, moving, duplication, visibility controls, and locks that prevent Agent edits
+
+### Characters and worldbooks
+
+- Maintain project-scoped character profiles, descriptions, and portraits with search, favorites, multi-select, and batch actions
+- Create worldbooks that can be associated with projects, manage enabled and disabled entries, and search names and content
+- Import SillyTavern worldbook JSON with a preview and append-or-overwrite modes
+- Convert Markdown, PDF, Word, PowerPoint, TXT, and similar material into candidate worldbook entries
+- Optionally use a model to improve entry names, merge repeated material, and split entries that are too long
+
+See [multi-format worldbook import](./docs/features/worldbook-import.md).
+
+### Agent sessions and creative tools
+
+- Keep a task list, conversation history, runtime state, and token usage for each project
+- Let Agents read, search, create, and edit chapters, volumes, notes, characters, and worldbook entries
+- Control project mutations through tool permissions, pre-execution approval, and change previews
+- Support clarification questions, plan displays, queued messages, cancellation, message editing, and regeneration
+- Allow a primary Agent to delegate work to subagents and expose each child task's queued, running, waiting, and completed state
+- Use `/` commands to switch models and reasoning effort, inspect status, maintain a persistent task goal, and select skills
+- Add chapters, volumes, notes, or selected editor text directly to a conversation
 
 See the [`/` command center](./docs/features/codex-slash.md) and [persistent task goals](./docs/features/task-goal.md).
 
-### Source-material import
+### Summaries, retrieval, and long context
 
-- Turn Markdown, PDF, Word, PowerPoint, and TXT material into worldbook candidates
-- Optionally use a model to organize material during import
-- Detect volume and chapter structure in existing novel TXT files
+- Generate and maintain per-chapter summaries, then combine them into longer cross-chapter range summaries
+- Search chapter names, characters, locations, and summary content while identifying missing or outdated summaries
+- Build chunked chapter indexes with an Embedding model and enable them for all projects or selected projects
+- Configure chunk size, overlap, automatic indexing strategy, and optional Rerank-based secondary ordering
+- Compact long conversation history while restoring goals, rules, skills, and required state from the persistent task
+- Track index freshness, failures, and rebuild requirements, with per-chapter actions for filling gaps, updating stale content, and retrying failures
 
-See [worldbook import](./docs/features/worldbook-import.md) and [volume-aware TXT import](./docs/features/txt-volume-import.md).
+### Models, prompts, and Agent customization
 
-### Long-form writing
+- Configure multiple model providers, Base URLs, and API keys, including OpenAI-compatible endpoints and relays
+- Validate provider connections and discover available models, with separate management for LLM, Embedding, and Rerank workloads
+- Choose default, lightweight, and embedding models while tuning context length, sampling controls, and maximum output
+- Override reasoning-capability detection when a relay does not describe a model accurately
+- Edit the prompt chains used for sessions, summaries, compaction, and Agents; save versions, preview compiled prompts, compare changes, or restore defaults
+- Manage global rules, built-in or imported writing skills, and custom primary or delegated Agents with their models, tools, skills, and delegation relationships
+- Set default permission policies for individual tools to balance autonomous execution and human confirmation
 
-- Give more attention to task continuity, context management, and Agent reasoning state
-- Continue small experiments around character pages, multi-select questions, and long-running tasks
-- Prioritize recurring problems in actual writing over feature count
+See [relay providers](./docs/features/relay-provider.md) and [model reasoning capabilities](./docs/features/model-reasoning.md).
 
-## Who might enjoy it?
+### Import, analytics, and local operation
 
-OmniFic may suit you if you:
+- Import TXT novels with automatic detection of common Chinese encodings, chapter headings, and volume headings
+- Preview chapter count, total word count, and parsed structure before import, with live progress during project creation
+- Review yearly writing calendars, active days, cumulative word counts, source attribution, and weekday activity
+- Review LLM calls, token consumption, time to first token, total latency, model distribution, and project distribution
+- Inspect individual model-call records, including input, output, tool definitions, status, and errors
+- Store primary application data in local SQLite and manage schema changes with Alembic migrations
+- Use Chinese or English, light or dark themes, and an optional Electron packaging path for desktop builds
 
-- Use a personal or team relay, or another OpenAI-compatible endpoint
-- Prefer `/` commands, `@` references, and Agent-oriented workflows
-- Need to organize extensive research, setting material, old drafts, or long novel structures
-- Are comfortable running software locally, reading documentation, and accepting experimental change
+See [volume-aware TXT import](./docs/features/txt-volume-import.md) and the [system architecture](./docs/architecture.md).
 
-It may not suit you if you:
+> 📌 **Local-first does not mean fully offline:** project data is stored locally by default, but context sent to a cloud model or relay passes through the service you configure. Choose providers and deployment methods according to the sensitivity of your material.
 
-- Want a zero-configuration download-and-run product
-- Require stable desktop installers, a hosted service, or long-term release support
-- Expect continuous OpenFic synchronization or guaranteed lossless data migration
-- Expect the roadmap to be driven primarily by broad community demand
+## 🎯 Who it is for
 
-## Current status
+OmniFic is most likely to suit:
 
-OmniFic is personally maintained and experimental.
+- Long-form writers who need to maintain manuscripts, characters, lore, research, and long-running plot threads together
+- People who want AI to inspect project context and carry out concrete editing tasks instead of only offering conversational suggestions
+- Users of personal or team relays and OpenAI-compatible endpoints, or anyone who wants separate LLM, Embedding, and Rerank configuration
+- Writers who want to preserve task history, tool calls, reasoning state, and model-usage data for later review
+- Users comfortable running from source and accepting experimental features and continuing change
 
-- It forked from OpenFic v0.7.5 but does not promise ongoing upstream synchronization
-- Features, interactions, and data structures may change as my own usage evolves
-- Issues, discussions, and pull requests are welcome, but acceptance is not a roadmap commitment
-- Desktop builds, a PyPI package, and remote Docker images are not currently presented as stable distribution channels
-- Back up all data before database upgrades or OpenFic migration; copying an existing data directory is not guaranteed to be lossless
+It is currently less suitable for:
 
-## Quick start
+- People looking for a polished download-and-run product with no configuration
+- Teams that require an officially hosted cloud service, real-time multiplayer collaboration, or enterprise support
+- Production environments that require stable installers, long-term compatibility guarantees, or guaranteed lossless migration
+- Users who need every AI capability to work without sending any context to an external model service
+
+## ⚡ Quick start
 
 ### Requirements
 
-- Python 3.12 or 3.13
-- Node.js 22+
-- pnpm 8+
-- [uv](https://docs.astral.sh/uv/)
+| Dependency | Version |
+| --- | --- |
+| Python | 3.12 or 3.13 |
+| Node.js | 22+ |
+| pnpm | 8+ |
+| uv | Latest stable release |
 
 ### Run from source
 
@@ -121,19 +192,42 @@ pnpm install
 pnpm dev
 ```
 
-The frontend runs at `http://127.0.0.1:9000` by default, with the backend at `http://127.0.0.1:8001`.
+Open `http://127.0.0.1:9000`. The backend runs at `http://127.0.0.1:8001` by default, with a health check at `http://127.0.0.1:8001/api/v1/health`.
 
-For database setup, desktop development, and more detailed instructions, see the [development setup guide](./docs/develop/setup.md). The [documentation index](./docs/README.md) links to all current technical notes.
+See the [development setup guide](./docs/develop/setup.md) for database initialization, desktop development, and additional commands.
 
-## Join the conversation
+## ⚠️ Project status
 
-This repository is public to share practice, compare approaches, and learn together. You are welcome to open an [Issue](https://github.com/F0rJay/OmniFic/issues), send a [Pull Request](https://github.com/F0rJay/OmniFic/pulls), or read the [contribution guide](./CONTRIBUTING.md).
+OmniFic is personally maintained and remains experimental.
 
-If an idea is not adopted, it will usually mean that it does not fit the choices of this personal branch—not that the idea lacks merit.
+- It forked from OpenFic v0.7.5 but does not promise continuing upstream synchronization
+- Features, interactions, prompts, and data structures may change as actual usage evolves
+- Running from source is recommended; desktop packages, the PyPI package, and remote Docker images are not presented as stable distribution channels
+- Back up all data before database upgrades or OpenFic migration; copying an existing data directory is not guaranteed to be lossless
+- Issues, discussions, and pull requests are welcome, but acceptance depends on project direction and maintenance capacity
 
-## Acknowledgements
+## 🔗 Documentation and contribution
 
-My first thanks go to [OpenFic](https://github.com/syrizelink/OpenFic) and its author. OmniFic's foundation, primary product shape, and many of its core capabilities come from OpenFic. This branch would not exist without that work.
+- [Documentation index](./docs/README.md): all current feature, architecture, development, and operations notes
+- [System architecture](./docs/architecture.md): frontend, backend, Agent Runtime, storage, and desktop structure
+- [Development setup](./docs/develop/setup.md): local development, database setup, and common commands
+- [Testing guide](./docs/develop/testing.md): backend and frontend verification
+- [Contribution guide](./CONTRIBUTING.md): contribution conventions and workflow
+- [Issues](https://github.com/F0rJay/OmniFic/issues): bug reports and feature discussion
+- [Pull Requests](https://github.com/F0rJay/OmniFic/pulls): code and documentation contributions
+
+## 🔗 Relationship to OpenFic
+
+OmniFic was forked from [OpenFic v0.7.5](https://github.com/syrizelink/OpenFic). Its foundational architecture, primary product shape, worldbuilding management, writing editor, Agent Runtime, and local data capabilities all originate in OpenFic. OmniFic now develops independently, but it is not intended as a replacement or a claim to represent a “more correct” direction.
+
+<details>
+<summary><strong>💡 Why it became an independent fork</strong></summary>
+
+This branch serves the maintainer's own long-form writing practice first. Its later work emphasizes relay-based model access, command-driven Agent interaction, source-material import, task continuity, retrieval context, and visibility into runtime behavior. Those priorities reflect a specific personal workflow, so they are maintained as an independent project rather than proposed as the direction upstream should follow.
+
+</details>
+
+---
 
 Other sources of inspiration include:
 
@@ -141,6 +235,6 @@ Other sources of inspiration include:
 - [Claude Code](https://claude.ai/code): command-driven Agent interaction
 - [oh-story-claudecode](https://github.com/worldwonderer/oh-story-claudecode): writing Skill references
 
-## License
+## 📦 License
 
 OmniFic is released under the [Apache License 2.0](./LICENSE). Please retain any copyright and license notices required by the upstream project when using or redistributing it.
