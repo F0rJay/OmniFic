@@ -257,12 +257,6 @@ jobs:
           - os: windows-11-arm
             electron_args: '--win --arm64'
             artifact_name: windows-update-aarch64
-          - os: ubuntu-24.04
-            electron_args: '--linux --x64'
-            artifact_name: desktop-linux-x86_64
-          - os: ubuntu-24.04-arm
-            electron_args: '--linux --arm64'
-            artifact_name: desktop-linux-aarch64
           - os: macos-15-intel
             electron_args: '--mac --x64'
             artifact_name: macos-update-x86_64
@@ -327,8 +321,6 @@ jobs:
           path: |
             desktop/dist-electron/*.exe
             desktop/dist-electron/*.blockmap
-            desktop/dist-electron/*.AppImage
-            desktop/dist-electron/*.tar.gz
             desktop/dist-electron/*.zip
             desktop/dist-electron/*.dmg
             desktop/dist-electron/*.yml
