@@ -22,7 +22,7 @@
 
 OmniFic 把传统小说写作工具与可执行任务的 AI Agent 放在同一个工作区中。你可以组织长篇正文和设定资料，也可以让 Agent 在权限控制下读取、检索和修改章节、卷、笔记、角色与世界书，而不是把每次对话都变成一次脱离项目的临时问答。
 
-项目采用 Python 后端、React 前端与可选的 Electron 桌面壳，应用数据默认存储在本地 SQLite 中。当前推荐从源码运行。
+项目采用 Python 后端、React 前端与 Electron 桌面壳，应用数据默认存储在本地 SQLite 中。OmniFic 0.8.1 提供 Windows/macOS 桌面包、PyPI 包、Docker 镜像和源码运行方式。
 
 ---
 
@@ -33,6 +33,7 @@ OmniFic 把传统小说写作工具与可执行任务的 AI Agent 放在同一�
 - [核心能力](#-核心能力)
 - [适合谁](#-适合谁)
 - [快速开始](#-快速开始)
+- [使用指南](./docs/user-guide.md)
 - [当前状态](#-当前状态)
 - [文档与参与](#-文档与参与)
 - [与 OpenFic 的关系](#-与-openfic-的关系)
@@ -138,7 +139,7 @@ flowchart LR
 - 通过 LLM 仪表盘查看调用次数、Token 消耗、首 Token 延迟、响应时间、模型分布和项目分布
 - 查看逐次模型调用记录，包括输入、输出、工具定义、状态与错误信息
 - 使用本地 SQLite 保存主要应用数据，并通过 Alembic 管理数据库迁移
-- 提供中英文界面、浅色与深色主题，以及可选的 Electron 桌面打包方案
+- 提供中英文界面、浅色与深色主题，以及 Windows/macOS Electron 桌面应用
 
 详见[TXT 小说分卷导入](./docs/features/txt-volume-import.md)与[系统架构](./docs/architecture.md)。
 
@@ -152,25 +153,48 @@ OmniFic 更适合：
 - 希望 AI 能读取项目上下文并执行具体编辑任务，而不只是提供聊天建议的人
 - 使用个人或团队中转站、OpenAI 兼容端点，或希望分别配置 LLM、Embedding 与 Rerank 模型的人
 - 想保留任务过程、工具调用、推理状态和模型使用数据，以便复盘创作的人
-- 愿意从源码运行，并能接受实验性功能和持续变化的用户
+- 希望使用 Windows/macOS 桌面应用，或通过浏览器、Docker 和源码运行的用户
+- 能接受项目仍处于早期阶段、功能和数据结构仍可能变化的用户
 
 它目前不太适合：
 
-- 希望下载安装后无需配置即可稳定使用的用户
 - 需要官方托管云服务、多人实时协作或企业级支持的团队
-- 要求稳定桌面安装包、长期兼容承诺或无损迁移保证的生产环境
+- 要求 Apple 公证、企业级签名、长期兼容承诺或无损迁移保证的生产环境
 - 希望在不向任何模型服务发送上下文的情况下使用全部 AI 功能的人
 
 ## ⚡ 快速开始
 
-### 环境要求
+### 桌面应用
 
-| 依赖 | 版本 |
-| --- | --- |
-| Python | 3.12 或 3.13 |
-| Node.js | 22+ |
-| pnpm | 8+ |
-| uv | 最新稳定版 |
+从 [GitHub Releases](https://github.com/F0rJay/OmniFic/releases/latest) 下载：
+
+| 平台 | 架构 | 推荐文件 |
+| --- | --- | --- |
+| Windows | Intel/AMD 64 位 | `OmniFic-<version>-win-x86_64-setup.exe` |
+| Windows | ARM64 | `OmniFic-<version>-win-arm64-setup.exe` |
+| macOS | Apple Silicon | `OmniFic-<version>-mac-arm64.dmg` |
+| macOS | Intel | `OmniFic-<version>-mac-x86_64.dmg` |
+
+Windows 支持应用内更新。macOS 0.8.1 尚未使用 Developer ID 签名和 Apple 公证，需要手动下载更新；首次启动请在 Finder 中按住 Control 点击 OmniFic 并选择“打开”。官方不发布 Linux 桌面安装包。
+
+### PyPI
+
+PyPI 包包含后端、CLI 和浏览器前端，不包含 Electron 桌面客户端：
+
+```bash
+python -m pip install --upgrade omnific
+omnific serve
+```
+
+打开 `http://127.0.0.1:8000`。
+
+### Docker
+
+```bash
+docker run -d --name omnific -p 8000:8000 -v omnific-data:/data ghcr.io/f0rjay/omnific:latest
+```
+
+Docker 镜像支持 Linux amd64/arm64，这是容器发行渠道，不是 Linux 桌面应用。
 
 ### 从源码运行
 
@@ -194,7 +218,7 @@ pnpm dev
 
 打开 `http://127.0.0.1:9000`。后端默认运行在 `http://127.0.0.1:8001`，健康检查地址为 `http://127.0.0.1:8001/api/v1/health`。
 
-数据库初始化、桌面端开发和更多命令见[开发环境搭建](./docs/develop/setup.md)。
+安装完成后，可按[使用指南](./docs/user-guide.md)配置模型、创建或导入项目，并逐步使用写作、角色、世界书、Agent、摘要、索引和仪表盘。完整安装、更新、数据备份与彻底卸载说明见[安装与卸载指南](./docs/installation.md)。数据库初始化、桌面端开发和更多命令见[开发环境搭建](./docs/develop/setup.md)。
 
 ## ⚠️ 当前状态
 
@@ -202,13 +226,16 @@ OmniFic 目前由个人维护，处于实验性开发阶段。
 
 - 项目从 OpenFic v0.7.5 分支而来，但不承诺继续同步上游
 - 功能、交互、提示词与数据结构可能随着真实使用继续调整
-- 当前推荐从源码运行；桌面包、PyPI 包和远程 Docker 镜像不作为稳定发行渠道
+- 0.8.1 开始提供 Windows/macOS 桌面包、PyPI 与 Docker 正式发布链路，但项目整体仍处于 Alpha 阶段
+- macOS 当前使用 ad-hoc 签名且未公证，应用内更新将在 Developer ID 签名和公证启用后开放
 - 数据库升级或从 OpenFic 迁移前请完整备份数据，目前不承诺直接复制数据即可无损迁移
 - Issue、讨论和 PR 都很欢迎，但是否采用仍取决于项目方向与维护能力
 
 ## 🔗 文档与参与
 
 - [文档导航](./docs/README.md)：全部现有功能、架构、开发与运维文档
+- [使用指南](./docs/user-guide.md)：从首次配置到写作、设定管理、Agent 协作和故障排查
+- [安装与卸载](./docs/installation.md)：桌面、PyPI、Docker、源码安装及完整数据清理
 - [系统架构](./docs/architecture.md)：前端、后端、Agent Runtime、存储与桌面端结构
 - [开发环境搭建](./docs/develop/setup.md)：本地开发、数据库与常用命令
 - [测试指南](./docs/develop/testing.md)：后端与前端验证方式

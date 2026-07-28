@@ -1,6 +1,6 @@
 # OmniFic 文档导航
 
-> 最后更新：2026-07-27
+> 最后更新：2026-07-29
 
 ## 当前状态
 
@@ -10,6 +10,10 @@
 | `README_EN.md` | ✅ Active | 项目总览（英文） |
 | `CONTRIBUTING.md` | ✅ Active | 贡献指南 |
 | `CHANGELOG.md` | ✅ Active | 用户面变更日志 |
+| `docs/installation.md` | ✅ Active | 安装、更新、备份与卸载 |
+| `docs/installation_EN.md` | ✅ Active | Installation, updates, backups, and removal |
+| `docs/user-guide.md` | ✅ Active | 产品使用指南（中文） |
+| `docs/user-guide_EN.md` | ✅ Active | Product user guide (English) |
 | `CLAUDE.md` | ✅ Active | AI Agent 项目指导 |
 | `docs/architecture.md` | ✅ Active | 系统架构 |
 | `docs/glossary.md` | ✅ Active | 术语合约 |
@@ -21,8 +25,10 @@
 ### 首次接触
 
 1. `README.md` — 项目是什么、解决什么问题
-2. `docs/architecture.md` — 怎么搭的
-3. `docs/glossary.md` — 术语定义
+2. `docs/installation.md` — 如何安装、更新、备份与卸载
+3. `docs/user-guide.md` — 如何配置和使用各项产品功能
+4. `docs/architecture.md` — 怎么搭的
+5. `docs/glossary.md` — 术语定义
 
 ### 想改代码
 
@@ -33,9 +39,10 @@
 
 ### 想部署
 
-1. `backend/README.md` — 后端启动
-2. `frontend/README.md` — 前端构建
-3. `desktop/README.md` — 桌面打包
+1. `docs/installation.md` — 桌面、PyPI、Docker 与源码运行
+2. `backend/README.md` — 后端启动
+3. `frontend/README.md` — 前端构建
+4. `desktop/README.md` — 桌面打包
 
 ### 维护文档
 
@@ -60,6 +67,10 @@
 | `../CONTRIBUTING.md` | 贡献指南 |
 | `../CHANGELOG.md` | 变更日志 |
 | `../CLAUDE.md` | AI Agent 指导 |
+| `installation.md` | 安装、更新、备份与卸载 |
+| `installation_EN.md` | Installation, updates, backups, and removal |
+| `user-guide.md` | 从首次配置到完整创作工作流的中文使用指南 |
+| `user-guide_EN.md` | English guide to setup and the complete writing workflow |
 | `architecture.md` | 系统架构 |
 | `glossary.md` | 术语定义 |
 

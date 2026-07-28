@@ -34,10 +34,10 @@
         "@type": "SoftwareApplication",
         "name": "OmniFic",
         "applicationCategory": "ProductivityApplication",
-        "operatingSystem": "Windows, macOS, Linux",
+        "operatingSystem": "Windows, macOS; Linux via Python or Docker",
         "description": "A local-first AI writing workspace for long-form fiction.",
         "url": "https://f0rjay.github.io/OmniFic/",
-        "downloadUrl": "https://github.com/F0rJay/OmniFic",
+        "downloadUrl": "https://github.com/F0rJay/OmniFic/releases/latest",
         "license": "https://www.apache.org/licenses/LICENSE-2.0",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
       }
@@ -121,16 +121,16 @@
             <div class="hero-actions reveal reveal-delay-3">
               <a
                 class="button button-primary"
-                href="https://github.com/F0rJay/OmniFic"
+                href="https://github.com/F0rJay/OmniFic/releases/latest"
                 target="_blank"
                 rel="noreferrer"
               >
-                <span data-i18n="hero.githubCta">在 GitHub 查看源码</span>
+                <span data-i18n="hero.githubCta">下载桌面版</span>
                 <svg viewBox="0 0 20 20" aria-hidden="true">
                   <path d="M5 10h10M11 6l4 4-4 4" />
                 </svg>
               </a>
-              <a class="button button-ghost" href="#quickstart" data-i18n="hero.startCta">从源码开始</a>
+              <a class="button button-ghost" href="#quickstart" data-i18n="hero.startCta">查看安装方式</a>
             </div>
 
             <ul class="hero-facts reveal reveal-delay-3" aria-label="项目特性" data-i18n-aria-label="a11y.projectFacts">
@@ -531,37 +531,52 @@
         <div class="container quickstart-shell">
           <div class="quickstart-copy reveal">
             <div class="section-mark"><span>陆</span><i></i><b data-i18n="start.mark">开始使用</b></div>
-            <h2 id="quickstart-title" data-i18n-html="start.title">从源码启程，<em>打开你的世界</em></h2>
-            <p data-i18n="start.text">OmniFic 仍在实验性开发阶段，目前推荐从源码运行。准备 Python 3.12–3.13、Node.js 22+、pnpm 与 uv。</p>
+            <h2 id="quickstart-title" data-i18n-html="start.title">选择适合你的方式，<em>打开创作空间</em></h2>
+            <p data-i18n="start.text">Windows 与 macOS 可以直接下载桌面包；也可以通过 PyPI 在浏览器中使用，或在 Linux 服务器与 NAS 上运行 Docker。</p>
             <div class="requirement-list" aria-label="环境要求" data-i18n-aria-label="a11y.requirements">
-              <span>Python 3.12–3.13</span><span>Node.js 22+</span><span>pnpm 8+</span><span>uv</span>
+              <span>Windows x86_64 / ARM64</span><span>macOS Intel / Apple Silicon</span><span>Python 3.12–3.13</span><span>Docker amd64 / arm64</span>
             </div>
-            <a
-              class="text-link"
-              href="https://github.com/F0rJay/OmniFic/blob/main/docs/develop/setup.md"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <span data-i18n="start.docs">阅读完整安装文档</span>
-              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10M11 6l4 4-4 4" /></svg>
-            </a>
+            <div class="quickstart-links">
+              <a
+                class="text-link"
+                href="https://github.com/F0rJay/OmniFic/releases/latest"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <span data-i18n="start.release">下载 Windows / macOS 桌面版</span>
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10M11 6l4 4-4 4" /></svg>
+              </a>
+              <a
+                class="text-link"
+                href="https://github.com/F0rJay/OmniFic/blob/main/docs/installation.md"
+                data-i18n-href="start.docsHref"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <span data-i18n="start.docs">阅读完整安装与卸载指南</span>
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10M11 6l4 4-4 4" /></svg>
+              </a>
+              <a
+                class="text-link"
+                href="https://github.com/F0rJay/OmniFic/blob/main/docs/user-guide.md"
+                data-i18n-href="start.guideHref"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <span data-i18n="start.guide">阅读产品使用指南</span>
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10M11 6l4 4-4 4" /></svg>
+              </a>
+            </div>
           </div>
 
           <div class="terminal reveal reveal-delay-1">
             <div class="terminal-bar"><span></span><span></span><span></span><b>omnific — zsh</b></div>
-            <pre id="install-command" aria-label="OmniFic 安装命令" data-i18n-aria-label="a11y.installCommands"><code id="terminal-code"><span class="comment"># Clone OmniFic</span>
-<span class="prompt">$</span> git clone https://github.com/F0rJay/OmniFic.git
-<span class="prompt">$</span> cd OmniFic
+            <pre id="install-command" aria-label="OmniFic 安装命令" data-i18n-aria-label="a11y.installCommands"><code id="terminal-code"><span class="comment"># PyPI · backend + browser frontend</span>
+<span class="prompt">$</span> python -m pip install --upgrade omnific
+<span class="prompt">$</span> omnific version
+<span class="prompt">$</span> omnific serve
 
-<span class="comment"># Terminal 1 · Backend</span>
-<span class="prompt">$</span> cd backend
-<span class="prompt">$</span> uv sync
-<span class="prompt">$</span> uv run uvicorn app.main:app --host 127.0.0.1 --port 8001 --app-dir .
-
-<span class="comment"># Terminal 2 · Frontend</span>
-<span class="prompt">$</span> cd frontend
-<span class="prompt">$</span> pnpm install
-<span class="prompt">$</span> pnpm dev</code></pre>
+<span class="comment"># Open http://127.0.0.1:8000</span></code></pre>
             <button class="copy-button" id="copy-install" type="button" data-i18n="start.copy">复制命令</button>
             <span class="terminal-ready" aria-hidden="true">✓ Ready</span>
           </div>
@@ -605,6 +620,7 @@
         <nav aria-label="页脚导航" data-i18n-aria-label="a11y.footerNav">
           <a href="https://github.com/F0rJay/OmniFic" target="_blank" rel="noreferrer">GitHub</a>
           <a href="https://github.com/F0rJay/OmniFic/blob/main/docs/README.md" target="_blank" rel="noreferrer" data-i18n="footer.docs">文档</a>
+          <a href="https://github.com/F0rJay/OmniFic/blob/main/docs/user-guide.md" data-i18n-href="footer.guideHref" target="_blank" rel="noreferrer" data-i18n="footer.guide">使用指南</a>
           <a href="https://github.com/F0rJay/OmniFic/blob/main/CONTRIBUTING.md" target="_blank" rel="noreferrer" data-i18n="footer.contribute">参与贡献</a>
           <a href="https://github.com/syrizelink/OpenFic" target="_blank" rel="noreferrer" data-i18n="footer.omnific">致谢 OpenFic</a>
           <a href="https://github.com/F0rJay/OmniFic/blob/main/LICENSE" target="_blank" rel="noreferrer">Apache 2.0</a>

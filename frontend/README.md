@@ -53,6 +53,7 @@ pnpm dev
 |---|---|
 | `pnpm dev` | 启动开发服务器 |
 | `pnpm build` | 生产构建 |
+| `pnpm test` | Vitest 回归测试 |
 | `pnpm type-check` | TypeScript 类型检查 |
 | `pnpm lint` | 代码 lint |
 | `pnpm format:check` | 格式化检查 |

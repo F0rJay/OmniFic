@@ -30,11 +30,22 @@ backend/app/
 
 ## 快速开始
 
+普通用户可以直接安装包含 Web 前端的 PyPI 包：
+
+```bash
+python -m pip install --upgrade omnific
+omnific serve
+```
+
+源码开发：
+
 ```bash
 cd backend
 uv sync
 uv run uvicorn app.main:app --host 127.0.0.1 --port 8001 --app-dir .
 ```
+
+PyPI 包默认监听 `http://127.0.0.1:8000`，数据目录为 `~/.omnific`。完整发行渠道说明见[`docs/installation.md`](../docs/installation.md)。
 
 ## 环境变量
 

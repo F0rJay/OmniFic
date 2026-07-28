@@ -1562,14 +1562,16 @@ section[id] {
 .quickstart-shell { display: grid; grid-template-columns: 0.85fr 1.15fr; align-items: center; gap: 80px; }
 .requirement-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 26px; }
 .requirement-list span { padding: 7px 10px; color: rgba(244, 241, 232, 0.58); border: 1px solid var(--line); border-radius: 5px; font-family: var(--mono); font-size: 9px; }
+.quickstart-links { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; margin-top: 28px; }
 .text-link { display: inline-flex; align-items: center; margin-top: 28px; color: #9de6e9; font-size: 12px; font-weight: 650; }
+.quickstart-links .text-link { margin-top: 0; }
 .text-link:hover svg { transform: translateX(4px); }.text-link svg { transition: transform 180ms ease; }
 
 .terminal { position: relative; overflow: hidden; background: rgba(5, 8, 13, 0.92); border: 1px solid rgba(244, 241, 232, 0.16); border-radius: 12px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.38); }
 .terminal-bar { display: flex; align-items: center; gap: 7px; height: 43px; padding: 0 16px; background: rgba(255, 255, 255, 0.025); border-bottom: 1px solid var(--line); }
 .terminal-bar span { width: 8px; height: 8px; background: rgba(244, 241, 232, 0.16); border-radius: 50%; }.terminal-bar span:first-child { background: rgba(200, 84, 80, 0.55); }.terminal-bar span:nth-child(2) { background: rgba(201, 168, 106, 0.55); }.terminal-bar span:nth-child(3) { background: rgba(93, 205, 158, 0.55); }
 .terminal-bar b { margin-left: 8px; color: rgba(244, 241, 232, 0.32); font-family: var(--mono); font-size: 9px; font-weight: 400; }
-.terminal pre { min-height: 350px; overflow-x: auto; padding: 27px 26px 66px; color: rgba(244, 241, 232, 0.75); font-family: var(--mono); font-size: 11px; line-height: 1.8; tab-size: 2; }
+.terminal pre { min-height: 270px; overflow-x: auto; padding: 27px 26px 66px; color: rgba(244, 241, 232, 0.75); font-family: var(--mono); font-size: 11px; line-height: 1.8; tab-size: 2; }
 .terminal .comment { color: rgba(244, 241, 232, 0.28); }.terminal .prompt { color: var(--cyan); }
 .terminal-caret { display: inline-block; width: 0.55ch; height: 1.15em; margin-left: 0.16ch; vertical-align: -0.18em; background: var(--cyan); border-radius: 1px; box-shadow: 0 0 11px rgba(67, 216, 232, 0.72); animation: terminal-caret-blink 0.82s steps(1, end) infinite; transition: opacity 220ms ease; }
 .terminal-caret.is-finishing { opacity: 0; animation: none; }

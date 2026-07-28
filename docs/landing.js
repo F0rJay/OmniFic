@@ -30,8 +30,8 @@
       "hero.title": "在故事的无垠之境<br><span>与 AI 共写万千世界</span>",
       "hero.lead":
         "一个可以陪你完成百万字长篇的 AI 创作空间。",
-      "hero.githubCta": "在 GitHub 查看源码",
-      "hero.startCta": "从源码开始",
+      "hero.githubCta": "下载桌面版",
+      "hero.startCta": "查看安装方式",
       "hero.factLocal": "数据默认存于本地",
       "hero.factOpen": "Apache 2.0 开源",
       "hero.scroll": "向下阅卷",
@@ -147,9 +147,13 @@
       "credits.inherited": "架构 · 编辑器 · 世界观 · Agent Runtime",
       "credits.direction": "面向个人长篇实践的独立探索",
       "start.mark": "开始使用",
-      "start.title": "从源码启程，<em>打开你的世界</em>",
-      "start.text": "OmniFic 仍在实验性开发阶段，目前推荐从源码运行。准备 Python 3.12–3.13、Node.js 22+、pnpm 与 uv。",
-      "start.docs": "阅读完整安装文档",
+      "start.title": "选择适合你的方式，<em>打开创作空间</em>",
+      "start.text": "Windows 与 macOS 可以直接下载桌面包；也可以通过 PyPI 在浏览器中使用，或在 Linux 服务器与 NAS 上运行 Docker。",
+      "start.release": "下载 Windows / macOS 桌面版",
+      "start.docs": "阅读完整安装与卸载指南",
+      "start.docsHref": "https://github.com/F0rJay/OmniFic/blob/main/docs/installation.md",
+      "start.guide": "阅读产品使用指南",
+      "start.guideHref": "https://github.com/F0rJay/OmniFic/blob/main/docs/user-guide.md",
       "start.copy": "复制命令",
       "start.copied": "已复制",
       "cta.title": "故事辽阔，愿你落笔有光。",
@@ -158,6 +162,8 @@
       "cta.issue": "提出想法",
       "footer.note": "面向长篇小说的本地优先 AI 创作工作台。",
       "footer.docs": "文档",
+      "footer.guide": "使用指南",
+      "footer.guideHref": "https://github.com/F0rJay/OmniFic/blob/main/docs/user-guide.md",
       "footer.contribute": "参与贡献",
       "footer.omnific": "致谢 OpenFic",
       "a11y.demoControls": "演示控制",
@@ -184,8 +190,8 @@
       "hero.title": "A boundless space for stories.<br><span>Write beyond generation.</span>",
       "hero.lead":
         "An AI creative space built to walk with you through a million-word novel.",
-      "hero.githubCta": "View source on GitHub",
-      "hero.startCta": "Run from source",
+      "hero.githubCta": "Download desktop app",
+      "hero.startCta": "View install options",
       "hero.factLocal": "Data stored locally by default",
       "hero.factOpen": "Apache 2.0 open source",
       "hero.scroll": "TURN THE PAGE",
@@ -301,9 +307,13 @@
       "credits.inherited": "Architecture · Editor · Worldbuilding · Agent Runtime",
       "credits.direction": "An independent exploration shaped by personal long-form practice",
       "start.mark": "GET STARTED",
-      "start.title": "Run from source. <em>Open your world.</em>",
-      "start.text": "OmniFic is still experimental, and running from source is currently recommended. You will need Python 3.12–3.13, Node.js 22+, pnpm, and uv.",
-      "start.docs": "Read the complete setup guide",
+      "start.title": "Choose your path. <em>Open the workspace.</em>",
+      "start.text": "Download the desktop app for Windows or macOS, use the browser interface through PyPI, or run Docker on a Linux server or NAS.",
+      "start.release": "Download Windows / macOS desktop app",
+      "start.docs": "Read the installation and removal guide",
+      "start.docsHref": "https://github.com/F0rJay/OmniFic/blob/main/docs/installation_EN.md",
+      "start.guide": "Read the product user guide",
+      "start.guideHref": "https://github.com/F0rJay/OmniFic/blob/main/docs/user-guide_EN.md",
       "start.copy": "Copy commands",
       "start.copied": "Copied",
       "cta.title": "Your story is vast. Write toward the light.",
@@ -312,6 +322,8 @@
       "cta.issue": "Share an idea",
       "footer.note": "A local-first AI writing workspace for long-form fiction.",
       "footer.docs": "Docs",
+      "footer.guide": "User guide",
+      "footer.guideHref": "https://github.com/F0rJay/OmniFic/blob/main/docs/user-guide_EN.md",
       "footer.contribute": "Contribute",
       "footer.omnific": "Thanks to OpenFic",
       "a11y.demoControls": "Demo controls",
@@ -352,6 +364,10 @@
     document.querySelectorAll("[data-i18n-alt]").forEach((element) => {
       const key = element.dataset.i18nAlt;
       if (dictionary[key]) element.setAttribute("alt", dictionary[key]);
+    });
+    document.querySelectorAll("[data-i18n-href]").forEach((element) => {
+      const key = element.dataset.i18nHref;
+      if (dictionary[key]) element.setAttribute("href", dictionary[key]);
     });
 
     if (languageToggle) {
@@ -498,16 +514,9 @@
     });
   }
 
-  const installCommand = `git clone https://github.com/F0rJay/OmniFic.git
-cd OmniFic
-
-cd backend
-uv sync
-uv run uvicorn app.main:app --host 127.0.0.1 --port 8001 --app-dir .
-
-cd ../frontend
-pnpm install
-pnpm dev`;
+  const installCommand = `python -m pip install --upgrade omnific
+omnific version
+omnific serve`;
   const copyButton = document.querySelector("#copy-install");
 
   copyButton?.addEventListener("click", async () => {

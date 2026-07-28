@@ -80,13 +80,18 @@ SQLite + Alembic 迁移。核心表：`projects`, `volumes`, `chapters`, `charac
 
 ```
 Electron Main Process
-├── 启动 FastAPI 后端 (子进程)
-├── 启动 Vite 开发服务器 / 静态文件服务
-└── BrowserWindow 加载前端
+├── app:// 自定义协议提供桌面壳与前端静态资源
+├── 便携 Python + 同版本 OmniFic wheel
+├── FastAPI 本地后端子进程与健康检查
+├── WebView 加载前端并代理 API/Socket 请求
+├── 启动、安装与 WebView 诊断日志
+└── Windows 自动更新 / macOS 手动更新提示
 ```
 
-使用 `electron-builder` 打包，`electron-updater` 自动更新。
+桌面安装包由 `electron-builder` 构建。官方矩阵包含 Windows x86_64/ARM64 与 macOS Intel/Apple Silicon，不发布 Linux 桌面安装包；Docker 的 Linux amd64/arm64 镜像是独立的服务器发行渠道。
+
+Windows 使用 NSIS 安装器和 `electron-updater`；macOS 0.8.1 同时生成 DMG 与 ZIP，使用 ad-hoc 签名但尚未 Apple 公证，因此仅支持手动更新。
 
 ---
 
-> **状态**：Active · **代码范围**：全项目 · **审查日期**：2026-07-27 · **触发条件**：新增路由、新增模块、架构变更
+> **状态**：Active · **代码范围**：全项目 · **审查日期**：2026-07-29 · **触发条件**：新增路由、新增模块、架构变更

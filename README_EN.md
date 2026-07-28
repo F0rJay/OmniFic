@@ -22,7 +22,7 @@
 
 OmniFic combines a conventional fiction-writing environment with AI Agents that can carry out project-level tasks. You can organize a long manuscript and its story bible, then allow an Agent—under explicit tool permissions—to read, search, and edit chapters, volumes, notes, characters, and worldbook entries instead of treating every conversation as a context-free chat.
 
-The project uses a Python backend, a React frontend, and an optional Electron shell. Primary application data is stored locally in SQLite. Running from source is currently the recommended way to use it.
+The project uses a Python backend, a React frontend, and an Electron shell. Primary application data is stored locally in SQLite. OmniFic 0.8.1 is distributed as Windows/macOS desktop packages, a PyPI package, multi-architecture Docker images, and source code.
 
 ---
 
@@ -33,6 +33,7 @@ The project uses a Python backend, a React frontend, and an optional Electron sh
 - [Core capabilities](#-core-capabilities)
 - [Who it is for](#-who-it-is-for)
 - [Quick start](#-quick-start)
+- [User guide](./docs/user-guide_EN.md)
 - [Project status](#-project-status)
 - [Documentation and contribution](#-documentation-and-contribution)
 - [Relationship to OpenFic](#-relationship-to-openfic)
@@ -138,7 +139,7 @@ See [relay providers](./docs/features/relay-provider.md) and [model reasoning ca
 - Review LLM calls, token consumption, time to first token, total latency, model distribution, and project distribution
 - Inspect individual model-call records, including input, output, tool definitions, status, and errors
 - Store primary application data in local SQLite and manage schema changes with Alembic migrations
-- Use Chinese or English, light or dark themes, and an optional Electron packaging path for desktop builds
+- Use Chinese or English, light or dark themes, and native Electron applications for Windows and macOS
 
 See [volume-aware TXT import](./docs/features/txt-volume-import.md) and the [system architecture](./docs/architecture.md).
 
@@ -152,25 +153,48 @@ OmniFic is most likely to suit:
 - People who want AI to inspect project context and carry out concrete editing tasks instead of only offering conversational suggestions
 - Users of personal or team relays and OpenAI-compatible endpoints, or anyone who wants separate LLM, Embedding, and Rerank configuration
 - Writers who want to preserve task history, tool calls, reasoning state, and model-usage data for later review
-- Users comfortable running from source and accepting experimental features and continuing change
+- Users who want a Windows/macOS desktop application or prefer a browser, Docker, or source-based workflow
+- Users comfortable with an early-stage project whose features and data structures may continue to evolve
 
 It is currently less suitable for:
 
-- People looking for a polished download-and-run product with no configuration
 - Teams that require an officially hosted cloud service, real-time multiplayer collaboration, or enterprise support
-- Production environments that require stable installers, long-term compatibility guarantees, or guaranteed lossless migration
+- Production environments that require Apple notarization, enterprise signing, long-term compatibility guarantees, or guaranteed lossless migration
 - Users who need every AI capability to work without sending any context to an external model service
 
 ## ⚡ Quick start
 
-### Requirements
+### Desktop application
 
-| Dependency | Version |
-| --- | --- |
-| Python | 3.12 or 3.13 |
-| Node.js | 22+ |
-| pnpm | 8+ |
-| uv | Latest stable release |
+Download the matching package from [GitHub Releases](https://github.com/F0rJay/OmniFic/releases/latest):
+
+| Platform | Architecture | Recommended file |
+| --- | --- | --- |
+| Windows | Intel/AMD 64-bit | `OmniFic-<version>-win-x86_64-setup.exe` |
+| Windows | ARM64 | `OmniFic-<version>-win-arm64-setup.exe` |
+| macOS | Apple Silicon | `OmniFic-<version>-mac-arm64.dmg` |
+| macOS | Intel | `OmniFic-<version>-mac-x86_64.dmg` |
+
+Windows supports in-app updates. OmniFic 0.8.1 for macOS is ad-hoc signed but not Developer ID signed or notarized, so updates are downloaded manually. On first launch, Control-click OmniFic in Finder and choose **Open**. Official Linux desktop packages are not published.
+
+### PyPI
+
+The PyPI package includes the backend, CLI, and browser frontend, but not the Electron desktop client:
+
+```bash
+python -m pip install --upgrade omnific
+omnific serve
+```
+
+Open `http://127.0.0.1:8000`.
+
+### Docker
+
+```bash
+docker run -d --name omnific -p 8000:8000 -v omnific-data:/data ghcr.io/f0rjay/omnific:latest
+```
+
+The container image supports Linux amd64/arm64. This is a server distribution channel, not a Linux desktop application.
 
 ### Run from source
 
@@ -194,7 +218,7 @@ pnpm dev
 
 Open `http://127.0.0.1:9000`. The backend runs at `http://127.0.0.1:8001` by default, with a health check at `http://127.0.0.1:8001/api/v1/health`.
 
-See the [development setup guide](./docs/develop/setup.md) for database initialization, desktop development, and additional commands.
+After installation, follow the [user guide](./docs/user-guide_EN.md) to configure models, create or import a project, and use writing, characters, worldbooks, Agents, summaries, indexing, and dashboards. See the [installation and removal guide](./docs/installation_EN.md) for desktop, PyPI, Docker, backups, and complete removal. The [development setup guide](./docs/develop/setup.md) covers database initialization and additional development commands.
 
 ## ⚠️ Project status
 
@@ -202,13 +226,16 @@ OmniFic is personally maintained and remains experimental.
 
 - It forked from OpenFic v0.7.5 but does not promise continuing upstream synchronization
 - Features, interactions, prompts, and data structures may change as actual usage evolves
-- Running from source is recommended; desktop packages, the PyPI package, and remote Docker images are not presented as stable distribution channels
+- Starting with 0.8.1, Windows/macOS desktop packages, PyPI, and Docker share an official release pipeline, while the project as a whole remains Alpha software
+- The current macOS build is ad-hoc signed and not notarized; in-app updates will be enabled only after Developer ID signing and notarization are available
 - Back up all data before database upgrades or OpenFic migration; copying an existing data directory is not guaranteed to be lossless
 - Issues, discussions, and pull requests are welcome, but acceptance depends on project direction and maintenance capacity
 
 ## 🔗 Documentation and contribution
 
 - [Documentation index](./docs/README.md): all current feature, architecture, development, and operations notes
+- [User guide](./docs/user-guide_EN.md): first-time setup, writing, story data, Agent collaboration, and troubleshooting
+- [Installation and removal](./docs/installation_EN.md): desktop, PyPI, Docker, source installation, backups, and complete data removal
 - [System architecture](./docs/architecture.md): frontend, backend, Agent Runtime, storage, and desktop structure
 - [Development setup](./docs/develop/setup.md): local development, database setup, and common commands
 - [Testing guide](./docs/develop/testing.md): backend and frontend verification
