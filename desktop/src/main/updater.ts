@@ -1,5 +1,5 @@
 import { app, shell, type BrowserWindow } from "electron";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import electronUpdater, { CancellationToken, NsisUpdater, type ProgressInfo, type UpdateInfo } from "electron-updater";
 import { IpcChannels, type UpdateState } from "../shared/ipc.js";
@@ -13,6 +13,26 @@ let updateState: UpdateState = { status: "idle" };
 let initialized = false;
 let downloadCancellationToken: CancellationToken | null = null;
 const releaseNotesByVersion = new Map<string, string>();
+
+function isMacAutoUpdateEnabled(): boolean {
+  if (process.platform !== "darwin") return true;
+  try {
+    const packageJson = JSON.parse(readFileSync(path.join(app.getAppPath(), "package.json"), "utf8")) as {
+      omnificMacAutoUpdate?: unknown;
+    };
+    return packageJson.omnificMacAutoUpdate === true;
+  } catch {
+    return false;
+  }
+}
+
+function getUnsupportedUpdateMessage(): string {
+  if (!app.isPackaged) return "开发模式不支持应用内更新。";
+  if (process.platform === "darwin" && !isMacAutoUpdateEnabled()) {
+    return "当前 macOS 版本未签名或未公证，请前往发布页手动下载安装更新。";
+  }
+  return "当前系统或架构不支持应用内更新。";
+}
 
 function publishState(nextState: UpdateState): void {
   updateState = nextState;
@@ -77,6 +97,7 @@ function onDownloadProgress(progress: ProgressInfo): void {
 
 function canUseAutoUpdater(): boolean {
   if (!app.isPackaged) return false;
+  if (!isMacAutoUpdateEnabled()) return false;
   return isAutoUpdateSupported({
     platform: process.platform,
     arch: process.arch,
@@ -101,13 +122,13 @@ export async function initializeUpdater(window: BrowserWindow): Promise<void> {
 
   initialized = true;
   if (!canUseAutoUpdater()) {
-    publishState({ status: "unsupported" });
+    publishState({ status: "unsupported", message: getUnsupportedUpdateMessage() });
     return;
   }
 
   const updateArchitecture = getUpdateArchitectureName({ platform: process.platform, arch: process.arch });
   if (process.platform === "win32" && !updateArchitecture) {
-    publishState({ status: "unsupported" });
+    publishState({ status: "unsupported", message: getUnsupportedUpdateMessage() });
     return;
   }
 
@@ -138,7 +159,7 @@ export function getUpdateState(): UpdateState {
 
 export async function checkForUpdates(): Promise<void> {
   if (!canUseAutoUpdater()) {
-    publishState({ status: "unsupported" });
+    publishState({ status: "unsupported", message: getUnsupportedUpdateMessage() });
     return;
   }
 

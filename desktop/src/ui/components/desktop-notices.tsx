@@ -120,6 +120,12 @@ export function DesktopNotices({
                 <p>当前安装的 OmniFic 已是最新版本。</p>
               </div>
             ) : null}
+            {updateState.status === "unsupported" ? (
+              <div className="desktop-update-simple-state">
+                <p className="desktop-notice-title">当前版本仅支持手动更新</p>
+                <p>{updateState.message ?? "当前系统或架构不支持应用内更新。"}</p>
+              </div>
+            ) : null}
             {hasVersionDetails ? (
               <>
                 <div className="desktop-update-heading">

@@ -2,6 +2,7 @@
   "name": "omnific-desktop",
   "private": true,
   "version": "0.8.0",
+  "omnificMacAutoUpdate": false,
   "type": "module",
   "main": "dist/main/main.js",
   "packageManager": "pnpm@11.8.0",

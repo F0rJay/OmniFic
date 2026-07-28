@@ -42,6 +42,24 @@ jobs:
           echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
           echo "major_minor=${MAJOR_MINOR}" >> "$GITHUB_OUTPUT"
 
+  # 首发 tag 可能尚未由 release-please 创建 GitHub Release；后续资产上传统一依赖此 job。
+  ensure-release:
+    needs: [context]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: 创建或复用 GitHub Release
+        run: |
+          if gh release view "${{ needs.context.outputs.release_tag }}" >/dev/null 2>&1; then
+            echo "GitHub Release 已存在"
+            exit 0
+          fi
+          gh release create "${{ needs.context.outputs.release_tag }}" \
+            --title "${{ needs.context.outputs.release_tag }}" \
+            --generate-notes
+
   # ---------------------------------------------------------------- frontend
   build-frontend:
     needs: [context]
@@ -328,8 +346,8 @@ jobs:
           key: ${{ steps.electron-cache.outputs.cache-primary-key }}
 
   desktop-windows-update:
-    needs: [context, desktop]
-    if: ${{ always() && needs.desktop.result == 'success' }}
+    needs: [context, desktop, ensure-release]
+    if: ${{ always() && needs.desktop.result == 'success' && needs.ensure-release.result == 'success' }}
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -356,8 +374,8 @@ jobs:
             --clobber
 
   desktop-macos-update:
-    needs: [context, desktop]
-    if: ${{ always() && needs.desktop.result == 'success' }}
+    needs: [context, desktop, ensure-release]
+    if: ${{ always() && needs.desktop.result == 'success' && needs.ensure-release.result == 'success' }}
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -383,8 +401,8 @@ jobs:
 
   # ---------------------------------------------------------------- release
   publish-release:
-    needs: [context, desktop, desktop-windows-update, desktop-macos-update]
-    if: ${{ always() && needs.desktop.result == 'success' && needs.desktop-windows-update.result == 'success' && needs.desktop-macos-update.result == 'success' }}
+    needs: [context, ensure-release, desktop, desktop-windows-update, desktop-macos-update]
+    if: ${{ always() && needs.ensure-release.result == 'success' && needs.desktop.result == 'success' && needs.desktop-windows-update.result == 'success' && needs.desktop-macos-update.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v8

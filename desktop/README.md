@@ -19,12 +19,14 @@ pnpm dev
 ## 构建
 
 ```bash
-pnpm build        # 构建前端
-pnpm dist:mac     # 打包 macOS
-pnpm dist:win     # 打包 Windows
-pnpm dist:linux   # 打包 Linux
+pnpm build
+pnpm exec electron-builder --config electron-builder.yml --mac
+pnpm exec electron-builder --config electron-builder.yml --win
+pnpm exec electron-builder --config electron-builder.yml --linux
 ```
 
 ## 更新机制
 
-使用 `electron-updater`，更新检查在 `src/updater.ts` 中配置。
+Windows 安装包支持应用内更新。OmniFic 0.8.0 的 macOS 包未签名、未公证，仅支持手动下载更新。
+
+后续启用 macOS 应用内更新时，需要将 `package.json` 中的 `omnificMacAutoUpdate` 设为 `true`，并在发布 CI 配置 Developer ID Application 证书、Hardened Runtime、entitlements 以及 Apple API Key 公证凭据。
