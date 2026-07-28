@@ -1,4 +1,4 @@
-import { Box, Flex, Text, IconButton } from "@radix-ui/themes";
+import { Box, Flex, Text, IconButton, Tooltip } from "@radix-ui/themes";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { AtSign, Globe, FileText } from "lucide-react";
 import { AnimatePresence } from "motion/react";
@@ -145,14 +145,16 @@ function ChapterEditorContent({
 
     return (
       <>
-        <IconButton
-          variant="ghost"
-          size="2"
-          aria-label={t("summary.openPanel")}
-          onClick={onOpenSummary}
-        >
-          <FileText size={18} />
-        </IconButton>
+        <Tooltip content={t("summary.openPanel")}>
+          <IconButton
+            variant="ghost"
+            size="2"
+            aria-label={t("summary.openPanel")}
+            onClick={onOpenSummary}
+          >
+            <FileText size={18} />
+          </IconButton>
+        </Tooltip>
       </>
     );
   }, [projectId, chapter.id, onOpenSummary, t]);
