@@ -2,6 +2,7 @@ import { Box, Button, Flex } from "@radix-ui/themes";
 import { RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { ProductLogo } from "./product-logo";
 import { Spinner } from "./spinner";
 
 import "./global-loading.css";
@@ -32,6 +33,12 @@ export function GlobalLoading({ error, onRetry }: GlobalLoadingProps) {
           className="global-loading-spinner-shell"
           data-error={error ? "true" : "false"}
         >
+          <ProductLogo
+            className="global-loading-logo"
+            size={56}
+            alt=""
+            aria-hidden="true"
+          />
           <Spinner
             className="global-loading-spinner"
             size={24}

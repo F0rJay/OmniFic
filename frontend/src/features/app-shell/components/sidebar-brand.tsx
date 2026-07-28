@@ -1,12 +1,13 @@
 import { Box, Flex, Text, IconButton, Tooltip } from "@radix-ui/themes";
-import { BookOpen, PanelLeft } from "lucide-react";
+import { PanelLeft } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { KeyboardEvent, PointerEvent } from "react";
+
+import { ProductLogo } from "@/components/product-logo";
 
 import {
   SIDEBAR_EXPANDED_WIDTH,
   SIDEBAR_ICON_ACTIVE_COLOR,
-  SIDEBAR_ICON_COLOR,
   SIDEBAR_ICON_SIZE,
   SIDEBAR_ITEM_HEIGHT,
   sidebarActionButtonStyle,
@@ -124,10 +125,11 @@ export function SidebarBrand({
                 transition={{ duration: 0.1 }}
                 style={{ display: "flex" }}
               >
-                <BookOpen
-                  size={SIDEBAR_ICON_SIZE}
-                  color="currentColor"
-                  style={{ color: SIDEBAR_ICON_COLOR }}
+                <ProductLogo
+                  size={24}
+                  alt=""
+                  aria-hidden="true"
+                  style={{ filter: "drop-shadow(0 2px 5px rgb(139 92 246 / 0.22))" }}
                 />
               </motion.div>
             )}

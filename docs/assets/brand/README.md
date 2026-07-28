@@ -33,6 +33,7 @@ OmniFic 的标志由两片首尾相接、向内翻动的书页构成。紫色与
 - `omnific-wordmark.svg` / `omnific-wordmark-on-dark.svg` / `omnific-wordmark-on-light.svg`：横向字标
 - `omnific-mark-{size}.png`：小尺寸检查与通用 PNG
 - `../../../frontend/public/pwa-icons/`：PWA 与 Apple Touch Icon
+- `../../../frontend/public/favicon-*` / `favicon.ico`：浏览器标签页图标
 - `../../../desktop/build/`：桌面端 PNG、ICO 与 ICNS
 - `../readme/omnific-hero.svg`：README 横幅的可编辑源文件
 - `../readme/omnific-hero.webp`：GitHub README 使用的横幅

@@ -23,23 +23,40 @@
 .rt-Box.global-loading-spinner-shell {
   position: relative;
   display: grid;
-  width: 96px;
-  height: 96px;
+  width: 112px;
+  height: 112px;
   place-items: center;
-  filter: drop-shadow(0 0 24px var(--gray-a4));
+}
+
+.global-loading-logo {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 8px 18px rgb(139 92 246 / 0.2)) drop-shadow(0 0 12px rgb(34 211 238 / 0.12));
 }
 
 .global-loading-spinner {
+  position: absolute;
+  width: 88px;
+  height: 88px;
+  border-color: color-mix(in oklab, var(--gray-a5) 68%, transparent);
+  border-top-color: #8b5cf6;
+  border-right-color: color-mix(in oklab, #22d3ee 54%, transparent);
   color: var(--gray-12);
 }
 
 .global-loading-spinner-shell[data-error="true"] .global-loading-spinner {
+  border-color: var(--red-a5);
+  border-top-color: var(--red-10);
   color: var(--red-10);
+}
+
+.global-loading-spinner-shell[data-error="true"] .global-loading-logo {
+  filter: grayscale(0.45) opacity(0.72);
 }
 
 .global-loading-retry {
   position: absolute;
-  top: calc(50% + 76px);
+  top: calc(50% + 84px);
   left: 50%;
   width: 38px;
   height: 38px;

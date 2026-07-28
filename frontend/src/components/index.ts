@@ -16,6 +16,7 @@ export type { SelectOption, LabeledSelectProps, SearchableSelectProps } from "./
 export { AutocompletePopover } from "./autocomplete-popover";
 export type { AutocompleteItem, AutocompletePopoverProps } from "./autocomplete-popover";
 export { GlobalLoading } from "./global-loading";
+export { ProductLogo } from "./product-logo";
 export { Spinner } from "./spinner";
 export type { SpinnerProps } from "./spinner";
 export { ModelIdSelect } from "./model-id-select";

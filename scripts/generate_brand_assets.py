@@ -10,6 +10,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[1]
+FRONTEND_PUBLIC = ROOT / "frontend" / "public"
 PWA = ROOT / "frontend" / "public" / "pwa-icons"
 DESKTOP = ROOT / "desktop" / "build"
 BRAND = ROOT / "docs" / "assets" / "brand"
@@ -74,6 +75,7 @@ def main() -> None:
         raise FileNotFoundError(f"Missing brand master: {MASTER}")
 
     PWA.mkdir(parents=True, exist_ok=True)
+    FRONTEND_PUBLIC.mkdir(parents=True, exist_ok=True)
     DESKTOP.mkdir(parents=True, exist_ok=True)
     BRAND.mkdir(parents=True, exist_ok=True)
     README_ASSETS.mkdir(parents=True, exist_ok=True)
@@ -82,6 +84,13 @@ def main() -> None:
     render_icon(512).save(PWA / "icon-512.png")
     render_icon(512, maskable=True).save(PWA / "icon-512-maskable.png")
     render_icon(180, apple=True).convert("RGB").save(PWA / "apple-touch-icon.png")
+
+    render_icon(16).save(FRONTEND_PUBLIC / "favicon-16.png")
+    render_icon(32).save(FRONTEND_PUBLIC / "favicon-32.png")
+    render_icon(256).save(
+        FRONTEND_PUBLIC / "favicon.ico",
+        sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)],
+    )
 
     desktop = render_icon(1024, apple=True)
     desktop.save(DESKTOP / "icon.png")
