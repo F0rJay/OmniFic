@@ -9,7 +9,7 @@
 - 一键拉取中转站暴露的全部模型
 - 自定义 URL 在列表中用琥珀色标注
 
-## 与上游 OpenFic 的区别
+## 与上游 OmniFic 的区别
 
 上游 `_resolve_provider_url()` 将用户 URL 替换为官方目录 URL，导致中转站验证失败。
 

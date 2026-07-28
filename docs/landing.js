@@ -5,7 +5,7 @@
     zh: {
       "meta.title": "OmniFic — 在故事的无垠之境，与 AI 共写万千世界",
       "meta.description":
-        "OmniFic 是面向长篇小说的本地优先 AI 创作工作台，让正文、设定与 Agent 在同一个持续工作的空间里共同生长。",
+        "一个可以陪你完成百万字长篇的 AI 创作空间。本地优先，Agent 协作，让正文与设定在同一个工作台里共同生长。",
       "a11y.skip": "跳至主要内容",
       "a11y.primaryNav": "主要导航",
       "a11y.projectFacts": "项目特性",
@@ -20,7 +20,7 @@
       "hero.eyebrow": "本地优先 · 长篇创作 · Agent 协作",
       "hero.title": "在故事的无垠之境<br><span>与 AI 共写万千世界</span>",
       "hero.lead":
-        "让正文、人物、世界书与可执行任务的 Agent 共处一个持续工作的空间。你的创作资料不再沉睡，它们会真正参与下一行文字的诞生。",
+        "一个可以陪你完成百万字长篇的 AI 创作空间。",
       "hero.githubCta": "在 GitHub 查看源码",
       "hero.startCta": "从源码开始",
       "hero.factLocal": "数据默认存于本地",
@@ -150,7 +150,7 @@
       "footer.note": "面向长篇小说的本地优先 AI 创作工作台。",
       "footer.docs": "文档",
       "footer.contribute": "参与贡献",
-      "footer.openfic": "致谢 OpenFic",
+      "footer.omnific": "致谢 OpenFic",
       "a11y.demoControls": "演示控制",
       "a11y.agentGraph": "Agent 节点图",
       "a11y.demoSteps": "演示步骤",
@@ -159,7 +159,7 @@
     en: {
       "meta.title": "OmniFic — Write beyond generation",
       "meta.description":
-        "OmniFic is a local-first AI writing workspace for long-form fiction, bringing manuscripts, story bibles, and task-capable Agents into one continuous creative space.",
+        "An AI creative space built to walk with you through a million-word novel. Local-first, Agent-powered, with your manuscript and story bible growing together in one workspace.",
       "a11y.skip": "Skip to main content",
       "a11y.primaryNav": "Primary navigation",
       "a11y.projectFacts": "Project highlights",
@@ -174,7 +174,7 @@
       "hero.eyebrow": "LOCAL-FIRST · LONG-FORM FICTION · AGENT COLLABORATION",
       "hero.title": "A boundless space for stories.<br><span>Write beyond generation.</span>",
       "hero.lead":
-        "Keep manuscripts, characters, worldbooks, and task-capable Agents in one continuous workspace. Your creative material no longer sleeps in folders—it actively shapes the next line you write.",
+        "An AI creative space built to walk with you through a million-word novel.",
       "hero.githubCta": "View source on GitHub",
       "hero.startCta": "Run from source",
       "hero.factLocal": "Data stored locally by default",
@@ -304,7 +304,7 @@
       "footer.note": "A local-first AI writing workspace for long-form fiction.",
       "footer.docs": "Docs",
       "footer.contribute": "Contribute",
-      "footer.openfic": "Thanks to OpenFic",
+      "footer.omnific": "Thanks to OpenFic",
       "a11y.demoControls": "Demo controls",
       "a11y.agentGraph": "Agent node graph",
       "a11y.demoSteps": "Demo steps",
@@ -394,6 +394,62 @@
   }
 
   const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  /* ── Workflow step sequential lighting ── */
+  const workflowSteps = document.querySelectorAll(".workflow-step");
+  if (workflowSteps.length && "IntersectionObserver" in window && !motionQuery.matches) {
+    const workflowObserver = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) return;
+        workflowSteps.forEach((step, index) => {
+          window.setTimeout(() => step.classList.add("is-lit"), 200 + index * 220);
+        });
+        workflowObserver.unobserve(entries[0].target);
+      },
+      { threshold: 0.3 },
+    );
+    const workflowTrack = document.querySelector(".workflow-track");
+    if (workflowTrack) workflowObserver.observe(workflowTrack);
+  }
+
+  /* ── Scroll-driven parallax & float effects ── */
+  const scrollDrivenElements = [];
+  const screenFrame = document.querySelector(".screen-frame");
+  const terminalEl = document.querySelector(".terminal");
+  const philosophySection = document.querySelector(".philosophy");
+
+  if (screenFrame) scrollDrivenElements.push({ el: screenFrame, cls: "is-floating", offset: 0.15 });
+  if (terminalEl) scrollDrivenElements.push({ el: terminalEl, cls: "is-floating", offset: 0.1 });
+
+  if (scrollDrivenElements.length && "IntersectionObserver" in window) {
+    const floatObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const target = scrollDrivenElements.find((item) => item.el === entry.target);
+          if (!target) return;
+          if (entry.isIntersecting) {
+            window.setTimeout(() => target.el.classList.add(target.cls), 200);
+          }
+        });
+      },
+      { threshold: 0.08 },
+    );
+    scrollDrivenElements.forEach((item) => floatObserver.observe(item.el));
+  }
+
+  /* Philosophy watermark scroll parallax */
+  if (philosophySection && !motionQuery.matches) {
+    window.addEventListener("scroll", () => {
+      const rect = philosophySection.getBoundingClientRect();
+      const viewHeight = window.innerHeight;
+      if (rect.top < viewHeight && rect.bottom > 0) {
+        const progress = 1 - (rect.top / viewHeight);
+        const shift = Math.max(-20, Math.min(10, (progress - 0.5) * 30));
+        philosophySection.style.setProperty("--watermark-shift", `${shift.toFixed(1)}px`);
+      }
+    }, { passive: true });
+  }
+
   const coarsePointerQuery = window.matchMedia("(pointer: coarse)");
   const hero = document.querySelector(".hero");
 
@@ -593,6 +649,12 @@ pnpm dev`;
       this.motionMedia.removeEventListener?.("change", this.handleMotionChange);
       this.terminal?.classList.remove("is-typing");
       this.terminal?.classList.add("is-typed");
+
+      /* Show ✓ Ready indicator */
+      const readyEl = this.terminal?.querySelector(".terminal-ready");
+      if (readyEl && !immediate) {
+        window.setTimeout(() => readyEl.classList.add("is-visible"), 300);
+      }
 
       if (!this.caret) return;
       if (immediate) {

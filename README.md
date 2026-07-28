@@ -218,7 +218,7 @@ OmniFic 目前由个人维护，处于实验性开发阶段。
 
 ## 🔗 与 OpenFic 的关系
 
-OmniFic Fork 自 [OpenFic v0.7.5](https://github.com/syrizelink/OpenFic)。项目的基础架构、主要产品形态，以及世界观管理、写作编辑器、Agent Runtime 和本地数据能力等核心基础都来自 OpenFic。OmniFic 在此基础上独立发展，但不是 OpenFic 的替代，也不代表一个“更正确”的方向。
+OmniFic Fork 自 [OpenFic v0.7.5](https://github.com/syrizelink/OpenFic)。项目的基础架构、主要产品形态，以及世界观管理、写作编辑器、Agent Runtime 和本地数据能力等核心基础都来自 OpenFic。OmniFic 在此基础上独立发展，但不是 OpenFic 的替代，也不代表一个”更正确”的方向。
 
 <details>
 <summary><strong>💡 为什么成为独立分支</strong></summary>
