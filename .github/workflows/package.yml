@@ -177,6 +177,10 @@ jobs:
             sleep 1
           done
           exit 1
+      - uses: actions/upload-artifact@v7
+        with:
+          name: backend-wheel
+          path: backend/dist/*.whl
       - uses: actions/cache/save@v5
         if: ${{ steps.pnpm-cache.outputs.cache-hit != 'true' }}
         with:
@@ -298,15 +302,19 @@ jobs:
           - os: windows-latest
             electron_args: '--win --x64'
             artifact_name: windows-update-x86_64
+            artifact_arch: x86_64
           - os: windows-11-arm
             electron_args: '--win --arm64'
             artifact_name: windows-update-aarch64
+            artifact_arch: aarch64
           - os: macos-15-intel
             electron_args: '--mac --x64'
             artifact_name: macos-update-x86_64
+            artifact_arch: x86_64
           - os: macos-15
             electron_args: '--mac --arm64'
             artifact_name: macos-update-aarch64
+            artifact_arch: aarch64
     runs-on: ${{ matrix.os }}
     env:
       ELECTRON_CACHE: ${{ github.workspace }}/.electron-cache
@@ -317,6 +325,10 @@ jobs:
         with:
           name: frontend-dist
           path: frontend/dist
+      - uses: actions/download-artifact@v8
+        with:
+          name: backend-wheel
+          path: desktop/resources/omnific-wheel
       - uses: pnpm/action-setup@v6
         with:
           version: ${{ env.PNPM_VERSION }}
@@ -355,6 +367,9 @@ jobs:
       - name: 验证便携 Python 路径
         working-directory: desktop
         run: pnpm test:runtime-paths
+      - name: 验证内置后端 wheel
+        working-directory: desktop
+        run: node scripts/verify-bundled-wheel.mjs
       - name: 构建 Electron 安装包
         working-directory: desktop
         run: pnpm exec electron-builder --config electron-builder.yml ${{ matrix.electron_args }} --publish never
@@ -364,6 +379,9 @@ jobs:
       - name: 校验 macOS 安装包完整性
         if: runner.os == 'macOS'
         working-directory: desktop
+        env:
+          OMNIFIC_ARTIFACT_ARCH: ${{ matrix.artifact_arch }}
+          OMNIFIC_REQUIRE_BUNDLED_WHEEL: 'true'
         run: node scripts/verify-macos-artifacts.mjs
 
       - uses: actions/upload-artifact@v7

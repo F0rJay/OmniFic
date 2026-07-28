@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "pnpm build:setup && pnpm build:main && electron .",
     "build": "pnpm build:setup && pnpm build:main",
-    "test:runtime-paths": "pnpm build:main && node --test tests/runtime-paths.test.mjs",
+    "test:runtime-paths": "pnpm build:main && node --test tests/*.test.mjs",
     "build:main": "tsc -p tsconfig.main.json",
     "build:setup": "vp build",
     "type-check": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.renderer.json --noEmit",

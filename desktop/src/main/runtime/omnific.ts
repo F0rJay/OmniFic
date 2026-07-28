@@ -1,6 +1,6 @@
 import { net } from "electron";
 import { spawn } from "node:child_process";
-import { access, appendFile, mkdir, rm } from "node:fs/promises";
+import { access, appendFile, mkdir, readdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { findFreePort } from "../ports.js";
 import { startBackendProcess, stopBackendProcess, type BackendProcessHandle } from "../process.js";
@@ -14,6 +14,7 @@ import {
   resolveOmniFicCliPath,
 } from "./omnific-commands.js";
 import type { StartupProgressTracker } from "../startup-progress.js";
+import { selectBundledOmniFicWheel } from "./bundled-wheel.js";
 
 export type OmniFicRuntimeStep = "create-venv" | "install-uv" | "install-omnific";
 
@@ -63,6 +64,16 @@ async function pathExists(filePath: string): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+async function resolveBundledOmniFicWheel(expectedVersion: string): Promise<string | null> {
+  const wheelDirectory = path.join(process.resourcesPath, "omnific-wheel");
+  try {
+    const wheelName = selectBundledOmniFicWheel(await readdir(wheelDirectory), expectedVersion);
+    return wheelName ? path.join(wheelDirectory, wheelName) : null;
+  } catch {
+    return null;
   }
 }
 
@@ -283,10 +294,13 @@ export async function ensureOmniFicRuntime(
   const uvPath = getUvPath(runtimeDir);
   let bootstrapPypiEnvironment: Promise<PypiEnvironment> | null = null;
   let omnificPypiEnvironment: Promise<PypiEnvironment> | null = null;
+  const bundledWheel = await resolveBundledOmniFicWheel(expectedVersion);
   const getBootstrapPypiEnvironment = () =>
     (bootstrapPypiEnvironment ??= getFastestPypiEnvironment("uv"));
   const getOmnificPypiEnvironment = () =>
-    (omnificPypiEnvironment ??= getFastestPypiEnvironment("omnific", expectedVersion));
+    (omnificPypiEnvironment ??= bundledWheel
+      ? getFastestPypiEnvironment("fastapi")
+      : getFastestPypiEnvironment("omnific", expectedVersion));
 
   await mkdir(runtimeDir, { recursive: true });
 
@@ -322,12 +336,13 @@ export async function ensureOmniFicRuntime(
     const packageIndex = await getOmnificPypiEnvironment();
     onProgress(
       "install-omnific",
-      `${installedVersion ? "更新" : "安装"} OmniFic 后端（${new URL(packageIndex.indexUrl).host}，${packageIndex.proxyStatus}）`,
+      `${installedVersion ? "更新" : "安装"} OmniFic 后端${bundledWheel ? "（内置 wheel）" : ""}（${new URL(packageIndex.indexUrl).host}，${packageIndex.proxyStatus}）`,
     );
     const installCommand = createOmniFicInstallCommand(
       venvPythonPath,
       expectedVersion,
       installedVersion === expectedVersion && !omniFicCliIsUsable,
+      bundledWheel ?? undefined,
     );
     await run(
       uvPath,

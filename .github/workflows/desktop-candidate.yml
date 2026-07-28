@@ -1,0 +1,167 @@
+name: Desktop Release Candidate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-candidate-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: '3.12'
+  NODE_VERSION: '22.18.0'
+  PNPM_VERSION: '11.8.0'
+  UV_CACHE_DIR: ${{ github.workspace }}/.uv-cache
+
+jobs:
+  context:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - id: version
+        name: 校验版本元数据
+        run: |
+          desktop_version="$(node -p 'require("./desktop/package.json").version')"
+          frontend_version="$(node -p 'require("./frontend/package.json").version')"
+          backend_version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' backend/pyproject.toml | head -1)"
+          test "$desktop_version" = "$frontend_version"
+          test "$desktop_version" = "$backend_version"
+          echo "version=$desktop_version" >> "$GITHUB_OUTPUT"
+
+  build-assets:
+    needs: [context]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: astral-sh/setup-uv@v5
+      - name: 构建前端
+        working-directory: frontend
+        run: |
+          pnpm install --frozen-lockfile
+          OMNIFIC_BUILD_VERSION=${{ needs.context.outputs.version }} pnpm build
+      - name: 构建后端 wheel
+        working-directory: backend
+        run: uv build
+      - name: 冒烟验证候选 wheel
+        working-directory: backend
+        run: |
+          smoke_root="$(mktemp -d)"
+          python -m venv "$smoke_root/venv"
+          "$smoke_root/venv/bin/python" -m pip install dist/omnific-*.whl
+          "$smoke_root/venv/bin/omnific" version | grep "${{ needs.context.outputs.version }}"
+          OMNIFIC_DATA_DIR="$smoke_root/data" "$smoke_root/venv/bin/omnific" serve --host 127.0.0.1 --port 8765 > "$smoke_root/server.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; cat "$smoke_root/server.log"' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:8765/api/v1/health; then
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
+      - uses: actions/upload-artifact@v7
+        with:
+          name: candidate-frontend-dist
+          path: frontend/dist
+          retention-days: 7
+      - uses: actions/upload-artifact@v7
+        with:
+          name: candidate-backend-wheel
+          path: backend/dist/*.whl
+          retention-days: 7
+
+  desktop:
+    needs: [context, build-assets]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            electron_args: '--win --x64'
+            artifact_suffix: windows-x86_64
+            artifact_arch: x86_64
+          - os: windows-11-arm
+            electron_args: '--win --arm64'
+            artifact_suffix: windows-aarch64
+            artifact_arch: aarch64
+          - os: macos-15-intel
+            electron_args: '--mac --x64'
+            artifact_suffix: mac-x86_64
+            artifact_arch: x86_64
+          - os: macos-15
+            electron_args: '--mac --arm64'
+            artifact_suffix: mac-aarch64
+            artifact_arch: aarch64
+    runs-on: ${{ matrix.os }}
+    env:
+      ELECTRON_CACHE: ${{ github.workspace }}/.electron-cache
+      ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.electron-builder-cache
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: candidate-frontend-dist
+          path: frontend/dist
+      - uses: actions/download-artifact@v8
+        with:
+          name: candidate-backend-wheel
+          path: desktop/resources/omnific-wheel
+      - uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: 安装依赖
+        run: |
+          pnpm --dir frontend install --frozen-lockfile
+          pnpm --dir desktop install --frozen-lockfile
+      - name: 验证并构建桌面端
+        working-directory: desktop
+        run: |
+          pnpm type-check
+          pnpm lint
+          pnpm build
+          pnpm test:runtime-paths
+          node scripts/verify-bundled-wheel.mjs
+      - name: 构建候选安装包
+        working-directory: desktop
+        run: pnpm exec electron-builder --config electron-builder.yml ${{ matrix.electron_args }} --publish never
+      - name: 统一候选包架构命名
+        working-directory: desktop
+        run: node scripts/normalize-artifact-names.mjs
+      - name: 校验 macOS 候选包
+        if: runner.os == 'macOS'
+        working-directory: desktop
+        env:
+          OMNIFIC_ARTIFACT_ARCH: ${{ matrix.artifact_arch }}
+          OMNIFIC_REQUIRE_BUNDLED_WHEEL: 'true'
+        run: node scripts/verify-macos-artifacts.mjs
+      - uses: actions/upload-artifact@v7
+        with:
+          name: OmniFic-${{ needs.context.outputs.version }}-rc-${{ matrix.artifact_suffix }}
+          path: |
+            desktop/dist-electron/*.exe
+            desktop/dist-electron/*.blockmap
+            desktop/dist-electron/*.zip
+            desktop/dist-electron/*.dmg
+            desktop/dist-electron/*.yml
+          if-no-files-found: error
+          retention-days: 7

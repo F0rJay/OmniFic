@@ -19,9 +19,10 @@ export function createOmniFicInstallCommand(
   venvPythonPath: string,
   version: string,
   forceReinstall = false,
+  installTarget = `omnific==${version}`,
 ): Omit<SpawnCommand, "command"> {
   return {
-    args: ["pip", "install", "--python", venvPythonPath, ...(forceReinstall ? ["--reinstall"] : []), `omnific==${version}`],
+    args: ["pip", "install", "--python", venvPythonPath, ...(forceReinstall ? ["--reinstall"] : []), installTarget],
   };
 }
 
