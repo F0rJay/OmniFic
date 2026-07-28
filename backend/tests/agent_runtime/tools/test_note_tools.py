@@ -3,6 +3,8 @@
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 
 def _make_state() -> dict:
     return {
@@ -368,6 +370,96 @@ async def test_write_note_creates_note_and_returns_success() -> None:
     assert data["metadata"]["note_diff"]["note_title"] == "新笔记"
     assert data["metadata"]["note_diff"]["category_id"] is None
     assert data["metadata"]["note_diff"]["sections"][0]["type"] == "content"
+
+
+@pytest.mark.parametrize("category_ref", [None, {"path": "/其他分类"}])
+async def test_write_note_composer_forces_outline_category(
+    category_ref: dict | None,
+) -> None:
+    from app.agent_runtime.tools.impls.note.write_note import WriteNoteTool
+
+    state = _make_state()
+    state["active_agent"] = "composer"
+    tool = WriteNoteTool(_state=state)
+    outline_category = _make_category(
+        category_id="cat-outline",
+        title="剧情大纲",
+    )
+    created_notes = []
+
+    async def _fake_create(session, note):
+        note.id = "note-outline"
+        created_notes.append(note)
+        return note
+
+    args = {"title": "第六章 细纲", "content": "细纲内容"}
+    if category_ref is not None:
+        args["category_ref"] = category_ref
+
+    with patch(
+        "app.agent_runtime.tools.impls.note.write_note.create_session"
+    ) as mock_cs:
+        mock_session = AsyncMock()
+        mock_cs.return_value = mock_session
+        with (
+            patch(
+                "app.agent_runtime.tools.impls.note.write_note.note_category_repo.list_by_project",
+                AsyncMock(return_value=[outline_category]),
+            ),
+            patch(
+                "app.agent_runtime.tools.impls.note.write_note.note_repo.list_by_project",
+                AsyncMock(return_value=[]),
+            ),
+            patch(
+                "app.agent_runtime.tools.impls.note.write_note.note_repo.create",
+                AsyncMock(side_effect=_fake_create),
+            ),
+            patch(
+                "app.agent_runtime.tools.impls.note.write_note.record_note_diffs",
+                AsyncMock(return_value=[]),
+            ),
+            patch(
+                "app.background.jobs.service.commit_and_notify",
+                AsyncMock(),
+            ),
+        ):
+            result = await tool.ainvoke(args)
+
+    data = json.loads(result)
+    assert data["success"] is True
+    assert data["metadata"]["note_diff"]["category_id"] == "cat-outline"
+    assert created_notes[0].category_id == "cat-outline"
+
+
+async def test_write_note_composer_preview_uses_outline_category() -> None:
+    from app.agent_runtime.tools.impls.note.write_note import WriteNoteTool
+
+    state = _make_state()
+    state["active_agent"] = "composer"
+    runtime_session = AsyncMock()
+    tool = WriteNoteTool(_state=state)
+    object.__setattr__(tool, "_config", {"configurable": {"db_session": runtime_session}})
+    outline_category = _make_category(
+        category_id="cat-outline",
+        title="剧情大纲",
+    )
+
+    with (
+        patch(
+            "app.agent_runtime.tools.impls.note.write_note.note_category_repo.list_by_project",
+            AsyncMock(return_value=[outline_category]),
+        ),
+        patch(
+            "app.agent_runtime.tools.impls.note.write_note.note_repo.list_by_project",
+            AsyncMock(return_value=[]),
+        ),
+    ):
+        preview = await tool.build_interrupt_preview(
+            {"title": "第六章 细纲", "content": "细纲内容"}
+        )
+
+    assert preview is not None
+    assert preview["metadata"]["note_diff"]["category_id"] == "cat-outline"
 
 
 async def test_write_note_builds_approval_diff_preview() -> None:

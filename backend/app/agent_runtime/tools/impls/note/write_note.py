@@ -26,6 +26,9 @@ from app.storage.models.note import Note
 from app.storage.repos import note_category_repo, note_repo
 
 
+_COMPOSER_OUTLINE_CATEGORY_PATH = "/剧情大纲"
+
+
 class WriteNoteInput(BaseModel):
     title: str = Field(description="笔记标题")
     content: str = Field(description="笔记内容")
@@ -39,6 +42,12 @@ class WriteNoteTool(AgentTool):
     access_level: str = "write"
     args_schema: type[BaseModel] = WriteNoteInput
 
+    def _effective_category_ref(self, category_ref: dict | None) -> dict | None:
+        agent_key = self._state.get("active_agent") or self._state.get("agent_key")
+        if agent_key == "composer":
+            return {"path": _COMPOSER_OUTLINE_CATEGORY_PATH}
+        return category_ref
+
     async def build_interrupt_preview(self, args: dict[str, Any]) -> dict | None:
         session = self.get_runtime_db_session()
         title = args.get("title")
@@ -47,7 +56,7 @@ class WriteNoteTool(AgentTool):
             return None
 
         category_id: str | None = None
-        category_ref = args.get("category_ref")
+        category_ref = self._effective_category_ref(args.get("category_ref"))
         if category_ref is not None:
             if not isinstance(category_ref, dict):
                 return None
@@ -105,6 +114,7 @@ class WriteNoteTool(AgentTool):
         session = await create_session()
         try:
             category_id: str | None = None
+            category_ref = self._effective_category_ref(category_ref)
             if category_ref is not None:
                 ref = CategoryRef.model_validate(category_ref)
                 if ref.id is not None:
