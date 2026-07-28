@@ -1,6 +1,15 @@
 (() => {
   "use strict";
 
+  // Keep the landing page readable when this optional enhancement script cannot
+  // load, parse, or finish running. The HTML must never depend on JavaScript
+  // just to show its primary content.
+  const root = document.documentElement;
+  const showStaticContent = () => root.classList.remove("has-js");
+  window.addEventListener("error", showStaticContent);
+  window.addEventListener("unhandledrejection", showStaticContent);
+  root.classList.add("has-js");
+
   const translations = {
     zh: {
       "meta.title": "OmniFic — 在故事的无垠之境，与 AI 共写万千世界",

@@ -1473,7 +1473,7 @@ section[id] {
 .local-grid { display: grid; grid-template-columns: 0.9fr 1.1fr; align-items: center; gap: 90px; }
 .local-visual { position: relative; min-height: 510px; }
 .local-core { position: absolute; z-index: 3; top: 50%; left: 50%; display: grid; width: 160px; height: 160px; place-items: center; border: 1px solid rgba(109, 220, 230, 0.25); border-radius: 50%; background: radial-gradient(circle, rgba(27, 42, 55, 0.9), rgba(8, 10, 16, 0.6)); box-shadow: 0 0 80px rgba(70, 203, 220, 0.1); transform: translate(-50%, -50%); }
-.local-core img { width: 82px; }.local-core span { margin-top: -24px; color: rgba(244, 241, 232, 0.38); font-family: var(--mono); font-size: 8px; letter-spacing: 0.2em; }
+.local-core img { width: 82px; height: auto; }.local-core span { margin-top: -24px; color: rgba(244, 241, 232, 0.38); font-family: var(--mono); font-size: 8px; letter-spacing: 0.2em; }
 .local-ring { position: absolute; top: 50%; left: 50%; border: 1px solid rgba(244, 241, 232, 0.09); border-radius: 50%; transform: translate(-50%, -50%); }
 .local-ring i,.local-ring b,.local-ring em { position: absolute; padding: 4px 8px; color: rgba(244, 241, 232, 0.45); background: #0a0d14; border: 1px solid var(--line); border-radius: 999px; font-family: var(--mono); font-size: 8px; font-style: normal; font-weight: 400; transition: color 400ms ease, border-color 400ms ease, box-shadow 400ms ease; animation: ring-label-glow 3s ease-in-out infinite; }
 .local-ring-one i { animation-delay: 0s; }
@@ -1551,7 +1551,7 @@ section[id] {
 .roots-visual circle { fill: var(--gold); filter: drop-shadow(0 0 8px rgba(201, 168, 106, 0.65)); }
 .root-project { position: absolute; z-index: 3; display: flex; flex-direction: column; padding: 16px 18px; background: rgba(8, 12, 19, 0.85); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 16px 38px rgba(0, 0, 0, 0.26); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
 .root-project small { color: rgba(244, 241, 232, 0.25); font-family: var(--mono); font-size: 6px; letter-spacing: 0.11em; }.root-project b { margin-top: 7px; font-family: var(--serif); font-size: 20px; font-weight: 500; }.root-project span { margin-top: 5px; color: var(--paper-muted); font-size: 8px; line-height: 1.5; }
-.root-omnific { top: 42%; left: 0; width: 160px; transform: translateY(-50%); border-color: rgba(201, 168, 106, 0.18); }.root-foundation { top: 6%; right: 2%; width: 190px; border-color: rgba(156, 108, 255, 0.17); }.root-foundation b { font-size: 12px; line-height: 1.55; }.root-omnific { right: 0; bottom: 5%; width: 195px; border-color: rgba(67, 216, 232, 0.2); }
+.root-openfic { top: 42%; left: 0; width: 160px; transform: translateY(-50%); border-color: rgba(201, 168, 106, 0.18); }.root-foundation { top: 6%; right: 2%; width: 190px; border-color: rgba(156, 108, 255, 0.17); }.root-foundation b { font-size: 12px; line-height: 1.55; }.root-omnific { right: 0; bottom: 5%; width: 195px; border-color: rgba(67, 216, 232, 0.2); }
 .root-pulse { position: absolute; z-index: 4; top: 49%; left: 46%; width: 7px; height: 7px; background: var(--cyan); border-radius: 50%; box-shadow: 0 0 18px var(--cyan); offset-path: path("M0 0 C70 0 80 115 190 115"); animation: root-particle 4.8s linear infinite; }
 
 .quickstart {
@@ -1763,7 +1763,7 @@ section[id] {
   .feature-card { min-height: 310px; }.feature-wide:first-child { min-height: 470px; }.mini-editor { width: 88%; }.activity-chart { position: relative; right: auto; bottom: auto; width: 100%; height: 100px; margin-top: 24px; }
   .screen-frame { margin-right: -10px; margin-left: -10px; padding: 5px; border-radius: 9px; }.screen-topbar { height: 28px; }.screen-topbar i { display: none; }
   .local-visual { min-height: 380px; transform: scale(0.72); }.local-ring-three { width: 460px; height: 460px; }
-  .roots-copy h2 { font-size: 38px; }.roots-link { width: 100%; }.roots-visual { min-height: 400px; border-radius: 12px; }.root-omnific { left: 8px; }.root-foundation { right: 8px; }.root-omnific { right: 8px; }.root-pulse { display: none; }
+  .roots-copy h2 { font-size: 38px; }.roots-link { width: 100%; }.roots-visual { min-height: 400px; border-radius: 12px; }.root-openfic { left: 8px; }.root-foundation { right: 8px; }.root-omnific { right: 8px; }.root-pulse { display: none; }
   .terminal { margin-right: -8px; margin-left: -8px; }.terminal pre { padding: 24px 18px 68px; font-size: 9px; }
   .final-cta { min-height: 570px; padding-top: 90px; }.cta-actions { align-items: stretch; flex-direction: column; }
   .footer-grid { grid-template-columns: 1fr; justify-items: center; }.site-footer nav { flex-wrap: wrap; justify-content: center; }
