@@ -20,6 +20,7 @@ import {
   useEffect,
   useMemo,
   useImperativeHandle,
+  type ReactNode,
 } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -81,6 +82,7 @@ interface AssistantSidebarProps {
   onOpenMentionChapter?: (chapterId: string, chapterTitle: string) => void;
   onClose?: () => void;
   isMobileOverlay?: boolean;
+  paneAction?: ReactNode;
 }
 
 export interface AssistantSidebarHandle {
@@ -236,6 +238,7 @@ export const AssistantSidebar = forwardRef<AssistantSidebarHandle, AssistantSide
       onOpenMentionChapter,
       onClose,
       isMobileOverlay = false,
+      paneAction,
     }: AssistantSidebarProps,
     ref,
   ) {
@@ -1246,6 +1249,9 @@ export const AssistantSidebar = forwardRef<AssistantSidebarHandle, AssistantSide
         height="100%"
         className="ai-sidebar-shell"
       >
+        {paneAction && (view === "allTasks" || !hasActiveTask) ? (
+          <Box className="ai-sidebar-pane-action">{paneAction}</Box>
+        ) : null}
         {shouldShowMobileToolbar && (
           <Flex
             align="center"
@@ -1364,6 +1370,7 @@ export const AssistantSidebar = forwardRef<AssistantSidebarHandle, AssistantSide
                 >
                   <SquarePen size={16} />
                 </IconButton>
+                {paneAction}
               </Flex>
             </Flex>
             <Flex

@@ -36,7 +36,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { memo, useCallback, useState, useMemo } from "react";
+import { memo, useCallback, useState, useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ContextMenu, type ContextMenuItem } from "@/components";
@@ -225,9 +225,10 @@ export function EmptyTabContent({ onCreateNew, onClose }: EmptyTabContentProps) 
 interface EditorTabsProps {
   onAddTab?: () => void;
   onAddToConversation?: (markup: string) => void;
+  endAction?: ReactNode;
 }
 
-export function EditorTabs({ onAddTab, onAddToConversation }: EditorTabsProps) {
+export function EditorTabs({ onAddTab, onAddToConversation, endAction }: EditorTabsProps) {
   const { t } = useTranslation();
   const tabs = useTabs();
   const activeTabId = useActiveTabId();
@@ -455,6 +456,14 @@ export function EditorTabs({ onAddTab, onAddToConversation }: EditorTabsProps) {
               <Plus size={16} />
             </IconButton>
           </Flex>
+          {endAction ? (
+            <Flex
+              align="center"
+              className="editor-tabs-end-action"
+            >
+              {endAction}
+            </Flex>
+          ) : null}
         </Flex>
       </Box>
 

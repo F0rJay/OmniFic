@@ -1,9 +1,27 @@
 import { Box, Flex, IconButton, Tooltip } from "@radix-ui/themes";
-import { Bot, List } from "lucide-react";
+import {
+  Bot,
+  List,
+  Maximize2,
+  Minimize2,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+} from "lucide-react";
 import { motion } from "motion/react";
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useTranslation } from "react-i18next";
-import { Panel, Group, Separator } from "react-resizable-panels";
+import { Panel, Group, Separator, usePanelRef } from "react-resizable-panels";
 import { useParams } from "react-router";
 
 import "./writing-page.css";
@@ -27,9 +45,35 @@ import { useWritingStore } from "../store/use-writing-store";
 
 const MotionBox = motion.create(Box);
 const MOBILE_SIDEBAR_WIDTH = 320;
+const COLLAPSED_PANEL_SIZE = 36;
 const SummaryPanel = lazy(() =>
   import("../components/summary-panel").then((module) => ({ default: module.SummaryPanel })),
 );
+
+interface WritingPanelToggleProps {
+  label: string;
+  placement: "panel-header" | "editor-tabs" | "collapsed-rail";
+  onClick: () => void;
+  children: ReactNode;
+}
+
+function WritingPanelToggle({ label, placement, onClick, children }: WritingPanelToggleProps) {
+  return (
+    <Tooltip content={label}>
+      <IconButton
+        type="button"
+        variant="soft"
+        color="gray"
+        size="1"
+        className={`writing-page-panel-toggle writing-page-panel-toggle--${placement}`}
+        aria-label={label}
+        onClick={onClick}
+      >
+        {children}
+      </IconButton>
+    </Tooltip>
+  );
+}
 
 export function WritingPage() {
   const { t } = useTranslation();
@@ -77,6 +121,12 @@ export function WritingPage() {
     isAgentRunning: false,
   });
   const assistantSidebarRef = useRef<AssistantSidebarHandle | null>(null);
+  const leftPanelRef = usePanelRef();
+  const editorPanelRef = usePanelRef();
+  const rightPanelRef = usePanelRef();
+  const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
+  const [isEditorPanelCollapsed, setIsEditorPanelCollapsed] = useState(false);
+  const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
 
   const isAgentLocked = useMemo(
     () => assistantState.isAgentRunning,
@@ -339,6 +389,27 @@ export function WritingPage() {
     setIsSummaryOpen(open);
   }, []);
 
+  const toggleLeftPanel = useCallback(() => {
+    const panel = leftPanelRef.current;
+    if (!panel) return;
+    if (panel.isCollapsed()) panel.expand();
+    else panel.collapse();
+  }, [leftPanelRef]);
+
+  const toggleEditorPanel = useCallback(() => {
+    const panel = editorPanelRef.current;
+    if (!panel) return;
+    if (panel.isCollapsed()) panel.expand();
+    else panel.collapse();
+  }, [editorPanelRef]);
+
+  const toggleRightPanel = useCallback(() => {
+    const panel = rightPanelRef.current;
+    if (!panel) return;
+    if (panel.isCollapsed()) panel.expand();
+    else panel.collapse();
+  }, [rightPanelRef]);
+
   if (!projectId) {
     return null;
   }
@@ -352,6 +423,17 @@ export function WritingPage() {
       onAddToConversation={isViewingSubagent ? undefined : handleAddToConversation}
       initialCurrentChapterNavigationKey={initialCurrentChapterNavigationKey}
       onOpenSummary={handleOpenSummary}
+      headerAction={
+        isMobile ? undefined : (
+          <WritingPanelToggle
+            label={t("writing.collapseChapterPanel")}
+            placement="panel-header"
+            onClick={toggleLeftPanel}
+          >
+            <PanelLeftClose size={16} />
+          </WritingPanelToggle>
+        )
+      }
     />
   );
 
@@ -367,13 +449,33 @@ export function WritingPage() {
           >
             <Panel
               id="left-sidebar"
+              panelRef={leftPanelRef}
               defaultSize={300}
               minSize={250}
-              maxSize={400}
-              collapsible={false}
+              maxSize="70%"
+              collapsedSize={COLLAPSED_PANEL_SIZE}
+              collapsible
+              onResize={({ inPixels }) =>
+                setIsLeftPanelCollapsed(inPixels <= COLLAPSED_PANEL_SIZE + 1)
+              }
             >
-              <Box className="writing-page-sidebar writing-page-sidebar--left">
-                {sidebarContent}
+              <Box
+                className="writing-page-panel-frame"
+                data-panel-position="left"
+                data-collapsed={isLeftPanelCollapsed ? "true" : undefined}
+              >
+                <Box className="writing-page-panel-content writing-page-sidebar writing-page-sidebar--left">
+                  {sidebarContent}
+                </Box>
+                {isLeftPanelCollapsed ? (
+                  <WritingPanelToggle
+                    label={t("writing.expandChapterPanel")}
+                    placement="collapsed-rail"
+                    onClick={toggleLeftPanel}
+                  >
+                    <PanelLeftOpen size={15} />
+                  </WritingPanelToggle>
+                ) : null}
               </Box>
             </Panel>
 
@@ -381,40 +483,70 @@ export function WritingPage() {
 
             <Panel
               id="editor"
-              minSize={30}
+              panelRef={editorPanelRef}
+              minSize={240}
+              collapsedSize={COLLAPSED_PANEL_SIZE}
+              collapsible
+              onResize={({ inPixels }) =>
+                setIsEditorPanelCollapsed(inPixels <= COLLAPSED_PANEL_SIZE + 1)
+              }
             >
-              <div className="writing-page-editor-shell">
-                <EditorTabs
-                  onAddTab={handleShowEmptyTab}
-                  onAddToConversation={isViewingSubagent ? undefined : handleAddToConversation}
-                />
+              <div
+                className="writing-page-panel-frame"
+                data-panel-position="editor"
+                data-collapsed={isEditorPanelCollapsed ? "true" : undefined}
+              >
+                <div className="writing-page-panel-content writing-page-editor-shell">
+                  <EditorTabs
+                    onAddTab={handleShowEmptyTab}
+                    onAddToConversation={isViewingSubagent ? undefined : handleAddToConversation}
+                    endAction={
+                      <WritingPanelToggle
+                        label={t("writing.collapseEditorPanel")}
+                        placement="editor-tabs"
+                        onClick={toggleEditorPanel}
+                      >
+                        <Minimize2 size={14} />
+                      </WritingPanelToggle>
+                    }
+                  />
 
-                <Box className="writing-page-content-fill">
-                  {activeTabId && !isEmptyTab(activeTabId) ? (
-                    activeType === "note" ? (
-                      <NoteEditor
-                        noteId={activeRefId}
-                        projectId={projectId}
-                        isAgentLocked={isAgentLocked}
-                      />
+                  <Box className="writing-page-content-fill">
+                    {activeTabId && !isEmptyTab(activeTabId) ? (
+                      activeType === "note" ? (
+                        <NoteEditor
+                          noteId={activeRefId}
+                          projectId={projectId}
+                          isAgentLocked={isAgentLocked}
+                        />
+                      ) : (
+                        <ChapterEditor
+                          chapterId={activeRefId}
+                          projectId={projectId}
+                          isAgentLocked={isAgentLocked}
+                          onAddToConversation={
+                            isViewingSubagent ? undefined : handleAddToConversation
+                          }
+                          onOpenSummary={handleOpenSummary}
+                        />
+                      )
                     ) : (
-                      <ChapterEditor
-                        chapterId={activeRefId}
-                        projectId={projectId}
-                        isAgentLocked={isAgentLocked}
-                        onAddToConversation={
-                          isViewingSubagent ? undefined : handleAddToConversation
-                        }
-                        onOpenSummary={handleOpenSummary}
+                      <EmptyTabContent
+                        onCreateNew={handleCreateNewChapter}
+                        onClose={handleCloseAllTabs}
                       />
-                    )
-                  ) : (
-                    <EmptyTabContent
-                      onCreateNew={handleCreateNewChapter}
-                      onClose={handleCloseAllTabs}
-                    />
-                  )}
-                </Box>
+                    )}
+                  </Box>
+                </div>
+                {isEditorPanelCollapsed ? (
+                  <WritingPanelToggle
+                    label={t("writing.expandEditorPanel")}
+                    placement="collapsed-rail"
+                    onClick={toggleEditorPanel}
+                  >
+                    <Maximize2 size={15} />
+                  </WritingPanelToggle>
+                ) : null}
               </div>
             </Panel>
 
@@ -422,18 +554,47 @@ export function WritingPage() {
 
             <Panel
               id="right-sidebar"
+              panelRef={rightPanelRef}
               defaultSize={500}
               minSize={300}
-              maxSize={600}
-              collapsible={false}
+              maxSize="100%"
+              collapsedSize={COLLAPSED_PANEL_SIZE}
+              collapsible
+              onResize={({ inPixels }) =>
+                setIsRightPanelCollapsed(inPixels <= COLLAPSED_PANEL_SIZE + 1)
+              }
             >
-              <Box className="writing-page-sidebar writing-page-sidebar--right">
-                <AssistantSidebar
-                  ref={assistantSidebarRef}
-                  projectId={projectId}
-                  onStateChange={setAssistantState}
-                  onOpenMentionChapter={handleChapterSelect}
-                />
+              <Box
+                className="writing-page-panel-frame"
+                data-panel-position="right"
+                data-collapsed={isRightPanelCollapsed ? "true" : undefined}
+              >
+                <Box className="writing-page-panel-content writing-page-sidebar writing-page-sidebar--right">
+                  <AssistantSidebar
+                    ref={assistantSidebarRef}
+                    projectId={projectId}
+                    onStateChange={setAssistantState}
+                    onOpenMentionChapter={handleChapterSelect}
+                    paneAction={
+                      <WritingPanelToggle
+                        label={t("writing.collapseAgentPanel")}
+                        placement="panel-header"
+                        onClick={toggleRightPanel}
+                      >
+                        <PanelRightClose size={16} />
+                      </WritingPanelToggle>
+                    }
+                  />
+                </Box>
+                {isRightPanelCollapsed ? (
+                  <WritingPanelToggle
+                    label={t("writing.expandAgentPanel")}
+                    placement="collapsed-rail"
+                    onClick={toggleRightPanel}
+                  >
+                    <PanelRightOpen size={15} />
+                  </WritingPanelToggle>
+                ) : null}
               </Box>
             </Panel>
           </Group>

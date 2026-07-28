@@ -813,6 +813,13 @@
   --ai-sidebar-scroll-button-offset: 132px;
 }
 
+.ai-sidebar-pane-action {
+  position: absolute;
+  z-index: 30;
+  top: 8px;
+  right: 8px;
+}
+
 .ai-sidebar-mobile-toolbar {
   min-height: 44px;
   padding: 4px 10px;

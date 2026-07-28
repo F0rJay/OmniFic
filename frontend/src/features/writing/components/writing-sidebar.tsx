@@ -1,4 +1,5 @@
-import { SegmentedControl } from "@radix-ui/themes";
+import { Flex, SegmentedControl } from "@radix-ui/themes";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useWritingStore } from "../store/use-writing-store";
@@ -14,6 +15,7 @@ interface WritingSidebarProps {
   compact?: boolean;
   initialCurrentChapterNavigationKey?: string | null;
   onOpenSummary?: () => void;
+  headerAction?: ReactNode;
 }
 
 export function WritingSidebar({
@@ -25,6 +27,7 @@ export function WritingSidebar({
   compact = false,
   initialCurrentChapterNavigationKey = null,
   onOpenSummary,
+  headerAction,
 }: WritingSidebarProps) {
   const { t } = useTranslation();
   const sidebarView = useWritingStore((s) => s.sidebarView);
@@ -45,15 +48,21 @@ export function WritingSidebar({
           borderBottom: "1px solid var(--gray-a4)",
         }}
       >
-        <SegmentedControl.Root
-          value={sidebarView}
-          onValueChange={(value) => setSidebarView(value as "chapters" | "notes")}
-          size="2"
-          style={{ width: "100%" }}
+        <Flex
+          align="center"
+          gap="2"
         >
-          <SegmentedControl.Item value="chapters">{t("writing.chapters")}</SegmentedControl.Item>
-          <SegmentedControl.Item value="notes">{t("writing.notes")}</SegmentedControl.Item>
-        </SegmentedControl.Root>
+          <SegmentedControl.Root
+            value={sidebarView}
+            onValueChange={(value) => setSidebarView(value as "chapters" | "notes")}
+            size="2"
+            style={{ minWidth: 0, flex: 1 }}
+          >
+            <SegmentedControl.Item value="chapters">{t("writing.chapters")}</SegmentedControl.Item>
+            <SegmentedControl.Item value="notes">{t("writing.notes")}</SegmentedControl.Item>
+          </SegmentedControl.Root>
+          {headerAction}
+        </Flex>
       </div>
 
       {sidebarView === "chapters" ? (

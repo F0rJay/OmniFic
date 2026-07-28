@@ -21,6 +21,88 @@
   overflow: hidden;
 }
 
+.writing-page-panel-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
+  background: var(--color-background);
+}
+
+.writing-page-panel-content {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  transition:
+    opacity 140ms ease,
+    visibility 140ms ease;
+}
+
+.writing-page-panel-frame[data-collapsed="true"] .writing-page-panel-content {
+  display: none;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.writing-page-panel-frame[data-collapsed="true"] {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12px;
+  box-sizing: border-box;
+}
+
+.rt-IconButton.writing-page-panel-toggle {
+  z-index: 30;
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  min-height: 30px;
+  border: 1px solid var(--gray-a7);
+  border-radius: 8px !important;
+  background: var(--color-background);
+  box-shadow: 0 2px 10px rgba(20, 20, 24, 0.12);
+  color: var(--gray-12);
+}
+
+.rt-IconButton.writing-page-panel-toggle:hover {
+  border-color: var(--gray-a7);
+  background: var(--gray-a3);
+  color: var(--gray-12);
+}
+
+.writing-page-panel-toggle--collapsed-rail {
+  position: static !important;
+}
+
+.writing-page-panel-toggle--panel-header {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.writing-page-panel-toggle--collapsed-rail {
+  border-color: #111 !important;
+  background: #111 !important;
+  color: #fff !important;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.22) !important;
+  transform: none;
+}
+
+.writing-page-panel-toggle--editor-tabs {
+  position: relative;
+  flex: 0 0 auto;
+  margin-bottom: 2px;
+  box-shadow: none;
+}
+
+.editor-tabs-end-action {
+  flex: 0 0 auto;
+  margin-left: 6px;
+}
+
 .writing-page-sidebar--left {
   border-right: 1px solid var(--gray-a4);
   background: var(--color-background);
@@ -157,6 +239,10 @@
 }
 
 @media (max-width: 767px) {
+  .writing-page-panel-toggle {
+    display: none !important;
+  }
+
   .writing-page-loading-sidebar {
     display: none;
   }

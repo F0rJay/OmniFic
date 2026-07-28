@@ -192,6 +192,12 @@
     "justNow": "片刻之前"
   },
   "writing": {
+    "collapseChapterPanel": "收起章节与笔记栏",
+    "expandChapterPanel": "展开章节与笔记栏",
+    "collapseEditorPanel": "收起编辑区",
+    "expandEditorPanel": "展开编辑区",
+    "collapseAgentPanel": "收起 Agent 栏",
+    "expandAgentPanel": "展开 Agent 栏",
     "untitledChapter": "未命名章节",
     "newChapter": "新建章节",
     "deleteChapter": "删除章节",

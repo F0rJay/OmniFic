@@ -192,6 +192,12 @@
     "justNow": "Just now"
   },
   "writing": {
+    "collapseChapterPanel": "Collapse chapters and notes",
+    "expandChapterPanel": "Expand chapters and notes",
+    "collapseEditorPanel": "Collapse editor",
+    "expandEditorPanel": "Expand editor",
+    "collapseAgentPanel": "Collapse Agent panel",
+    "expandAgentPanel": "Expand Agent panel",
     "untitledChapter": "Untitled Chapter",
     "newChapter": "New Chapter",
     "deleteChapter": "Delete Chapter",
