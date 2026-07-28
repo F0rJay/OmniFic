@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  中文 · <a href="./README_EN.md">English</a>
+  <a href="https://f0rjay.github.io/OmniFic/">官方网站</a> · 中文 · <a href="./README_EN.md">English</a>
 </p>
 
 <p align="center">

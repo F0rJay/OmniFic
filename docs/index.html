@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="OmniFic 是面向长篇小说的本地优先 AI 创作工作台，让正文、设定与 Agent 在同一个持续工作的空间里共同生长。"
+    />
+    <meta name="theme-color" content="#080a10" />
+    <meta name="color-scheme" content="dark" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="OmniFic" />
+    <meta property="og:title" content="OmniFic — 在故事的无垠之境，与 AI 共写万千世界" />
+    <meta
+      property="og:description"
+      content="面向长篇小说的本地优先 AI 创作工作台。管理正文、人物、世界书与可执行任务的 Agent。"
+    />
+    <meta
+      property="og:image"
+      content="https://f0rjay.github.io/OmniFic/assets/readme/omnific-hero.webp"
+    />
+    <meta property="og:url" content="https://f0rjay.github.io/OmniFic/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="canonical" href="https://f0rjay.github.io/OmniFic/" />
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/omnific-mark-32.png" />
+    <link rel="apple-touch-icon" href="assets/brand/omnific-mark-192.png" />
+    <link rel="preload" href="assets/landing/omnific-workspace.webp" as="image" type="image/webp" />
+    <link rel="stylesheet" href="landing.css" />
+    <script>
+      document.documentElement.classList.add("has-js");
+    </script>
+    <title>OmniFic — 在故事的无垠之境，与 AI 共写万千世界</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "OmniFic",
+        "applicationCategory": "ProductivityApplication",
+        "operatingSystem": "Windows, macOS, Linux",
+        "description": "A local-first AI writing workspace for long-form fiction.",
+        "url": "https://f0rjay.github.io/OmniFic/",
+        "downloadUrl": "https://github.com/F0rJay/OmniFic",
+        "license": "https://www.apache.org/licenses/LICENSE-2.0",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    </script>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main-content" data-i18n="a11y.skip">跳至主要内容</a>
+
+    <div class="page-noise" aria-hidden="true"></div>
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
+    <header class="site-header" data-header>
+      <div class="nav-shell">
+        <a class="brand" href="#top" aria-label="OmniFic 首页">
+          <img src="assets/brand/omnific-mark-192.png" alt="" width="36" height="36" />
+          <span>OmniFic</span>
+        </a>
+
+        <nav class="desktop-nav" aria-label="主要导航" data-i18n-aria-label="a11y.primaryNav">
+          <a href="#philosophy" data-i18n="nav.vision">理念</a>
+          <a href="#workflow" data-i18n="nav.workflow">工作流</a>
+          <a href="#agent-demo" data-i18n="nav.agentDemo">Agent 演示</a>
+          <a href="#capabilities" data-i18n="nav.features">能力</a>
+          <a href="#quickstart" data-i18n="nav.start">开始使用</a>
+        </nav>
+
+        <div class="nav-actions">
+          <button
+            class="language-toggle"
+            id="language-toggle"
+            type="button"
+            aria-label="Switch to English"
+            aria-pressed="false"
+          >
+            <span class="language-option language-option-zh">中</span>
+            <span class="language-divider" aria-hidden="true"></span>
+            <span class="language-option language-option-en">EN</span>
+          </button>
+          <a
+            class="nav-github"
+            href="https://github.com/F0rJay/OmniFic"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.88c-2.78.6-3.37-1.18-3.37-1.18-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.35 1.09 2.92.83.09-.65.35-1.09.64-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.57 9.57 0 0 1 12 6.82a9.5 9.5 0 0 1 2.5.34c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.86V21c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"
+              />
+            </svg>
+            <span data-i18n="nav.github">GitHub</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main-content">
+      <section class="hero" id="top" aria-labelledby="hero-title">
+        <canvas id="ink-canvas" aria-hidden="true"></canvas>
+        <div class="hero-mist" aria-hidden="true"></div>
+        <div class="hero-orbit hero-orbit-one" aria-hidden="true"></div>
+        <div class="hero-orbit hero-orbit-two" aria-hidden="true"></div>
+
+        <div class="container hero-layout">
+          <div class="hero-copy">
+            <div class="eyebrow reveal">
+              <span class="eyebrow-mark" aria-hidden="true">卷</span>
+              <span data-i18n="hero.eyebrow">本地优先 · 长篇创作 · Agent 协作</span>
+            </div>
+
+            <h1 id="hero-title" class="reveal reveal-delay-1" data-i18n-html="hero.title">
+              在故事的无垠之境<br />
+              <span>与 AI 共写万千世界</span>
+            </h1>
+
+            <p class="hero-lead reveal reveal-delay-2" data-i18n="hero.lead">
+              让正文、人物、世界书与可执行任务的 Agent 共处一个持续工作的空间。你的创作资料不再沉睡，它们会真正参与下一行文字的诞生。
+            </p>
+
+            <div class="hero-actions reveal reveal-delay-3">
+              <a
+                class="button button-primary"
+                href="https://github.com/F0rJay/OmniFic"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <span data-i18n="hero.githubCta">在 GitHub 查看源码</span>
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                  <path d="M5 10h10M11 6l4 4-4 4" />
+                </svg>
+              </a>
+              <a class="button button-ghost" href="#quickstart" data-i18n="hero.startCta">从源码开始</a>
+            </div>
+
+            <ul class="hero-facts reveal reveal-delay-3" aria-label="项目特性" data-i18n-aria-label="a11y.projectFacts">
+              <li><span></span><b data-i18n="hero.factLocal">数据默认存于本地</b></li>
+              <li><span></span><b data-i18n="hero.factOpen">Apache 2.0 开源</b></li>
+              <li><span></span><b>Python · React · Electron</b></li>
+            </ul>
+          </div>
+
+          <div class="hero-art reveal reveal-delay-2" aria-hidden="true">
+            <div class="moon-seal">
+              <img src="assets/brand/omnific-mark-512.png" alt="" width="162" height="162" />
+              <span class="seal-ring seal-ring-one"></span>
+              <span class="seal-ring seal-ring-two"></span>
+            </div>
+
+            <div class="floating-card manuscript-card" data-parallax="0.7">
+              <div class="card-kicker">MANUSCRIPT / 章廿二</div>
+              <div class="manuscript-title">拍卖会</div>
+              <div class="ink-line ink-line-long"></div>
+              <div class="ink-line"></div>
+              <div class="ink-line ink-line-mid"></div>
+              <div class="writing-cursor"></div>
+            </div>
+
+            <div class="floating-card agent-card" data-parallax="1.05">
+              <div class="agent-status"><i></i> AGENT / WORKING</div>
+              <div class="agent-row"><span>01</span><b>读取章节上下文</b></div>
+              <div class="agent-row"><span>02</span><b>检索人物设定</b></div>
+              <div class="agent-row agent-row-active"><span>03</span><b>续写剧情</b></div>
+            </div>
+
+            <div class="floating-tag worldbook-tag" data-parallax="1.2">
+              <span>世界书</span><b>128</b><i>ENTRIES</i>
+            </div>
+            <div class="floating-tag context-tag" data-parallax="0.9">
+              <span>CONTEXT</span><b>163.1K</b><i>TOKENS</i>
+            </div>
+            <div class="vertical-poem">万象入卷 · 一念成章</div>
+          </div>
+        </div>
+
+        <div class="hero-scroll" aria-hidden="true">
+          <span data-i18n="hero.scroll">向下阅卷</span>
+          <i></i>
+        </div>
+      </section>
+
+      <section class="section philosophy" id="philosophy" aria-labelledby="philosophy-title">
+        <div class="container narrow">
+          <div class="section-mark reveal"><span>壹</span><i></i><b data-i18n="philosophy.mark">创作理念</b></div>
+          <p class="statement reveal reveal-delay-1" data-i18n-html="philosophy.statement">
+            AI 不应只是隔着窗口回答问题。<br />
+            它应当理解你的世界，记得故事走过的路，<br />
+            <em>并在你的许可下，真正参与创作。</em>
+          </p>
+          <div class="philosophy-grid">
+            <article class="principle reveal">
+              <span>01</span>
+              <h3 data-i18n="philosophy.oneTitle">资料进入故事</h3>
+              <p data-i18n="philosophy.oneText">正文、笔记、人物与世界书不再散落，让每一条设定成为可检索、可调用的创作上下文。</p>
+            </article>
+            <article class="principle reveal reveal-delay-1">
+              <span>02</span>
+              <h3 data-i18n="philosophy.twoTitle">Agent 进入工作流</h3>
+              <p data-i18n="philosophy.twoText">从规划、检索到修改章节，Agent 在明确权限与变更预览下完成真实任务。</p>
+            </article>
+            <article class="principle reveal reveal-delay-2">
+              <span>03</span>
+              <h3 data-i18n="philosophy.threeTitle">创作沉淀为记忆</h3>
+              <p data-i18n="philosophy.threeText">摘要、索引和持续任务保存长篇上下文，让下一次协作接续而非重启。</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section workflow-section" id="workflow" aria-labelledby="workflow-title">
+        <div class="container">
+          <div class="section-heading reveal">
+            <div>
+              <div class="section-mark"><span>贰</span><i></i><b data-i18n="workflow.mark">创作循环</b></div>
+              <h2 id="workflow-title" data-i18n-html="workflow.title">从一页灵感，<em>生长为完整世界</em></h2>
+            </div>
+            <p data-i18n="workflow.intro">OmniFic 围绕长篇创作的真实循环设计，让资料、写作、Agent 与记忆持续相互滋养。</p>
+          </div>
+
+          <div class="workflow-track">
+            <div class="workflow-line" aria-hidden="true"><i></i></div>
+            <article class="workflow-step reveal">
+              <div class="step-orb"><span>01</span></div>
+              <p class="step-en">GATHER</p>
+              <h3 data-i18n="workflow.gatherTitle">收拢万象</h3>
+              <p data-i18n="workflow.gatherText">导入旧稿与资料，建立卷章、角色和世界观。</p>
+            </article>
+            <article class="workflow-step reveal reveal-delay-1">
+              <div class="step-orb"><span>02</span></div>
+              <p class="step-en">CREATE</p>
+              <h3 data-i18n="workflow.createTitle">落笔成章</h3>
+              <p data-i18n="workflow.createText">在多标签编辑器里持续写作，自动保存每一次推进。</p>
+            </article>
+            <article class="workflow-step reveal reveal-delay-2">
+              <div class="step-orb"><span>03</span></div>
+              <p class="step-en">COLLABORATE</p>
+              <h3 data-i18n="workflow.agentTitle">协作推演</h3>
+              <p data-i18n="workflow.agentText">让 Agent 检索设定、续写章节，并清晰呈现工具调用。</p>
+            </article>
+            <article class="workflow-step reveal reveal-delay-3">
+              <div class="step-orb"><span>04</span></div>
+              <p class="step-en">REMEMBER</p>
+              <h3 data-i18n="workflow.memoryTitle">沉淀记忆</h3>
+              <p data-i18n="workflow.memoryText">用摘要与索引维持长上下文，让故事继续向前。</p>
+            </article>
+          </div>
+
+          <div class="agent-demo reveal" id="agent-demo" aria-labelledby="agent-demo-title">
+            <div class="demo-heading">
+              <div>
+                <div class="demo-label"><i></i><span data-i18n="demo.label">模拟工作流 · 不连接后端</span></div>
+                <h3 id="agent-demo-title" data-i18n-html="demo.title">看一次任务如何穿过<br /><em>完整的 Agent 协作链路</em></h3>
+              </div>
+              <p data-i18n="demo.intro">从持久化任务目标，到子 Agent 检索、草稿审阅、变更预览与审批写入。点击任意步骤，可以检查每个阶段发生了什么。</p>
+            </div>
+
+            <div class="demo-console" id="agent-workflow-demo" data-demo-status="idle">
+              <div class="demo-toolbar">
+                <div class="demo-task">
+                  <span>GOAL / 目标</span>
+                  <b data-i18n="demo.task">续写第 22 章拍卖会，补足篇幅并保持萧炎设定一致</b>
+                </div>
+                <div class="demo-controls" aria-label="演示控制" data-i18n-aria-label="a11y.demoControls">
+                  <button class="demo-control demo-play" id="demo-play" type="button">
+                    <svg class="icon-play" viewBox="0 0 20 20" aria-hidden="true"><path d="m7 5 8 5-8 5V5Z" /></svg>
+                    <svg class="icon-pause" viewBox="0 0 20 20" aria-hidden="true"><path d="M6.5 5v10M13.5 5v10" /></svg>
+                    <span data-i18n="demo.play">播放</span>
+                  </button>
+                  <button class="demo-control" id="demo-replay" type="button">
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 6H2.8V3.3M3.2 6A7 7 0 1 1 3 13" /></svg>
+                    <span data-i18n="demo.replay">重播</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="demo-main">
+                <div class="agent-graph" aria-label="Agent 节点图" data-i18n-aria-label="a11y.agentGraph">
+                  <svg class="agent-links" viewBox="0 0 760 390" preserveAspectRatio="none" aria-hidden="true">
+                    <defs>
+                      <linearGradient id="demo-flow-gradient" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0" stop-color="#9c6cff" />
+                        <stop offset="1" stop-color="#43d8e8" />
+                      </linearGradient>
+                    </defs>
+                    <path class="agent-link" data-link="task-main" d="M118 192 C178 192 190 192 250 192" />
+                    <path class="agent-link" data-link="main-context" d="M356 192 C402 192 404 82 470 82" />
+                    <path class="agent-link" data-link="context-draft" d="M574 82 C628 82 628 192 650 192" />
+                    <path class="agent-link" data-link="main-draft" d="M356 192 C470 192 538 192 650 192" />
+                    <path class="agent-link" data-link="main-review" d="M356 192 C402 192 404 302 470 302" />
+                    <path class="agent-link" data-link="review-draft" d="M574 302 C628 302 628 192 650 192" />
+                  </svg>
+
+                  <button class="agent-node node-task" type="button" data-agent-node="task" data-step="0">
+                    <span class="node-index">00</span><i></i>
+                    <b data-i18n="demo.nodeTask">任务目标</b><small>TASK GOAL</small>
+                  </button>
+                  <button class="agent-node node-main" type="button" data-agent-node="main" data-step="1">
+                    <span class="node-index">01</span><i></i>
+                    <b data-i18n="demo.nodeMain">主 Agent</b><small>ORCHESTRATOR</small>
+                  </button>
+                  <button class="agent-node node-context" type="button" data-agent-node="context" data-step="3">
+                    <span class="node-index">02</span><i></i>
+                    <b data-i18n="demo.nodeContext">设定检索</b><small>SUBAGENT</small>
+                  </button>
+                  <button class="agent-node node-review" type="button" data-agent-node="review" data-step="5">
+                    <span class="node-index">03</span><i></i>
+                    <b data-i18n="demo.nodeReview">剧情审阅</b><small>SUBAGENT</small>
+                  </button>
+                  <button class="agent-node node-draft" type="button" data-agent-node="draft" data-step="4">
+                    <span class="node-index">04</span><i></i>
+                    <b data-i18n="demo.nodeDraft">章节写入</b><small>EDIT CHAPTER</small>
+                  </button>
+
+                  <div class="graph-stats" aria-hidden="true">
+                    <span><i data-demo-tokens>0</i> TOKENS</span>
+                    <span><i data-demo-time>0.0</i>s ELAPSED</span>
+                    <span><i data-demo-agents>1</i> AGENTS</span>
+                  </div>
+                </div>
+
+                <div class="demo-inspector">
+                  <div class="inspector-tabs" aria-hidden="true">
+                    <span class="is-active">EVENT STREAM</span><span>DIFF PREVIEW</span>
+                  </div>
+                  <div class="demo-live-status" id="demo-live-status" role="status" aria-live="polite" data-i18n="demo.ready">准备运行模拟任务</div>
+                  <ol class="demo-log-list" id="demo-log-list" aria-hidden="true"></ol>
+
+                  <div class="demo-diff" id="demo-diff">
+                    <div class="diff-header"><span data-i18n="demo.diffTitle">第 22 章 · 拍卖会</span><b>+52 <i>−0</i></b></div>
+                    <div class="diff-line"><span>42</span><p data-i18n="demo.diffContext">萧炎的目光从玉盘上扫过，并未急着出价。</p></div>
+                    <div class="diff-line diff-added"><span>43</span><p data-i18n="demo.diffAddOne">那股熟悉的药香极淡，却与药老方才描述的气息分毫不差。</p></div>
+                    <div class="diff-line diff-added"><span>44</span><p data-i18n="demo.diffAddTwo">他压下心中的波澜，指尖在袖中轻轻一扣，等待真正的竞价开始。</p></div>
+                  </div>
+
+                  <div class="demo-approval" id="demo-approval">
+                    <div><span data-i18n="demo.approvalLabel">等待工具审批</span><b>edit_chapter</b></div>
+                    <p data-i18n="demo.approvalText">预览确认后才会写入章节；演示将在短暂停留后自动批准。</p>
+                    <div>
+                      <button id="demo-reject" type="button" data-i18n="demo.reject">拒绝修改</button>
+                      <button id="demo-approve" type="button" data-i18n="demo.approve">批准写入</button>
+                    </div>
+                  </div>
+
+                  <div class="demo-result" id="demo-result">
+                    <i></i>
+                    <div><b data-i18n="demo.completeTitle">任务完成</b><span data-i18n="demo.completeText">章节已更新，摘要与检索索引进入刷新队列。</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <ol class="demo-timeline" aria-label="演示步骤" data-i18n-aria-label="a11y.demoSteps">
+                <li><button type="button" data-demo-step="0"><span>01</span><b data-i18n="demo.stepGoal">接收目标</b></button></li>
+                <li><button type="button" data-demo-step="1"><span>02</span><b data-i18n="demo.stepPlan">制定计划</b></button></li>
+                <li><button type="button" data-demo-step="2"><span>03</span><b data-i18n="demo.stepDispatch">分派任务</b></button></li>
+                <li><button type="button" data-demo-step="3"><span>04</span><b data-i18n="demo.stepRetrieve">检索上下文</b></button></li>
+                <li><button type="button" data-demo-step="4"><span>05</span><b data-i18n="demo.stepDraft">生成草稿</b></button></li>
+                <li><button type="button" data-demo-step="5"><span>06</span><b data-i18n="demo.stepReview">一致性审阅</b></button></li>
+                <li><button type="button" data-demo-step="6"><span>07</span><b data-i18n="demo.stepApprove">审批变更</b></button></li>
+                <li><button type="button" data-demo-step="7"><span>08</span><b data-i18n="demo.stepSave">完成写入</b></button></li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section capabilities" id="capabilities" aria-labelledby="capabilities-title">
+        <div class="container">
+          <div class="section-heading reveal">
+            <div>
+              <div class="section-mark"><span>叁</span><i></i><b data-i18n="features.mark">核心能力</b></div>
+              <h2 id="capabilities-title" data-i18n-html="features.title">一个工作台，<em>容纳整部长篇</em></h2>
+            </div>
+            <p data-i18n="features.intro">从文字本身到幕后运转的模型与 Agent，每一层都留给创作者掌控。</p>
+          </div>
+
+          <div class="bento-grid">
+            <article class="feature-card feature-wide reveal" data-shine>
+              <div class="feature-icon">文</div>
+              <div class="feature-copy">
+                <span>MANUSCRIPT</span>
+                <h3 data-i18n="features.writingTitle">为长篇而生的写作空间</h3>
+                <p data-i18n="features.writingText">卷章结构、多标签编辑、自动保存、查找替换和自由排序，让数十万字依然清晰可控。</p>
+              </div>
+              <div class="mini-editor" aria-hidden="true">
+                <div><i></i><i></i><i></i></div>
+                <h4>第二十二章 · 拍卖会</h4>
+                <p>一号拍卖场的门被两名侍卫推开时……</p>
+                <p>巨大的会场呈圆形，中央是一方高台。</p>
+                <span></span>
+              </div>
+            </article>
+
+            <article class="feature-card reveal reveal-delay-1" data-shine>
+              <div class="feature-icon">界</div>
+              <span>STORY BIBLE</span>
+              <h3 data-i18n="features.worldTitle">人物与世界书</h3>
+              <p data-i18n="features.worldText">集中维护人物、地点、规则与研究资料，并让 Agent 随时检索。</p>
+              <div class="tag-cloud" aria-hidden="true"><b>萧炎</b><b>拍卖场</b><b>筑基灵液</b><b>加列家族</b></div>
+            </article>
+
+            <article class="feature-card reveal" data-shine>
+              <div class="feature-icon">智</div>
+              <span>AGENT RUNTIME</span>
+              <h3 data-i18n="features.agentTitle">可执行任务的 Agent</h3>
+              <p data-i18n="features.agentText">读取、搜索和修改创作内容，支持审批、变更预览、子 Agent 与持续任务。</p>
+              <div class="runtime-meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            </article>
+
+            <article class="feature-card reveal reveal-delay-1" data-shine>
+              <div class="feature-icon">忆</div>
+              <span>LONG CONTEXT</span>
+              <h3 data-i18n="features.contextTitle">长上下文记忆</h3>
+              <p data-i18n="features.contextText">章节摘要、区间摘要、Embedding 检索与会话压缩，让故事不被上下文窗口截断。</p>
+              <div class="context-rings" aria-hidden="true"><i></i><i></i><i></i><b>163K</b></div>
+            </article>
+
+            <article class="feature-card feature-wide reveal reveal-delay-2" data-shine>
+              <div class="feature-icon">析</div>
+              <div class="feature-copy">
+                <span>CREATIVE ANALYTICS</span>
+                <h3 data-i18n="features.insightTitle">看见创作如何发生</h3>
+                <p data-i18n="features.insightText">复盘写作活跃度、字数来源、模型调用、Token 和延迟，让创作与 AI 协作过程可见。</p>
+              </div>
+              <div class="activity-chart" aria-hidden="true">
+                <i style="--h: 28%"></i><i style="--h: 48%"></i><i style="--h: 35%"></i>
+                <i style="--h: 72%"></i><i style="--h: 56%"></i><i style="--h: 86%"></i>
+                <i style="--h: 64%"></i><i style="--h: 94%"></i><i style="--h: 76%"></i>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section product-showcase" aria-labelledby="showcase-title">
+        <div class="container">
+          <div class="showcase-copy reveal">
+            <div class="section-mark"><span>肆</span><i></i><b data-i18n="showcase.mark">真实工作台</b></div>
+            <h2 id="showcase-title" data-i18n-html="showcase.title">写作在中央，<em>AI 在身旁</em></h2>
+            <p data-i18n="showcase.text">章节树、沉浸式编辑器与 Agent 面板并肩展开。上下文、推理过程和每一处文本变更，都在同一个视野中。</p>
+          </div>
+
+          <div class="screen-frame reveal reveal-delay-1" data-shine>
+            <div class="screen-topbar" aria-hidden="true">
+              <span></span><span></span><span></span><b>OMNIFIC / WORKSPACE</b><i>LOCAL · CONNECTED</i>
+            </div>
+            <picture>
+              <img
+                src="assets/landing/omnific-workspace.webp"
+                alt="OmniFic 工作台：左侧卷章结构，中间小说编辑器，右侧 Agent 协作面板"
+                data-i18n-alt="showcase.alt"
+                width="1920"
+                height="1074"
+                loading="lazy"
+                decoding="async"
+              />
+            </picture>
+            <div class="screen-glow" aria-hidden="true"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section local-first" aria-labelledby="local-title">
+        <div class="container local-grid">
+          <div class="local-visual reveal" aria-hidden="true">
+            <div class="local-core">
+              <img src="assets/brand/omnific-mark-192.png" alt="" width="96" height="96" />
+              <span>LOCAL</span>
+            </div>
+            <div class="local-ring local-ring-one"><i>SQLite</i></div>
+            <div class="local-ring local-ring-two"><i>Models</i><b>Files</b></div>
+            <div class="local-ring local-ring-three"><i>Agents</i><b>Prompts</b><em>Indexes</em></div>
+          </div>
+
+          <div class="local-copy reveal reveal-delay-1">
+            <div class="section-mark"><span>伍</span><i></i><b data-i18n="local.mark">本地优先</b></div>
+            <h2 id="local-title" data-i18n-html="local.title">你的故事，<em>首先属于你</em></h2>
+            <p data-i18n="local.text">项目正文与主要应用数据默认保存在本机 SQLite。模型供应商、提示词、工具权限与执行审批均由你配置。</p>
+            <ul class="local-list">
+              <li><span>01</span><div><b data-i18n="local.dataTitle">本地数据</b><p data-i18n="local.dataText">无需把整部小说托管给一个陌生平台。</p></div></li>
+              <li><span>02</span><div><b data-i18n="local.modelTitle">自由模型</b><p data-i18n="local.modelText">接入 OpenAI 兼容端点、中转站、Embedding 与 Rerank 模型。</p></div></li>
+              <li><span>03</span><div><b data-i18n="local.controlTitle">明确控制</b><p data-i18n="local.controlText">用权限、审批和变更预览决定 Agent 能做什么。</p></div></li>
+            </ul>
+            <p class="local-note" data-i18n="local.note">使用云端模型时，发送的上下文仍会经过你配置的服务。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section roots-section" id="credits" aria-labelledby="credits-title">
+        <div class="container roots-grid">
+          <div class="roots-copy reveal">
+            <div class="section-mark"><span>源</span><i></i><b data-i18n="credits.mark">源流与致谢</b></div>
+            <p class="roots-kicker">WITH GRATITUDE TO OPENFIC</p>
+            <h2 id="credits-title" data-i18n-html="credits.title">从 OpenFic 出发，<em>沿自己的方向生长</em></h2>
+            <p data-i18n="credits.text">OmniFic Fork 自 OpenFic v0.7.5。项目的基础架构、主要产品形态、世界观管理、写作编辑器、Agent Runtime 与本地数据能力，都建立在 OpenFic 的扎实工作之上。</p>
+            <p class="roots-note" data-i18n="credits.note">OmniFic 在此基础上独立发展，但并非 OpenFic 的替代，也不代表一个“更正确”的方向。谨向原项目及贡献者致谢。</p>
+            <a class="button button-ghost roots-link" href="https://github.com/syrizelink/OpenFic" target="_blank" rel="noreferrer">
+              <span data-i18n="credits.cta">访问 OpenFic 原项目</span>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10M11 6l4 4-4 4" /></svg>
+            </a>
+          </div>
+
+          <div class="roots-visual reveal reveal-delay-1" role="img" aria-label="从 OpenFic 基础分支到 OmniFic 独立方向" data-i18n-aria-label="credits.visualLabel">
+            <svg viewBox="0 0 620 430" aria-hidden="true">
+              <defs>
+                <linearGradient id="roots-gradient" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#c9a86a" />
+                  <stop offset="0.48" stop-color="#9c6cff" />
+                  <stop offset="1" stop-color="#43d8e8" />
+                </linearGradient>
+              </defs>
+              <path class="root-trunk" d="M76 214 C188 214 212 214 292 214" />
+              <path class="root-branch" d="M292 214 C358 214 365 95 472 95" />
+              <path class="root-branch root-branch-main" d="M292 214 C358 214 365 330 472 330" />
+              <circle cx="292" cy="214" r="7" />
+            </svg>
+            <div class="root-project root-openfic">
+              <small>UPSTREAM · v0.7.5</small><b>OpenFic</b><span data-i18n="credits.foundation">坚实的创作工作台基础</span>
+            </div>
+            <div class="root-project root-foundation">
+              <small>FOUNDATION</small><b data-i18n="credits.inherited">架构 · 编辑器 · 世界观 · Agent Runtime</b>
+            </div>
+            <div class="root-project root-omnific">
+              <small>INDEPENDENT DIRECTION</small><b>OmniFic</b><span data-i18n="credits.direction">面向个人长篇实践的独立探索</span>
+            </div>
+            <div class="root-pulse" aria-hidden="true"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section quickstart" id="quickstart" aria-labelledby="quickstart-title">
+        <div class="container quickstart-shell">
+          <div class="quickstart-copy reveal">
+            <div class="section-mark"><span>陆</span><i></i><b data-i18n="start.mark">开始使用</b></div>
+            <h2 id="quickstart-title" data-i18n-html="start.title">从源码启程，<em>打开你的世界</em></h2>
+            <p data-i18n="start.text">OmniFic 仍在实验性开发阶段，目前推荐从源码运行。准备 Python 3.12–3.13、Node.js 22+、pnpm 与 uv。</p>
+            <div class="requirement-list" aria-label="环境要求" data-i18n-aria-label="a11y.requirements">
+              <span>Python 3.12–3.13</span><span>Node.js 22+</span><span>pnpm 8+</span><span>uv</span>
+            </div>
+            <a
+              class="text-link"
+              href="https://github.com/F0rJay/OmniFic/blob/main/docs/develop/setup.md"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span data-i18n="start.docs">阅读完整安装文档</span>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10M11 6l4 4-4 4" /></svg>
+            </a>
+          </div>
+
+          <div class="terminal reveal reveal-delay-1">
+            <div class="terminal-bar"><span></span><span></span><span></span><b>omnific — zsh</b></div>
+            <pre id="install-command" aria-label="OmniFic 安装命令" data-i18n-aria-label="a11y.installCommands"><code id="terminal-code"><span class="comment"># Clone OmniFic</span>
+<span class="prompt">$</span> git clone https://github.com/F0rJay/OmniFic.git
+<span class="prompt">$</span> cd OmniFic
+
+<span class="comment"># Terminal 1 · Backend</span>
+<span class="prompt">$</span> cd backend
+<span class="prompt">$</span> uv sync
+<span class="prompt">$</span> uv run uvicorn app.main:app --host 127.0.0.1 --port 8001 --app-dir .
+
+<span class="comment"># Terminal 2 · Frontend</span>
+<span class="prompt">$</span> cd frontend
+<span class="prompt">$</span> pnpm install
+<span class="prompt">$</span> pnpm dev</code></pre>
+            <button class="copy-button" id="copy-install" type="button" data-i18n="start.copy">复制命令</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="final-cta" aria-labelledby="cta-title">
+        <div class="cta-landscape" aria-hidden="true"></div>
+        <div class="container reveal">
+          <img src="assets/brand/omnific-mark-192.png" alt="" width="92" height="92" />
+          <p class="cta-kicker">WRITE IN YOUR OWN DIRECTION</p>
+          <h2 id="cta-title" data-i18n="cta.title">故事辽阔，愿你落笔有光。</h2>
+          <p data-i18n="cta.text">OmniFic 是一个仍在生长的开源项目。欢迎试用、讨论，也欢迎一起让它变得更好。</p>
+          <div class="cta-actions">
+            <a
+              class="button button-primary"
+              href="https://github.com/F0rJay/OmniFic"
+              target="_blank"
+              rel="noreferrer"
+              data-i18n="cta.github"
+            >在 GitHub 探索 OmniFic</a>
+            <a
+              class="button button-ghost"
+              href="https://github.com/F0rJay/OmniFic/issues"
+              target="_blank"
+              rel="noreferrer"
+              data-i18n="cta.issue"
+            >提出想法</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-grid">
+        <a class="brand footer-brand" href="#top">
+          <img src="assets/brand/omnific-mark-192.png" alt="" width="30" height="30" />
+          <span>OmniFic</span>
+        </a>
+        <p data-i18n="footer.note">面向长篇小说的本地优先 AI 创作工作台。</p>
+        <nav aria-label="页脚导航" data-i18n-aria-label="a11y.footerNav">
+          <a href="https://github.com/F0rJay/OmniFic" target="_blank" rel="noreferrer">GitHub</a>
+          <a href="https://github.com/F0rJay/OmniFic/blob/main/docs/README.md" target="_blank" rel="noreferrer" data-i18n="footer.docs">文档</a>
+          <a href="https://github.com/F0rJay/OmniFic/blob/main/CONTRIBUTING.md" target="_blank" rel="noreferrer" data-i18n="footer.contribute">参与贡献</a>
+          <a href="https://github.com/syrizelink/OpenFic" target="_blank" rel="noreferrer" data-i18n="footer.openfic">致谢 OpenFic</a>
+          <a href="https://github.com/F0rJay/OmniFic/blob/main/LICENSE" target="_blank" rel="noreferrer">Apache 2.0</a>
+        </nav>
+      </div>
+    </footer>
+
+    <noscript>
+      <style>
+        .reveal { opacity: 1 !important; transform: none !important; }
+        #ink-canvas { display: none; }
+      </style>
+    </noscript>
+    <script src="landing.js" defer></script>
+  </body>
+</html>

@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="./README.md">中文</a> · English
+  <a href="https://f0rjay.github.io/OmniFic/">Website</a> · <a href="./README.md">中文</a> · English
 </p>
 
 <p align="center">

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://f0rjay.github.io/OmniFic/sitemap.xml
