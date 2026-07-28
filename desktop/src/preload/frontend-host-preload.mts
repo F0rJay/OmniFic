@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 
-contextBridge.exposeInMainWorld("openficDesktopHost", {
+contextBridge.exposeInMainWorld("omnificDesktopHost", {
   publishAppearance: (payload: unknown): void => {
-    ipcRenderer.sendToHost("openfic:appearance", payload);
+    ipcRenderer.sendToHost("omnific:appearance", payload);
   },
 });

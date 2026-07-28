@@ -8,20 +8,20 @@ import { configureDefaultSystemProxy, getSystemProxyEnvironment } from "../proxy
 import { waitForBackend } from "../health.js";
 import type { PortablePython, RuntimeIntegrityCheck } from "./python.js";
 import {
-  createOpenFicInstallCommand,
-  createOpenFicServeCommand,
-  createOpenFicVersionCommand,
-  resolveOpenFicCliPath,
-} from "./openfic-commands.js";
+  createOmniFicInstallCommand,
+  createOmniFicServeCommand,
+  createOmniFicVersionCommand,
+  resolveOmniFicCliPath,
+} from "./omnific-commands.js";
 import type { StartupProgressTracker } from "../startup-progress.js";
 
-export type OpenFicRuntimeStep = "create-venv" | "install-uv" | "install-openfic";
+export type OmniFicRuntimeStep = "create-venv" | "install-uv" | "install-omnific";
 
 const ANSI_ESCAPE_SEQUENCE = new RegExp(`${String.fromCharCode(0x1b)}\\[[0-9;]*[A-Za-z]`, "g");
 const DEFAULT_PYPI_INDEX_URL = "https://pypi.org/simple/";
 const TSINGHUA_PYPI_INDEX_URL = "https://pypi.tuna.tsinghua.edu.cn/simple/";
 const PYPI_INDEX_PROBE_TIMEOUT_MS = 5_000;
-const PYPI_INDEX_PROBE_PACKAGE = "openfic";
+const PYPI_INDEX_PROBE_PACKAGE = "omnific";
 
 interface PypiIndexProbe {
   indexUrl: string;
@@ -102,7 +102,7 @@ async function probePypiIndex(indexUrl: string, expectedVersion: string): Promis
     if (!response.ok) return null;
     const packageIndex = await response.text();
     const elapsedMs = performance.now() - startedAt;
-    if (!packageIndex.includes(`openfic-${expectedVersion}`)) return null;
+    if (!packageIndex.includes(`omnific-${expectedVersion}`)) return null;
     return { indexUrl, elapsedMs };
   } catch {
     return null;
@@ -187,7 +187,7 @@ function succeeds(command: string, args: string[], cwd: string): Promise<boolean
   });
 }
 
-export async function inspectOpenFicRuntime(
+export async function inspectOmniFicRuntime(
   runtimeDir: string,
   expectedVersion: string,
 ): Promise<RuntimeIntegrityCheck> {
@@ -204,27 +204,27 @@ export async function inspectOpenFicRuntime(
     return { complete: false, message: "uv 不存在或不可用" };
   }
 
-  const versionCommand = createOpenFicVersionCommand(venvPythonPath);
+  const versionCommand = createOmniFicVersionCommand(venvPythonPath);
   const installedVersion = await readOutput(versionCommand.command, versionCommand.args, runtimeDir);
   if (installedVersion !== expectedVersion) {
     return {
       complete: false,
-      message: installedVersion ? "OpenFic 后端版本不匹配" : "未找到 OpenFic 后端",
+      message: installedVersion ? "OmniFic 后端版本不匹配" : "未找到 OmniFic 后端",
     };
   }
-  const openFicCliPath = resolveOpenFicCliPath(venvPythonPath);
-  if (!(await pathExists(openFicCliPath)) || !(await succeeds(openFicCliPath, ["--help"], runtimeDir))) {
-    return { complete: false, message: "OpenFic 命令行程序缺失或不可用" };
+  const omniFicCliPath = resolveOmniFicCliPath(venvPythonPath);
+  if (!(await pathExists(omniFicCliPath)) || !(await succeeds(omniFicCliPath, ["--help"], runtimeDir))) {
+    return { complete: false, message: "OmniFic 命令行程序缺失或不可用" };
   }
 
-  return { complete: true, message: "OpenFic 运行环境已完整安装" };
+  return { complete: true, message: "OmniFic 运行环境已完整安装" };
 }
 
-export async function ensureOpenFicRuntime(
+export async function ensureOmniFicRuntime(
   python: PortablePython,
   runtimeDir: string,
   expectedVersion: string,
-  onProgress: (step: OpenFicRuntimeStep, message: string) => void,
+  onProgress: (step: OmniFicRuntimeStep, message: string) => void,
 ): Promise<{ uvPath: string; venvPythonPath: string }> {
   const venvDir = getVenvDir(runtimeDir);
   const venvPythonPath = getVenvPythonPath(runtimeDir);
@@ -240,7 +240,7 @@ export async function ensureOpenFicRuntime(
     (await pathExists(venvPythonPath)) && Boolean(await readOutput(venvPythonPath, ["--version"], runtimeDir));
   if (!venvIsUsable) {
     await rm(venvDir, { recursive: true, force: true });
-    onProgress("create-venv", "创建 OpenFic 运行环境");
+    onProgress("create-venv", "创建 OmniFic 运行环境");
     await run(python.pythonPath, ["-m", "venv", venvDir], runtimeDir);
   }
 
@@ -257,24 +257,24 @@ export async function ensureOpenFicRuntime(
     );
   }
 
-  const versionCommand = createOpenFicVersionCommand(venvPythonPath);
+  const versionCommand = createOmniFicVersionCommand(venvPythonPath);
   const installedVersion = await readOutput(versionCommand.command, versionCommand.args, runtimeDir);
-  const openFicCliPath = resolveOpenFicCliPath(venvPythonPath);
-  const openFicCliIsUsable =
-    (await pathExists(openFicCliPath)) && (await succeeds(openFicCliPath, ["--help"], runtimeDir));
-  if (installedVersion !== expectedVersion || !openFicCliIsUsable) {
-    onProgress("install-openfic", installedVersion ? "更新 OpenFic 后端" : "安装 OpenFic 后端");
+  const omniFicCliPath = resolveOmniFicCliPath(venvPythonPath);
+  const omniFicCliIsUsable =
+    (await pathExists(omniFicCliPath)) && (await succeeds(omniFicCliPath, ["--help"], runtimeDir));
+  if (installedVersion !== expectedVersion || !omniFicCliIsUsable) {
+    onProgress("install-omnific", installedVersion ? "更新 OmniFic 后端" : "安装 OmniFic 后端");
     const packageIndexEnvironment = await getPypiEnvironment();
-    const installCommand = createOpenFicInstallCommand(
+    const installCommand = createOmniFicInstallCommand(
       venvPythonPath,
       expectedVersion,
-      installedVersion === expectedVersion && !openFicCliIsUsable,
+      installedVersion === expectedVersion && !omniFicCliIsUsable,
     );
     await run(
       uvPath,
       installCommand.args,
       runtimeDir,
-      (message) => onProgress("install-openfic", message),
+      (message) => onProgress("install-omnific", message),
       packageIndexEnvironment,
     );
   }
@@ -284,10 +284,10 @@ export async function ensureOpenFicRuntime(
 
 const STARTUP_LOG_MILESTONES = [
   {
-    text: "Starting OpenFic",
+    text: "Starting OmniFic",
     step: "initialize-backend",
     title: "初始化应用服务",
-    message: "正在加载 OpenFic 服务",
+    message: "正在加载 OmniFic 服务",
     progress: 0.7,
   },
   {
@@ -306,19 +306,19 @@ const STARTUP_LOG_MILESTONES = [
   },
 ] as const;
 
-export async function startLocalOpenFicBackend(
+export async function startLocalOmniFicBackend(
   venvPythonPath: string,
   expectedVersion: string,
   startupProgress?: StartupProgressTracker,
 ): Promise<BackendProcessHandle> {
   startupProgress?.begin({
     step: "start-backend",
-    title: "启动 OpenFic 服务",
+    title: "启动 OmniFic 服务",
     message: "正在分配本地服务端口",
     progress: 0.6,
   });
   const port = await findFreePort();
-  const command = createOpenFicServeCommand(venvPythonPath, port);
+  const command = createOmniFicServeCommand(venvPythonPath, port);
   const proxyEnvironment = await getSystemProxyEnvironment("https://pypi.org/");
   let healthFallbackStarted = false;
   let healthFallbackTimer: NodeJS.Timeout | null = null;

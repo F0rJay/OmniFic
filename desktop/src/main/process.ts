@@ -50,9 +50,9 @@ export function startBackendProcess(options: StartBackendOptions): BackendProces
     cwd: dataDir,
     env: {
       ...process.env,
-      OPENFIC_SERVER_HOST: "127.0.0.1",
-      OPENFIC_SERVER_PORT: String(options.port),
-      OPENFIC_DATA_DIR: dataDir,
+      OMNIFIC_SERVER_HOST: "127.0.0.1",
+      OMNIFIC_SERVER_PORT: String(options.port),
+      OMNIFIC_DATA_DIR: dataDir,
       ...options.environment,
     },
     windowsHide: true,

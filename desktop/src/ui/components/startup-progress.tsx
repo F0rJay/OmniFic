@@ -7,7 +7,7 @@ interface StartupProgressProps {
 
 export function StartupProgress({ progress, bare = false }: StartupProgressProps) {
   const value = Math.round((progress?.progress ?? 0) * 100);
-  const title = progress?.title ?? "正在准备 OpenFic";
+  const title = progress?.title ?? "正在准备 OmniFic";
   const message = progress?.message ?? "正在初始化启动服务";
 
   return (

@@ -11,5 +11,6 @@ export function getUpdateArchitectureName(environment: UpdateSupportEnvironment)
 }
 
 export function isAutoUpdateSupported(environment: UpdateSupportEnvironment): boolean {
+  if (environment.platform === "darwin") return environment.arch === "x64" || environment.arch === "arm64";
   return getUpdateArchitectureName(environment) !== null;
 }

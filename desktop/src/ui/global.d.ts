@@ -11,7 +11,7 @@ import type { DesktopInstance } from "../shared/config";
 
 declare global {
   interface Window {
-    openficDesktop: {
+    omnificDesktop: {
       getConfig: () => Promise<DesktopConfig | null>;
       saveConfig: (config: DesktopConfig) => Promise<void>;
       initializeApp: () => Promise<InitializeAppResult>;

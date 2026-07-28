@@ -31,7 +31,7 @@ const STEP_ORDER: SetupStep[] = [
   "extract-python",
   "create-venv",
   "install-uv",
-  "install-openfic",
+  "install-omnific",
 ];
 
 const STEP_TITLE: Record<SetupStep, string> = {
@@ -39,7 +39,7 @@ const STEP_TITLE: Record<SetupStep, string> = {
   "extract-python": "解压 Python",
   "create-venv": "创建运行环境",
   "install-uv": "安装 uv",
-  "install-openfic": "安装 OpenFic",
+  "install-omnific": "安装 OmniFic",
 };
 
 const INITIAL_STEPS: StepState = {
@@ -47,7 +47,7 @@ const INITIAL_STEPS: StepState = {
   "extract-python": { status: "pending", message: "" },
   "create-venv": { status: "pending", message: "" },
   "install-uv": { status: "pending", message: "" },
-  "install-openfic": { status: "pending", message: "" },
+  "install-omnific": { status: "pending", message: "" },
 };
 
 function getRuntimeDisplayPath(installDir: string): string {
@@ -105,8 +105,8 @@ export function SetupPage({
   useEffect(() => {
     let cancelled = false;
     void Promise.all([
-      window.openficDesktop.getDefaultInstallDir(),
-      window.openficDesktop.getConfig(),
+      window.omnificDesktop.getDefaultInstallDir(),
+      window.omnificDesktop.getConfig(),
     ]).then(([defaultDir, config]) => {
       if (cancelled) return;
       const localInstance = config?.instances.find((instance) => instance.mode === "local");
@@ -126,7 +126,7 @@ export function SetupPage({
     let cancelled = false;
     setRuntimeChecking(true);
     setRuntimeInspection(null);
-    void window.openficDesktop
+    void window.omnificDesktop
       .inspectLocalRuntime(installDir)
       .then((result) => {
         if (!cancelled) {
@@ -143,7 +143,7 @@ export function SetupPage({
   }, [installDir, step]);
 
   useEffect(() => {
-    const dispose = window.openficDesktop.onSetupProgress((event) => {
+    const dispose = window.omnificDesktop.onSetupProgress((event) => {
       setSteps((prev) => applyProgress(prev, event));
     });
     return dispose;
@@ -151,7 +151,7 @@ export function SetupPage({
 
   const pickDirectory = async () => {
     onClearError();
-    const picked = await window.openficDesktop.selectDirectory();
+    const picked = await window.omnificDesktop.selectDirectory();
     if (picked) setInstallDir(picked);
   };
 
@@ -161,7 +161,7 @@ export function SetupPage({
     setSteps(INITIAL_STEPS);
     setInstallError(null);
     try {
-      await window.openficDesktop.installRuntime(installDir);
+      await window.omnificDesktop.installRuntime(installDir);
       setStep("local-success");
     } catch (err) {
       setInstallError(err instanceof Error ? err.message : "安装失败");
@@ -229,7 +229,7 @@ export function SetupPage({
                 </span>
                 <span className="setup-choice-body">
                   <strong>连接到已有服务</strong>
-                  <span>连接到已有运行中的 OpenFic 后端服务</span>
+                  <span>连接到已有运行中的 OmniFic 后端服务</span>
                 </span>
                 <span className="setup-choice-arrow">
                   前往连接
@@ -242,7 +242,7 @@ export function SetupPage({
                 </span>
                 <span className="setup-choice-body">
                   <strong>设置本地运行环境</strong>
-                  <span>在本地下载、安装并启动 OpenFic 服务</span>
+                  <span>在本地下载、安装并启动 OmniFic 服务</span>
                 </span>
                 <span className="setup-choice-arrow">
                   前往设置
@@ -420,7 +420,7 @@ export function SetupPage({
               <div>
                 <p className="setup-success-title">安装完成</p>
                 <p className="setup-success-desc">
-                  OpenFic 运行环境已就绪，开始体验吧
+                  OmniFic 运行环境已就绪，开始体验吧
                 </p>
               </div>
               <div className="setup-actions" style={{ width: "100%", justifyContent: "center" }}>
@@ -449,7 +449,7 @@ const EYEBROW: Record<WizardStep, string> = {
 };
 
 const TITLE: Record<WizardStep, string> = {
-  mode: "开始使用 OpenFic",
+  mode: "开始使用 OmniFic",
   remote: "连接到已有服务",
   "local-directory": "选择安装目录",
   "local-installing": "正在安装运行环境",

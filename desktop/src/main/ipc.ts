@@ -67,7 +67,7 @@ export function registerIpc(context: IpcContext): void {
     });
     startupProgress.begin({
       step: "connect-remote",
-      title: "连接 OpenFic 服务",
+      title: "连接 OmniFic 服务",
       message: `正在连接 ${request.url}`,
       progress: 0.3,
     });
@@ -162,7 +162,7 @@ export function registerIpc(context: IpcContext): void {
       startupProgress.begin({
         step: "ready",
         title: "服务已就绪",
-        message: "OpenFic 已准备完成",
+        message: "OmniFic 已准备完成",
         progress: 1,
       });
       startupProgress.complete();

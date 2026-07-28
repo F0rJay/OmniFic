@@ -70,4 +70,4 @@ const desktopApi = {
   },
 };
 
-contextBridge.exposeInMainWorld("openficDesktop", desktopApi);
+contextBridge.exposeInMainWorld("omnificDesktop", desktopApi);

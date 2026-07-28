@@ -117,7 +117,7 @@ export function DesktopNotices({
             {updateState.status === "not-available" ? (
               <div className="desktop-update-simple-state">
                 <p className="desktop-notice-title">已是最新版本</p>
-                <p>当前安装的 OpenFic 已是最新版本。</p>
+                <p>当前安装的 OmniFic 已是最新版本。</p>
               </div>
             ) : null}
             {hasVersionDetails ? (

@@ -13,9 +13,9 @@ export function FrontendPage({ webviewKey, partition, webviewRef }: FrontendPage
         key={webviewKey}
         ref={webviewRef}
         className="frontend-webview"
-        src="app://openfic/"
+        src="app://omnific/"
         partition={partition}
-        preload={window.openficDesktop.frontendHostPreloadPath}
+        preload={window.omnificDesktop.frontendHostPreloadPath}
       />
     </section>
   );

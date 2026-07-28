@@ -35,7 +35,7 @@ export type SetupStep =
   | "extract-python"
   | "create-venv"
   | "install-uv"
-  | "install-openfic";
+  | "install-omnific";
 
 export interface SetupProgressEvent {
   step: SetupStep;
@@ -98,7 +98,7 @@ export type StartupStep =
   | "load-config"
   | "check-runtime"
   | "update-python"
-  | "update-openfic"
+  | "update-omnific"
   | "start-backend"
   | "initialize-backend"
   | "initialize-database"

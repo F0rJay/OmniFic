@@ -89,7 +89,7 @@ export function DesktopHeader({
     });
 
     for (const instance of instances) {
-      void window.openficDesktop
+      void window.omnificDesktop
         .pingInstance(instance)
         .then((result) => {
           setPingStates((current) => ({ ...current, [instance.id]: { status: "ok", latencyMs: result.latencyMs } }));
@@ -167,7 +167,7 @@ export function DesktopHeader({
 
   return (
     <header className="desktop-header">
-      <div className="desktop-titlebar-brand">OpenFic</div>
+      <div className="desktop-titlebar-brand">OmniFic</div>
       <div className="desktop-titlebar-actions">
         <button
           className="titlebar-button titlebar-update-button"
@@ -274,13 +274,13 @@ export function DesktopHeader({
             </>
           ) : null}
         </div>
-        <button className="titlebar-button" aria-label="最小化" type="button" onClick={() => void window.openficDesktop.minimizeWindow()}>
+        <button className="titlebar-button" aria-label="最小化" type="button" onClick={() => void window.omnificDesktop.minimizeWindow()}>
           <Minus size={15} strokeWidth={2} />
         </button>
-        <button className="titlebar-button" aria-label="最大化" type="button" onClick={() => void window.openficDesktop.toggleMaximizeWindow()}>
+        <button className="titlebar-button" aria-label="最大化" type="button" onClick={() => void window.omnificDesktop.toggleMaximizeWindow()}>
           <Square size={14} strokeWidth={2} />
         </button>
-        <button className="titlebar-button titlebar-button-close" aria-label="关闭" type="button" onClick={() => void window.openficDesktop.closeWindow()}>
+        <button className="titlebar-button titlebar-button-close" aria-label="关闭" type="button" onClick={() => void window.omnificDesktop.closeWindow()}>
           <X size={16} strokeWidth={2} />
         </button>
       </div>

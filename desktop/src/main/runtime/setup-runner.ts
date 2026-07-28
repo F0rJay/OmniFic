@@ -3,11 +3,11 @@ import { stat } from "node:fs/promises";
 import { IpcChannels, type SetupProgressEvent } from "../../shared/ipc.js";
 import { describeDownloadProgress, ensurePortablePython, inspectPortablePython, resolveRuntimeDir } from "./python.js";
 import {
-  ensureOpenFicRuntime,
-  inspectOpenFicRuntime,
+  ensureOmniFicRuntime,
+  inspectOmniFicRuntime,
   resolveVenvPythonPath,
-  startLocalOpenFicBackend,
-} from "./openfic.js";
+  startLocalOmniFicBackend,
+} from "./omnific.js";
 import type { BackendProcessHandle } from "../process.js";
 import type { StartupProgressTracker } from "../startup-progress.js";
 
@@ -20,7 +20,7 @@ const STEP_DONE_MESSAGE: Record<SetupProgressEvent["step"], string> = {
   "extract-python": "Python 已解压",
   "create-venv": "运行环境已创建",
   "install-uv": "uv 已安装",
-  "install-openfic": "OpenFic 已安装",
+  "install-omnific": "OmniFic 已安装",
 };
 
 function markDone(webContents: WebContents, step: SetupProgressEvent["step"]): void {
@@ -51,7 +51,7 @@ export async function installLocalRuntime(webContents: WebContents, installDir: 
     },
   );
 
-  await ensureOpenFicRuntime(python, runtimeDir, app.getVersion(), (step, message) => beginStep(step, message));
+  await ensureOmniFicRuntime(python, runtimeDir, app.getVersion(), (step, message) => beginStep(step, message));
 
   if (currentStep) markDone(webContents, currentStep);
 
@@ -76,10 +76,10 @@ export async function inspectLocalRuntime(installDir: string): Promise<LocalRunt
   const python = await inspectPortablePython(runtimeDir);
   if (!python.complete) return { status: "incomplete", message: python.message };
 
-  const openfic = await inspectOpenFicRuntime(runtimeDir, app.getVersion());
-  if (!openfic.complete) return { status: "incomplete", message: openfic.message };
+  const omnific = await inspectOmniFicRuntime(runtimeDir, app.getVersion());
+  if (!omnific.complete) return { status: "incomplete", message: omnific.message };
 
-  return { status: "ready", message: openfic.message };
+  return { status: "ready", message: omnific.message };
 }
 
 export async function startLocalBackendFromInstall(
@@ -91,5 +91,5 @@ export async function startLocalBackendFromInstall(
     throw new Error(`本地运行环境不完整：${inspection.message}。请先修复运行环境。`);
   }
   const runtimeDir = resolveRuntimeDir(installDir);
-  return startLocalOpenFicBackend(resolveVenvPythonPath(runtimeDir), app.getVersion(), startupProgress);
+  return startLocalOmniFicBackend(resolveVenvPythonPath(runtimeDir), app.getVersion(), startupProgress);
 }

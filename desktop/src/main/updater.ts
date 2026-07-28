@@ -38,7 +38,7 @@ async function getReleaseNotes(info: UpdateInfo): Promise<string | undefined> {
 
   try {
     const response = await autoUpdater.netSession.fetch(
-      `https://api.github.com/repos/syrizelink/OpenFic/releases/tags/v${encodeURIComponent(info.version)}`,
+      `https://api.github.com/repos/F0rJay/OmniFic/releases/tags/v${encodeURIComponent(info.version)}`,
       { headers: { Accept: "application/vnd.github+json" } },
     );
     if (!response.ok) return getUpdaterReleaseNotes(info);
@@ -85,7 +85,7 @@ function canUseAutoUpdater(): boolean {
 
 function configurePortableInstallDirectory(): void {
   const installDirectory = path.dirname(app.getPath("exe"));
-  const uninstallerPath = path.join(installDirectory, "Uninstall OpenFic.exe");
+  const uninstallerPath = path.join(installDirectory, "Uninstall OmniFic.exe");
   if (!existsSync(uninstallerPath) && autoUpdater instanceof NsisUpdater) {
     autoUpdater.installDirectory = installDirectory;
   }
@@ -106,14 +106,14 @@ export async function initializeUpdater(window: BrowserWindow): Promise<void> {
   }
 
   const updateArchitecture = getUpdateArchitectureName({ platform: process.platform, arch: process.arch });
-  if (!updateArchitecture) {
+  if (process.platform === "win32" && !updateArchitecture) {
     publishState({ status: "unsupported" });
     return;
   }
 
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = false;
-  autoUpdater.channel = `latest-win-${updateArchitecture}`;
+  if (updateArchitecture) autoUpdater.channel = `latest-win-${updateArchitecture}`;
   autoUpdater.allowDowngrade = false;
   configurePortableInstallDirectory();
   autoUpdater.on("checking-for-update", () => publishState({ status: "checking" }));
@@ -185,5 +185,5 @@ export function installUpdate(): void {
 
 export async function openUpdateRelease(): Promise<void> {
   if (!updateState.version) return;
-  await shell.openExternal(`https://github.com/syrizelink/OpenFic/releases/tag/v${encodeURIComponent(updateState.version)}`);
+  await shell.openExternal(`https://github.com/F0rJay/OmniFic/releases/tag/v${encodeURIComponent(updateState.version)}`);
 }

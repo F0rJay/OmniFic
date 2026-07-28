@@ -7,7 +7,7 @@ const preloadPath = fileURLToPath(new URL("../preload/preload.mjs", import.meta.
 
 function writeWindowLog(message: string): void {
   try {
-    const logDir = path.join(process.env.APPDATA ?? app.getPath("userData"), "openfic-desktop");
+    const logDir = path.join(process.env.APPDATA ?? app.getPath("userData"), "omnific-desktop");
     mkdirSync(logDir, { recursive: true });
     appendFileSync(path.join(logDir, "startup.log"), `[${new Date().toISOString()}] ${message}\n`, "utf8");
   } catch {

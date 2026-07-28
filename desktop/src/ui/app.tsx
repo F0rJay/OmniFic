@@ -83,21 +83,21 @@ export function App() {
   const lastAutoUpdateCheck = useRef<string | null>(null);
   const automaticallyOpenedUpdate = useRef<string | null>(null);
   const activeInstance = config?.instances.find((instance) => instance.id === activeInstanceId) ?? null;
-  const frontendPartition = activeInstanceId ? `persist:openfic-${activeInstanceId}` : "persist:openfic";
+  const frontendPartition = activeInstanceId ? `persist:omnific-${activeInstanceId}` : "persist:omnific";
   const canCheckForUpdates = shellState === "frontend" && activeInstance !== null && updateState.status !== "unsupported";
 
   useEffect(() => {
     let cancelled = false;
-    const dispose = window.openficDesktop.onStartupProgress((progress) => {
+    const dispose = window.omnificDesktop.onStartupProgress((progress) => {
       if (!cancelled) setStartupProgress(progress);
     });
 
     const initialize = async () => {
       try {
-        const currentProgress = await window.openficDesktop.getStartupProgress();
+        const currentProgress = await window.omnificDesktop.getStartupProgress();
         if (!cancelled) setStartupProgress(currentProgress);
-        const result = await window.openficDesktop.initializeApp();
-        const nextConfig = await window.openficDesktop.getConfig();
+        const result = await window.omnificDesktop.initializeApp();
+        const nextConfig = await window.omnificDesktop.getConfig();
         if (cancelled) return;
         setConfig(nextConfig);
         setActiveInstanceId(result.activeInstanceId ?? nextConfig?.activeInstanceId ?? null);
@@ -124,15 +124,15 @@ export function App() {
     const runtimeKey = `${activeInstanceId}:${webviewKey}`;
     if (lastAutoUpdateCheck.current === runtimeKey) return;
     lastAutoUpdateCheck.current = runtimeKey;
-    void window.openficDesktop.checkForUpdate();
+    void window.omnificDesktop.checkForUpdate();
   }, [activeInstanceId, canCheckForUpdates, webviewKey]);
 
   useEffect(() => {
     let cancelled = false;
-    void window.openficDesktop.getUpdateState().then((state) => {
+    void window.omnificDesktop.getUpdateState().then((state) => {
       if (!cancelled) setUpdateState(state);
     });
-    const dispose = window.openficDesktop.onUpdateState(setUpdateState);
+    const dispose = window.omnificDesktop.onUpdateState(setUpdateState);
     return () => {
       cancelled = true;
       dispose();
@@ -145,8 +145,8 @@ export function App() {
       setShellState("setup");
     };
 
-    window.addEventListener("openfic:show-setup", handleShowSetup);
-    return () => window.removeEventListener("openfic:show-setup", handleShowSetup);
+    window.addEventListener("omnific:show-setup", handleShowSetup);
+    return () => window.removeEventListener("omnific:show-setup", handleShowSetup);
   }, []);
 
   useEffect(() => {
@@ -155,7 +155,7 @@ export function App() {
 
     const handleIpcMessage = (event: Event) => {
       const { channel, args } = event as WebviewIpcMessageEvent;
-      if (channel !== "openfic:appearance") return;
+      if (channel !== "omnific:appearance") return;
       const payload = args[0];
       if (!isDesktopAppearancePayload(payload)) return;
 
@@ -171,7 +171,7 @@ export function App() {
   }, [webviewKey]);
 
   const refreshConfig = async () => {
-    const nextConfig = await window.openficDesktop.getConfig();
+    const nextConfig = await window.omnificDesktop.getConfig();
     setConfig(nextConfig);
     setActiveInstanceId(nextConfig?.activeInstanceId ?? null);
     return nextConfig;
@@ -206,7 +206,7 @@ export function App() {
     setStartupProgress(null);
     setShellState("booting");
     try {
-      const result = await window.openficDesktop.switchInstance(instanceId);
+      const result = await window.omnificDesktop.switchInstance(instanceId);
       const nextConfig = await refreshConfig();
       setActiveInstanceId(result.activeInstanceId ?? nextConfig?.activeInstanceId ?? instanceId);
       setCompatibilityWarning(result.compatibilityWarning ?? null);
@@ -227,7 +227,7 @@ export function App() {
     setStartupProgress(null);
     setShellState("booting");
     try {
-      const previousConfig = await window.openficDesktop.getConfig();
+      const previousConfig = await window.omnificDesktop.getConfig();
       const existingInstance = previousConfig?.instances.find(
         (instance) => instance.mode === "remote" && instance.remoteUrl && normalizeRemoteUrl(instance.remoteUrl) === normalizedUrl,
       );
@@ -245,8 +245,8 @@ export function App() {
           ? previousConfig?.instances ?? [instance]
           : [...(previousConfig?.instances ?? []), instance],
       };
-      await window.openficDesktop.saveConfig(nextConfig);
-      const result = await window.openficDesktop.switchInstance(instance.id);
+      await window.omnificDesktop.saveConfig(nextConfig);
+      const result = await window.omnificDesktop.switchInstance(instance.id);
       await showFrontend(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "无法连接到该地址");
@@ -263,7 +263,7 @@ export function App() {
     setStartupProgress(null);
     setShellState("booting");
     try {
-      await window.openficDesktop.startLocalBackend(installDir);
+      await window.omnificDesktop.startLocalBackend(installDir);
       await showFrontend();
     } catch (err) {
       setError(err instanceof Error ? err.message : "启动后端失败");
@@ -273,7 +273,7 @@ export function App() {
   };
 
   const handleSaveConfig = async (nextConfig: DesktopConfig) => {
-    await window.openficDesktop.saveConfig(nextConfig);
+    await window.omnificDesktop.saveConfig(nextConfig);
     setConfig(nextConfig);
     setActiveInstanceId(nextConfig.activeInstanceId);
   };
@@ -303,7 +303,7 @@ export function App() {
     if (shellState !== "frontend") return;
     let cancelled = false;
     setFrontendReadyPartition(null);
-    void window.openficDesktop.ensureInstanceSession(frontendPartition).then(() => {
+    void window.omnificDesktop.ensureInstanceSession(frontendPartition).then(() => {
       if (!cancelled) setFrontendReadyPartition(frontendPartition);
     });
     return () => {
@@ -350,7 +350,7 @@ export function App() {
           setInstancePanelOpen(false);
           if (!compatibilityWarning) setUpdateDialogOpen(true);
           if (["idle", "not-available", "error"].includes(updateState.status)) {
-            void window.openficDesktop.checkForUpdate();
+            void window.omnificDesktop.checkForUpdate();
           }
         }}
       />
@@ -375,11 +375,11 @@ export function App() {
         compatibilityWarning={compatibilityWarning}
         updateDialogOpen={updateDialogOpen}
         updateState={updateState}
-        onCheckForUpdate={() => void window.openficDesktop.checkForUpdate()}
-        onDownloadUpdate={() => void window.openficDesktop.downloadUpdate()}
-        onCancelDownload={() => void window.openficDesktop.cancelUpdateDownload()}
-        onInstallUpdate={() => void window.openficDesktop.installUpdate()}
-        onOpenRelease={() => void window.openficDesktop.openUpdateRelease()}
+        onCheckForUpdate={() => void window.omnificDesktop.checkForUpdate()}
+        onDownloadUpdate={() => void window.omnificDesktop.downloadUpdate()}
+        onCancelDownload={() => void window.omnificDesktop.cancelUpdateDownload()}
+        onInstallUpdate={() => void window.omnificDesktop.installUpdate()}
+        onOpenRelease={() => void window.omnificDesktop.openUpdateRelease()}
         onCloseCompatibilityWarning={() => setCompatibilityWarning(null)}
         onCloseUpdateDialog={() => setUpdateDialogOpen(false)}
       />

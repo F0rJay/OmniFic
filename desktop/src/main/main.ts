@@ -7,7 +7,7 @@ import { readDesktopConfig, writeDesktopConfig } from "./config.js";
 import { registerIpc } from "./ipc.js";
 import { waitForBackend } from "./health.js";
 import { ensurePortablePython, resolveRuntimeDir } from "./runtime/python.js";
-import { ensureOpenFicRuntime, startLocalOpenFicBackend } from "./runtime/openfic.js";
+import { ensureOmniFicRuntime, startLocalOmniFicBackend } from "./runtime/omnific.js";
 import { stopBackendProcess, type BackendProcessHandle } from "./process.js";
 import { initializeUpdater } from "./updater.js";
 import { configureDefaultSystemProxy } from "./proxy.js";
@@ -18,7 +18,7 @@ import type { DesktopConfig, DesktopInstance } from "../shared/config.js";
 
 function writeStartupLog(message: string): void {
   try {
-    const logDir = path.join(process.env.APPDATA ?? app.getPath("userData"), "openfic-desktop");
+    const logDir = path.join(process.env.APPDATA ?? app.getPath("userData"), "omnific-desktop");
     mkdirSync(logDir, { recursive: true });
     appendFileSync(path.join(logDir, "startup.log"), `[${new Date().toISOString()}] ${message}\n`, "utf8");
   } catch {
@@ -42,7 +42,7 @@ function setBackend(handle: BackendProcessHandle): void {
     const wasActiveHandle = backendHandle === handle;
     if (wasActiveHandle) backendHandle = null;
     if (!isQuitting && wasActiveHandle) {
-      dialog.showErrorBox("OpenFic 后端已退出", `后端服务异常退出。日志路径：${handle.logPath}`);
+      dialog.showErrorBox("OmniFic 后端已退出", `后端服务异常退出。日志路径：${handle.logPath}`);
       app.quit();
     }
   });
@@ -90,7 +90,7 @@ async function startLocalBackend(installDir: string | null, startupProgress: Sta
   startupProgress.begin({
     step: "check-runtime",
     title: "检查运行环境",
-    message: "正在检查 Python 与 OpenFic 运行环境",
+    message: "正在检查 Python 与 OmniFic 运行环境",
     progress: 0.15,
   });
   let pythonWasUpdated = false;
@@ -125,13 +125,13 @@ async function startLocalBackend(installDir: string | null, startupProgress: Sta
   }
 
   let runtimeWasUpdated = false;
-  const runtime = await ensureOpenFicRuntime(python, runtimeDir, app.getVersion(), (step, message) => {
+  const runtime = await ensureOmniFicRuntime(python, runtimeDir, app.getVersion(), (step, message) => {
     runtimeWasUpdated = true;
     startupProgress.begin({
-      step: "update-openfic",
-      title: step === "install-openfic" ? "更新 OpenFic 后端" : "更新本地运行环境",
+      step: "update-omnific",
+      title: step === "install-omnific" ? "更新 OmniFic 后端" : "更新本地运行环境",
       message,
-      progress: step === "install-openfic" ? 0.45 : 0.38,
+      progress: step === "install-omnific" ? 0.45 : 0.38,
     });
   });
   if (!runtimeWasUpdated) {
@@ -143,7 +143,7 @@ async function startLocalBackend(installDir: string | null, startupProgress: Sta
     });
   }
 
-  const backend = await startLocalOpenFicBackend(runtime.venvPythonPath, app.getVersion(), startupProgress);
+  const backend = await startLocalOmniFicBackend(runtime.venvPythonPath, app.getVersion(), startupProgress);
   setBackend(backend);
   setBackendBaseUrl(backend.baseUrl);
 }
@@ -162,7 +162,7 @@ async function activateInstance(
     if (!instance.remoteUrl) throw new Error("远程实例缺少后端地址");
     startupProgress.begin({
       step: "connect-remote",
-      title: "连接 OpenFic 服务",
+      title: "连接 OmniFic 服务",
       message: `正在连接 ${instance.remoteUrl}`,
       progress: 0.3,
     });
@@ -194,12 +194,12 @@ async function switchInstance(instanceId: string): Promise<InitializeAppResult> 
   startupProgress.begin({
     step: "load-config",
     title: "读取实例配置",
-    message: "正在查找目标 OpenFic 实例",
+    message: "正在查找目标 OmniFic 实例",
     progress: 0.1,
   });
   try {
     const config = await readDesktopConfig();
-    if (!config) throw new Error("未找到 OpenFic 实例配置");
+    if (!config) throw new Error("未找到 OmniFic 实例配置");
     const instance = config.instances.find((item) => item.id === instanceId);
     if (!instance) throw new Error("实例不存在");
     startupProgress.update({
@@ -213,7 +213,7 @@ async function switchInstance(instanceId: string): Promise<InitializeAppResult> 
     startupProgress.begin({
       step: "ready",
       title: "服务已就绪",
-      message: "OpenFic 已准备完成",
+      message: "OmniFic 已准备完成",
       progress: 1,
     });
     startupProgress.complete();
@@ -246,14 +246,14 @@ async function initializeApp(): Promise<InitializeAppResult> {
   startupProgress.begin({
     step: "load-config",
     title: "读取本地配置",
-    message: "正在查找已有 OpenFic 实例",
+    message: "正在查找已有 OmniFic 实例",
     progress: 0.05,
   });
   try {
     const config = await readDesktopConfig();
     writeStartupLog(`config loaded: ${config ? `${config.instances.length} instances` : "none"}`);
     if (!config || config.instances.length === 0) {
-      startupProgress.complete("尚未配置 OpenFic 实例");
+      startupProgress.complete("尚未配置 OmniFic 实例");
       return { status: "needs-setup" };
     }
     const instance = getActiveInstance(config);
@@ -268,7 +268,7 @@ async function initializeApp(): Promise<InitializeAppResult> {
     startupProgress.begin({
       step: "ready",
       title: "服务已就绪",
-      message: "OpenFic 已准备完成",
+      message: "OmniFic 已准备完成",
       progress: 1,
     });
     startupProgress.complete();
