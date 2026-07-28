@@ -6,7 +6,15 @@ export function registerSW(): void {
     return;
   }
 
-  if (typeof window !== "undefined" && "omnificDesktopHost" in window) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (window.location.protocol !== "http:" && window.location.protocol !== "https:") {
+    return;
+  }
+
+  if ("omnificDesktopHost" in window) {
     return;
   }
 

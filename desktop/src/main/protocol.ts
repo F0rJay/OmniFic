@@ -4,6 +4,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import type { RuntimeConfigResponse } from "../shared/config.js";
 import { configureSystemProxy } from "./proxy.js";
+import { isBackendResourcePath } from "./protocol-paths.js";
 
 let runtimeConfig: RuntimeConfigResponse | null = null;
 const registeredPartitions = new Map<string, Promise<void>>();
@@ -61,6 +62,13 @@ async function handleAppRequest(request: Request): Promise<Response> {
     if (url.pathname === "/runtime-config.json") {
       return new Response(JSON.stringify(runtimeConfig), {
         headers: { "content-type": "application/json; charset=utf-8" },
+      });
+    }
+
+    if (url.hostname !== "setup" && isBackendResourcePath(url.pathname)) {
+      return new Response("Not Found", {
+        status: 404,
+        headers: { "content-type": "text/plain; charset=utf-8" },
       });
     }
 

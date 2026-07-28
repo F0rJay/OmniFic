@@ -1,5 +1,4 @@
 import { contextBridge, ipcRenderer } from "electron";
-import { fileURLToPath } from "node:url";
 import {
   IpcChannels,
   type CheckRemoteRequest,
@@ -18,6 +17,7 @@ import {
   type UpdateState,
 } from "../shared/ipc.js";
 import type { DesktopConfig, DesktopInstance } from "../shared/config.js";
+import { resolveFrontendHostPreloadUrl } from "./preload-url.mjs";
 
 const desktopApi = {
   getConfig: (): Promise<DesktopConfig | null> => ipcRenderer.invoke(IpcChannels.getConfig),
@@ -44,7 +44,7 @@ const desktopApi = {
     ipcRenderer.invoke(IpcChannels.logFrontendDiagnostic, { message }),
   closeSetup: (): Promise<void> => ipcRenderer.invoke(IpcChannels.closeSetup),
   showSetup: (): Promise<void> => ipcRenderer.invoke(IpcChannels.showSetup),
-  frontendHostPreloadPath: fileURLToPath(new URL("./frontend-host-preload.mjs", import.meta.url)),
+  frontendHostPreloadPath: resolveFrontendHostPreloadUrl(import.meta.url),
   minimizeWindow: (): Promise<void> => ipcRenderer.invoke(IpcChannels.minimizeWindow),
   toggleMaximizeWindow: (): Promise<void> => ipcRenderer.invoke(IpcChannels.toggleMaximizeWindow),
   closeWindow: (): Promise<void> => ipcRenderer.invoke(IpcChannels.closeWindow),

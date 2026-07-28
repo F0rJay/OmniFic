@@ -52,7 +52,10 @@ const STARTUP_TASK_TIMEOUT_MS = 30_000;
 function withStartupTimeout<T>(label: string, task: Promise<T>): Promise<T> {
   let timeout: ReturnType<typeof setTimeout> | undefined;
   const timeoutPromise = new Promise<never>((_resolve, reject) => {
-    timeout = setTimeout(() => reject(new Error(`${label}超时（${STARTUP_TASK_TIMEOUT_MS / 1000} 秒）`)), STARTUP_TASK_TIMEOUT_MS);
+    timeout = setTimeout(
+      () => reject(new Error(`${label}超时（${STARTUP_TASK_TIMEOUT_MS / 1000} 秒）`)),
+      STARTUP_TASK_TIMEOUT_MS,
+    );
   });
   return Promise.race([task, timeoutPromise]).finally(() => {
     if (timeout) clearTimeout(timeout);
@@ -125,6 +128,7 @@ function AppContent({
 
 function AppRoot() {
   const [appearance, setAppearance] = useState<"light" | "dark">("light");
+  const [runtimeConfigReady, setRuntimeConfigReady] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -136,6 +140,7 @@ function AppRoot() {
     queryKey: ["settings"],
     queryFn: fetchSettings,
     staleTime: 60 * 1000,
+    enabled: runtimeConfigReady,
   });
 
   useEffect(() => {
@@ -144,6 +149,7 @@ function AppRoot() {
     const initializeApp = async () => {
       try {
         await withStartupTimeout("读取运行时配置", loadRuntimeConfig());
+        if (mounted) setRuntimeConfigReady(true);
 
         const startupTasks = [
           {
@@ -159,7 +165,8 @@ function AppRoot() {
         const results = await Promise.allSettled(startupTasks.map(({ task }) => task));
         const failures = results.flatMap((result, index) => {
           if (result.status !== "rejected") return [];
-          const detail = result.reason instanceof Error ? result.reason.message : String(result.reason);
+          const detail =
+            result.reason instanceof Error ? result.reason.message : String(result.reason);
           return [`${startupTasks[index].label}失败：${detail}`];
         });
         if (failures.length) {
@@ -169,7 +176,10 @@ function AppRoot() {
         // Token counting improves editor features but must never block the entire
         // workspace when a dynamically imported encoding fails to load.
         void preloadTiktokenEncoding().catch((preloadError) => {
-          console.warn("Tiktoken preload failed; token estimation fallback remains active:", preloadError);
+          console.warn(
+            "Tiktoken preload failed; token estimation fallback remains active:",
+            preloadError,
+          );
         });
 
         if (mounted) {
@@ -178,7 +188,10 @@ function AppRoot() {
         }
       } catch (initializationError) {
         if (mounted) {
-          const detail = initializationError instanceof Error ? initializationError.message : String(initializationError);
+          const detail =
+            initializationError instanceof Error
+              ? initializationError.message
+              : String(initializationError);
           setError(`初始化失败：${detail}`);
         }
       }

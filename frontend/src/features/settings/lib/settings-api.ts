@@ -9,9 +9,11 @@ import { apiClient } from "@/lib/api-client";
 import type {
   AgentToolMetadata,
   AuditDetailsStorage,
+  LanguageCode,
   Settings,
   SettingsResponse,
   SettingsUpdateRequest,
+  ThemeMode,
 } from "./settings.types";
 import {
   DEFAULT_CODE_FONT_FAMILY,
@@ -29,10 +31,26 @@ import {
 /**
  * 后端响应字段转换（snake_case -> camelCase）
  */
-export function transformSettings(raw: SettingsResponse): Settings {
+function isSettingsResponse(raw: unknown): raw is SettingsResponse {
+  return typeof raw === "object" && raw !== null && !Array.isArray(raw);
+}
+
+function normalizeLanguage(value: unknown): LanguageCode {
+  return value === "en" ? "en" : "zh-CN";
+}
+
+function normalizeTheme(value: unknown): ThemeMode {
+  return value === "dark" ? "dark" : "light";
+}
+
+export function transformSettings(raw: unknown): Settings {
+  if (!isSettingsResponse(raw)) {
+    throw new TypeError("设置响应格式无效");
+  }
+
   return {
-    language: raw.language as Settings["language"],
-    theme: raw.theme as Settings["theme"],
+    language: normalizeLanguage(raw.language),
+    theme: normalizeTheme(raw.theme),
     themePreset: normalizeThemePreset(raw.theme_preset),
     themeAccentColor: normalizeHexColor(raw.theme_accent_color ?? "", DEFAULT_THEME_ACCENT_COLOR),
     appBackgroundColor: normalizeHexColor(
@@ -68,7 +86,7 @@ export function transformSettings(raw: SettingsResponse): Settings {
  * 获取设置
  */
 export async function fetchSettings(): Promise<Settings> {
-  const response = await apiClient.get<SettingsResponse>("/settings");
+  const response = await apiClient.get<unknown>("/settings");
   return transformSettings(response.data);
 }
 
@@ -76,7 +94,7 @@ export async function fetchSettings(): Promise<Settings> {
  * 更新设置
  */
 export async function updateSettings(data: SettingsUpdateRequest): Promise<Settings> {
-  const response = await apiClient.put<SettingsResponse>("/settings", data);
+  const response = await apiClient.put<unknown>("/settings", data);
   return transformSettings(response.data);
 }
 

@@ -10,6 +10,7 @@
     "format:check": "oxfmt . --check",
     "lint": "oxlint .",
     "preview": "vp preview",
+    "test": "vp test run --globals --config vitest.config.ts",
     "type-check": "oxlint . --type-aware --type-check"
   },
   "dependencies": {

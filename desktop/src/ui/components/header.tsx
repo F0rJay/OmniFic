@@ -167,7 +167,6 @@ export function DesktopHeader({
 
   return (
     <header className="desktop-header">
-      <div className="desktop-titlebar-brand">OmniFic</div>
       <div className="desktop-titlebar-actions">
         <button
           className="titlebar-button titlebar-update-button"

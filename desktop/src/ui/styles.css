@@ -492,16 +492,10 @@ body {
   min-height: 0;
 }
 
-.desktop-titlebar-brand {
-  color: var(--gray-11);
-  font-size: 13px;
-  font-weight: 650;
-  letter-spacing: 0.04em;
-}
-
 .desktop-titlebar-actions {
   display: inline-flex;
   align-items: center;
+  margin-left: auto;
   gap: 6px;
   -webkit-app-region: no-drag;
 }

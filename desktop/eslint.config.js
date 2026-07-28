@@ -6,7 +6,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 export default defineConfig([
   globalIgnores(["dist", "dist-electron", "out"]),
   {
-    files: ["**/*.{ts,tsx,mts}"],
+    files: ["**/*.{ts,tsx,mts,cts}"],
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     languageOptions: {
       ecmaVersion: 2022,
