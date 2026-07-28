@@ -6,7 +6,7 @@ export function registerSW(): void {
     return;
   }
 
-  if (typeof window !== "undefined" && "openficDesktopHost" in window) {
+  if (typeof window !== "undefined" && "omnificDesktopHost" in window) {
     return;
   }
 

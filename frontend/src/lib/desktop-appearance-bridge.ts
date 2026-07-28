@@ -8,12 +8,12 @@ export interface DesktopAppearancePayload {
 
 declare global {
   interface Window {
-    openficDesktopHost?: {
+    omnificDesktopHost?: {
       publishAppearance: (payload: DesktopAppearancePayload) => void;
     };
   }
 }
 
 export function publishDesktopAppearance(payload: DesktopAppearancePayload): void {
-  window.openficDesktopHost?.publishAppearance(payload);
+  window.omnificDesktopHost?.publishAppearance(payload);
 }

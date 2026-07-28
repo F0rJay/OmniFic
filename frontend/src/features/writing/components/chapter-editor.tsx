@@ -39,7 +39,7 @@ import { useTabsStore } from "../store/use-tabs-store";
 import { FindReplacePanel } from "./find-replace-panel";
 import { SaveStatusIndicator, type SaveStatus } from "./save-status-indicator";
 
-const MANUAL_SAVE_EVENT = "openfic:chapter-editor-manual-save";
+const MANUAL_SAVE_EVENT = "omnific:chapter-editor-manual-save";
 
 interface WordsCountModule {
   wordsCount: (text: string) => number;

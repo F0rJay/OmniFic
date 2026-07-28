@@ -1,6 +1,6 @@
 import { createRoot, type Root } from "react-dom/client";
 
-const ROOT_KEY = "__openficReactRoot";
+const ROOT_KEY = "__omnificReactRoot";
 
 interface RootContainer extends HTMLElement {
   [ROOT_KEY]?: Root;

@@ -24,7 +24,7 @@ export type LanguageCode = (typeof supportedLanguages)[number]["code"];
 export const defaultLanguage: LanguageCode = "zh-CN";
 
 /** 存储键 */
-const LANGUAGE_STORAGE_KEY = "openfic-language";
+const LANGUAGE_STORAGE_KEY = "omnific-language";
 
 /**
  * 获取初始语言（同步，用于 i18n 初始化）
