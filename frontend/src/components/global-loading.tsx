@@ -33,17 +33,20 @@ export function GlobalLoading({ error, onRetry }: GlobalLoadingProps) {
           className="global-loading-spinner-shell"
           data-error={error ? "true" : "false"}
         >
-          <ProductLogo
-            className="global-loading-logo"
-            size={56}
-            alt=""
-            aria-hidden="true"
-          />
-          <Spinner
-            className="global-loading-spinner"
-            size={24}
-            aria-label={spinnerLabel}
-          />
+          {error ? (
+            <ProductLogo
+              className="global-loading-logo"
+              size={56}
+              alt=""
+              aria-hidden="true"
+            />
+          ) : (
+            <Spinner
+              className="global-loading-spinner"
+              size={56}
+              aria-label={spinnerLabel}
+            />
+          )}
         </Box>
 
         {error ? (

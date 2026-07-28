@@ -28,26 +28,11 @@
   place-items: center;
 }
 
-.global-loading-logo {
+.global-loading-logo,
+.global-loading-spinner {
   position: relative;
   z-index: 1;
   filter: drop-shadow(0 8px 18px rgb(139 92 246 / 0.2)) drop-shadow(0 0 12px rgb(34 211 238 / 0.12));
-}
-
-.global-loading-spinner {
-  position: absolute;
-  width: 88px;
-  height: 88px;
-  border-color: color-mix(in oklab, var(--gray-a5) 68%, transparent);
-  border-top-color: #8b5cf6;
-  border-right-color: color-mix(in oklab, #22d3ee 54%, transparent);
-  color: var(--gray-12);
-}
-
-.global-loading-spinner-shell[data-error="true"] .global-loading-spinner {
-  border-color: var(--red-a5);
-  border-top-color: var(--red-10);
-  color: var(--red-10);
 }
 
 .global-loading-spinner-shell[data-error="true"] .global-loading-logo {
