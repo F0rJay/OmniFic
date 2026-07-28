@@ -5,6 +5,7 @@
 - 修复 Windows 首次安装时网络输出不可见、超时不明确的问题
 - 修复桌面端首屏初始化被可选分词模块阻塞而无限加载的问题
 - 修复 macOS 便携 Python 路径与 ARM64 桌面包完整性校验
+- 修复 macOS Apple Silicon 因 SQLAlchemy 平台标记遗漏 `greenlet` 而无法启动本地后端的问题
 - 增加桌面 WebView 诊断日志与发行前产物校验
 - 桌面安装包内置同版本 OmniFic wheel，并增加仅上传 Actions Artifacts 的候选包构建流程
 

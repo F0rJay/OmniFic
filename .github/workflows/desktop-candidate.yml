@@ -65,6 +65,7 @@ jobs:
           smoke_root="$(mktemp -d)"
           python -m venv "$smoke_root/venv"
           "$smoke_root/venv/bin/python" -m pip install dist/omnific-*.whl
+          "$smoke_root/venv/bin/python" -c 'import greenlet; print(f"greenlet {greenlet.__version__}")'
           "$smoke_root/venv/bin/omnific" version | grep "${{ needs.context.outputs.version }}"
           OMNIFIC_DATA_DIR="$smoke_root/data" "$smoke_root/venv/bin/omnific" serve --host 127.0.0.1 --port 8765 > "$smoke_root/server.log" 2>&1 &
           server_pid=$!

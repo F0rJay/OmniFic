@@ -34,6 +34,9 @@ dependencies = [
     "cryptography>=46.0.3",
     "fastapi>=0.127.0",
     "gunicorn>=23.0.0",
+    # SQLAlchemy's platform marker omits macOS arm64, but the async session
+    # implementation requires greenlet on every supported desktop platform.
+    "greenlet>=3.0",
     "itsdangerous>=2.2.0",
     "json-repair>=0.60.1",
     "lancedb>=0.26.0",
