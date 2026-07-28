@@ -1,7 +1,149 @@
 .agent-messages-root {
+  position: relative;
   width: 100%;
   min-width: 0;
   min-height: 100%;
+}
+
+.agent-message-navigation {
+  position: sticky;
+  z-index: 1000;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.agent-message-navigation-list {
+  position: absolute;
+  top: 0;
+  left: -8px;
+  display: flex;
+  overflow: visible;
+  width: 44px;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 5px 0;
+  gap: 3px;
+  pointer-events: auto;
+  transform: translateY(-50%);
+}
+
+.agent-message-navigation-marker {
+  position: relative;
+  display: flex;
+  width: 44px;
+  height: 8px;
+  flex: 0 0 8px;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--gray-a7);
+  cursor: pointer;
+}
+
+.agent-message-navigation-tick {
+  display: block;
+  width: 7px;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  transition:
+    width 120ms ease,
+    color 120ms ease;
+}
+
+.agent-message-navigation-marker:hover,
+.agent-message-navigation-marker:focus-visible {
+  color: var(--gray-a10);
+}
+
+.agent-message-navigation-marker[data-active="true"] {
+  color: var(--gray-a9);
+}
+
+.agent-message-navigation-marker[data-hover-distance="3"] .agent-message-navigation-tick {
+  width: 13px;
+}
+
+.agent-message-navigation-marker[data-hover-distance="2"] .agent-message-navigation-tick {
+  width: 18px;
+}
+
+.agent-message-navigation-marker[data-hover-distance="1"] .agent-message-navigation-tick {
+  width: 25px;
+}
+
+.agent-message-navigation-marker[data-hover-distance="0"] .agent-message-navigation-tick {
+  width: 34px;
+}
+
+.agent-message-navigation-marker[data-hover-distance="0"] {
+  color: #000;
+}
+
+.agent-message-navigation-marker:focus-visible .agent-message-navigation-tick {
+  outline: 2px solid var(--accent-a8);
+  outline-offset: 2px;
+}
+
+.agent-message-navigation-preview {
+  position: absolute;
+  z-index: 1001;
+  top: 50%;
+  left: 40px;
+  display: flex;
+  visibility: hidden;
+  width: 220px;
+  flex-direction: column;
+  padding: 11px 13px;
+  gap: 7px;
+  border: 1px solid var(--gray-a6);
+  border-radius: 12px;
+  background: var(--color-background);
+  box-shadow: 0 10px 30px rgba(20, 20, 24, 0.14);
+  opacity: 0;
+  pointer-events: none;
+  text-align: left;
+  transform: translateY(-50%) translateX(-4px);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease,
+    visibility 120ms ease;
+  backdrop-filter: blur(12px);
+}
+
+.agent-message-navigation-marker:hover .agent-message-navigation-preview,
+.agent-message-navigation-marker:focus-visible .agent-message-navigation-preview {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+.agent-message-navigation-preview-title,
+.agent-message-navigation-preview-text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+}
+
+.agent-message-navigation-preview-title {
+  color: var(--gray-12);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  -webkit-line-clamp: 2;
+}
+
+.agent-message-navigation-preview-text {
+  color: var(--gray-10);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.55;
+  -webkit-line-clamp: 4;
 }
 
 .agent-message-block-stack {
@@ -14,6 +156,12 @@
 .agent-message-scroll-content {
   width: 100%;
   min-width: 0;
+  box-sizing: border-box;
+  transition: padding-left 120ms ease;
+}
+
+.agent-messages-root[data-has-navigation="true"] .agent-message-scroll-content {
+  padding-left: 22px;
 }
 
 .agent-message-scroll-content
@@ -266,4 +414,22 @@
   font-family: "JetBrainsMapleMono", monospace;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 767px) {
+  .agent-message-navigation {
+    display: none;
+  }
+
+  .agent-messages-root[data-has-navigation="true"] .agent-message-scroll-content {
+    padding-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-message-navigation-tick,
+  .agent-message-navigation-preview,
+  .agent-message-scroll-content {
+    transition: none;
+  }
 }

@@ -1435,6 +1435,9 @@
   },
   "assistant": {
     "mobileTitle": "Agent",
+    "messageNavigation": "Conversation navigation",
+    "messageNavigationUntitled": "Message",
+    "jumpToMessage": "Jump to: {{message}}",
     "slashNoMatch": "No matching skills",
     "slashNoSkills": "No available skills",
     "slashNoCommandMatch": "No matching commands or skills",

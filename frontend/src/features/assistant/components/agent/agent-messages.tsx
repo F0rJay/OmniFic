@@ -31,6 +31,7 @@ import {
   buildAgentMessageBlocks,
   getAgentRoundToolbarTargets,
   getVisibleAgentMessageBlocks,
+  type AgentMessageBlock,
   type AgentRoundToolbarTarget,
 } from "./display/agent-message-blocks";
 import { buildAgentDisplayItems } from "./display/agent-message-display-items";
@@ -46,6 +47,75 @@ import { ExplorationMessage } from "./message-blocks/blocks/exploration/explorat
 import { useElapsedDuration } from "./use-elapsed-duration";
 
 const COPY_FEEDBACK_MS = 1200;
+const NAVIGATION_TITLE_MAX_LENGTH = 72;
+const NAVIGATION_PREVIEW_MAX_LENGTH = 180;
+
+interface AgentMessageNavigationItem {
+  id: string;
+  targetBlockId: string;
+  title: string;
+  preview: string;
+}
+
+function normalizeNavigationText(value: string | undefined): string {
+  return (value ?? "")
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function truncateNavigationText(value: string, maxLength: number): string {
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
+function getAgentBlockNavigationPreview(block: AgentMessageBlock): string {
+  const output = block.messages
+    .filter((message) => message.type === "agent_output")
+    .map((message) => normalizeNavigationText(message.content))
+    .filter(Boolean)
+    .join(" ");
+  if (output) return output;
+
+  const fallback = block.messages.find(
+    (message) =>
+      (message.type === "completed" || message.type === "error") &&
+      normalizeNavigationText(message.content),
+  );
+  return normalizeNavigationText(fallback?.content);
+}
+
+function buildAgentMessageNavigationItems(
+  blocks: AgentMessageBlock[],
+  untitledLabel: string,
+): AgentMessageNavigationItem[] {
+  const items: AgentMessageNavigationItem[] = [];
+  let currentItem: AgentMessageNavigationItem | null = null;
+
+  for (const block of blocks) {
+    if (block.type === "user") {
+      const userText = normalizeNavigationText(block.messages[0]?.content);
+      currentItem = {
+        id: `navigation:${block.id}`,
+        targetBlockId: block.id,
+        title: truncateNavigationText(userText || untitledLabel, NAVIGATION_TITLE_MAX_LENGTH),
+        preview: "",
+      };
+      items.push(currentItem);
+      continue;
+    }
+
+    if (block.type !== "agent" || !currentItem) continue;
+    const blockPreview = getAgentBlockNavigationPreview(block);
+    if (!blockPreview) continue;
+    currentItem.preview = truncateNavigationText(
+      [currentItem.preview, blockPreview].filter(Boolean).join(" "),
+      NAVIGATION_PREVIEW_MAX_LENGTH,
+    );
+  }
+
+  return items;
+}
 
 function getTimestampParts(timestamp: number, timeZone?: string): Record<string, string> {
   const formatter = new Intl.DateTimeFormat("en-CA", {
@@ -177,6 +247,8 @@ export function AgentMessages({
   const contentRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const scrollContainerRef = useRef<HTMLElement | null>(null);
+  const messageBlockElementsRef = useRef<Map<string, HTMLDivElement>>(new Map());
+  const navigationScrollRafRef = useRef<number | null>(null);
   const shouldFollowBottomRef = useRef(true);
   const isRestoringLoadedSessionBottomRef = useRef(false);
   const pendingLoadedSessionRestoreKeyRef = useRef<string | null | undefined>(null);
@@ -190,6 +262,8 @@ export function AgentMessages({
   const streamingScrollRafRef = useRef<number | null>(null);
   const isAtBottomRef = useRef(true);
   const [copiedActionId, setCopiedActionId] = useState<string | null>(null);
+  const [activeNavigationId, setActiveNavigationId] = useState<string | null>(null);
+  const [hoveredNavigationIndex, setHoveredNavigationIndex] = useState<number | null>(null);
   const [pendingRollbackMessage, setPendingRollbackMessage] = useState<AgentMessageType | null>(
     null,
   );
@@ -476,6 +550,85 @@ export function AgentMessages({
     () => new Map(toolbarTargets.map((target) => [target.anchorBlockId, target])),
     [toolbarTargets],
   );
+  const navigationItems = useMemo(
+    () =>
+      buildAgentMessageNavigationItems(
+        visibleMessageBlocks,
+        t("assistant.messageNavigationUntitled"),
+      ),
+    [t, visibleMessageBlocks],
+  );
+
+  const setMessageBlockElement = useCallback((blockId: string, element: HTMLDivElement | null) => {
+    if (element) messageBlockElementsRef.current.set(blockId, element);
+    else messageBlockElementsRef.current.delete(blockId);
+  }, []);
+
+  const updateActiveNavigationItem = useCallback(() => {
+    navigationScrollRafRef.current = null;
+    const container = getScrollContainer();
+    if (!(container instanceof HTMLElement) || navigationItems.length === 0) {
+      setActiveNavigationId(null);
+      return;
+    }
+
+    const containerRect = container.getBoundingClientRect();
+    const activationLine = containerRect.top + Math.min(96, container.clientHeight * 0.24);
+    let nextActiveId = navigationItems[0]?.id ?? null;
+
+    for (const item of navigationItems) {
+      const target = messageBlockElementsRef.current.get(item.targetBlockId);
+      if (!target) continue;
+      if (target.getBoundingClientRect().top <= activationLine) nextActiveId = item.id;
+      else break;
+    }
+
+    setActiveNavigationId((current) => (current === nextActiveId ? current : nextActiveId));
+  }, [getScrollContainer, navigationItems]);
+
+  const scheduleNavigationUpdate = useCallback(() => {
+    if (navigationScrollRafRef.current !== null) return;
+    navigationScrollRafRef.current = window.requestAnimationFrame(updateActiveNavigationItem);
+  }, [updateActiveNavigationItem]);
+
+  useEffect(() => {
+    const container = getScrollContainer();
+    if (!(container instanceof HTMLElement) || navigationItems.length < 2) {
+      setActiveNavigationId(navigationItems[0]?.id ?? null);
+      return;
+    }
+
+    scheduleNavigationUpdate();
+    const resizeObserver = new ResizeObserver(scheduleNavigationUpdate);
+    resizeObserver.observe(container);
+    if (contentRef.current) resizeObserver.observe(contentRef.current);
+    container.addEventListener("scroll", scheduleNavigationUpdate, { passive: true });
+
+    return () => {
+      resizeObserver.disconnect();
+      container.removeEventListener("scroll", scheduleNavigationUpdate);
+      if (navigationScrollRafRef.current !== null) {
+        window.cancelAnimationFrame(navigationScrollRafRef.current);
+        navigationScrollRafRef.current = null;
+      }
+    };
+  }, [getScrollContainer, navigationItems, scheduleNavigationUpdate]);
+
+  const scrollToNavigationItem = useCallback(
+    (item: AgentMessageNavigationItem) => {
+      const container = getScrollContainer();
+      const target = messageBlockElementsRef.current.get(item.targetBlockId);
+      if (!(container instanceof HTMLElement) || !target) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const top = container.scrollTop + targetRect.top - containerRect.top - 12;
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      container.scrollTo({ top, behavior: reduceMotion ? "auto" : "smooth" });
+      setActiveNavigationId(item.id);
+    },
+    [getScrollContainer],
+  );
 
   const toggleNodeCollapsed = useCallback((nodeId: string) => {
     setCollapsedNodeIds((current) => {
@@ -586,7 +739,51 @@ export function AgentMessages({
     <Box
       className="agent-messages-root"
       data-rollbacking={isRollbacking ? "true" : undefined}
+      data-has-navigation={navigationItems.length >= 2 ? "true" : undefined}
     >
+      {navigationItems.length >= 2 ? (
+        <nav
+          className="agent-message-navigation"
+          aria-label={t("assistant.messageNavigation")}
+        >
+          <div
+            className="agent-message-navigation-list"
+            onMouseLeave={() => setHoveredNavigationIndex(null)}
+          >
+            {navigationItems.map((item, index) => {
+              const hoverDistance =
+                hoveredNavigationIndex === null ? null : Math.abs(index - hoveredNavigationIndex);
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className="agent-message-navigation-marker"
+                  data-active={activeNavigationId === item.id ? "true" : undefined}
+                  data-hover-distance={
+                    hoverDistance !== null && hoverDistance <= 3 ? hoverDistance : undefined
+                  }
+                  aria-label={t("assistant.jumpToMessage", { message: item.title })}
+                  onMouseEnter={() => setHoveredNavigationIndex(index)}
+                  onFocus={() => setHoveredNavigationIndex(index)}
+                  onBlur={() => setHoveredNavigationIndex(null)}
+                  onClick={() => scrollToNavigationItem(item)}
+                >
+                  <span className="agent-message-navigation-tick" />
+                  <span
+                    className="agent-message-navigation-preview"
+                    aria-hidden="true"
+                  >
+                    <span className="agent-message-navigation-preview-title">{item.title}</span>
+                    {item.preview ? (
+                      <span className="agent-message-navigation-preview-text">{item.preview}</span>
+                    ) : null}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      ) : null}
       <Box
         ref={contentRef}
         className="agent-message-scroll-content"
@@ -601,6 +798,7 @@ export function AgentMessages({
             return (
               <Box
                 key={block.id}
+                ref={(element) => setMessageBlockElement(block.id, element)}
                 className="agent-message-block-stack"
                 data-block-type="node"
               >
@@ -634,6 +832,7 @@ export function AgentMessages({
             return (
               <Box
                 key={block.id}
+                ref={(element) => setMessageBlockElement(block.id, element)}
                 className="agent-message-block"
                 data-block-type="user"
               >
@@ -698,6 +897,7 @@ export function AgentMessages({
           return (
             <Box
               key={block.id}
+              ref={(element) => setMessageBlockElement(block.id, element)}
               className="agent-message-block-stack"
               data-block-type="agent"
             >

@@ -1498,6 +1498,9 @@
   },
   "assistant": {
     "mobileTitle": "Agent",
+    "messageNavigation": "对话导航",
+    "messageNavigationUntitled": "消息",
+    "jumpToMessage": "跳转到：{{message}}",
     "slashNoMatch": "没有匹配的技能",
     "slashNoSkills": "没有可用技能",
     "slashNoCommandMatch": "没有匹配的命令或技能",
