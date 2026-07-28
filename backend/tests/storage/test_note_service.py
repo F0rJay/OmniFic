@@ -152,6 +152,38 @@ async def test_list_notes_tree_structure(session: AsyncSession) -> None:
 
 
 @pytest.mark.asyncio
+async def test_list_notes_sorts_chapter_titles_by_chapter_number(
+    session: AsyncSession,
+) -> None:
+    project = await _create_project(session)
+    category = await note_service.create_category(
+        session, project.id, None, "剧情大纲"
+    )
+    for title in (
+        "第三章 细纲",
+        "第五章 细纲",
+        "第12章 细纲",
+        "第六章 细纲",
+        "第四章 细纲",
+        "第十章 细纲",
+        "第二章 细纲",
+    ):
+        await note_service.create_note(session, project.id, category.id, title, "")
+
+    result = await note_service.list_notes(session, project.id)
+
+    assert [note.title for note in result.categories[0].notes] == [
+        "第二章 细纲",
+        "第三章 细纲",
+        "第四章 细纲",
+        "第五章 细纲",
+        "第六章 细纲",
+        "第十章 细纲",
+        "第12章 细纲",
+    ]
+
+
+@pytest.mark.asyncio
 async def test_delete_category_cascades_to_children(session: AsyncSession) -> None:
     project = await _create_project(session)
     parent = await note_service.create_category(session, project.id, None, "父")

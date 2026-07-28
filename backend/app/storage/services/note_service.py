@@ -3,6 +3,7 @@
 Note Service - 笔记业务逻辑层。
 """
 
+import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Literal
@@ -31,6 +32,86 @@ class NoteTreeResult:
     categories: list[NoteCategoryNode]
     root_notes: list[Note]
     total_notes: int
+
+
+_CHINESE_DIGITS = {
+    "零": 0,
+    "〇": 0,
+    "一": 1,
+    "二": 2,
+    "两": 2,
+    "三": 3,
+    "四": 4,
+    "五": 5,
+    "六": 6,
+    "七": 7,
+    "八": 8,
+    "九": 9,
+}
+_CHINESE_SMALL_UNITS = {"十": 10, "百": 100, "千": 1000}
+_CHINESE_LARGE_UNITS = {"万": 10_000, "亿": 100_000_000}
+_CHAPTER_TITLE_RE = re.compile(
+    r"^第\s*(?P<number>[0-9零〇一二两三四五六七八九十百千万亿]+)\s*章"
+)
+
+
+def _parse_chinese_number(value: str) -> int | None:
+    if value.isdigit():
+        return int(value)
+    if not value or any(
+        char not in _CHINESE_DIGITS
+        and char not in _CHINESE_SMALL_UNITS
+        and char not in _CHINESE_LARGE_UNITS
+        for char in value
+    ):
+        return None
+
+    if all(char in _CHINESE_DIGITS for char in value):
+        return int("".join(str(_CHINESE_DIGITS[char]) for char in value))
+
+    total = 0
+    section = 0
+    number = 0
+    for char in value:
+        if char in _CHINESE_DIGITS:
+            number = _CHINESE_DIGITS[char]
+        elif char in _CHINESE_SMALL_UNITS:
+            unit = _CHINESE_SMALL_UNITS[char]
+            section += (number or 1) * unit
+            number = 0
+        else:
+            section += number
+            total += section * _CHINESE_LARGE_UNITS[char]
+            section = 0
+            number = 0
+    return total + section + number
+
+
+def _chapter_number_from_title(title: str) -> int | None:
+    match = _CHAPTER_TITLE_RE.match(title.strip())
+    if match is None:
+        return None
+    return _parse_chinese_number(match.group("number"))
+
+
+def _sort_chapter_notes(notes: list[Note]) -> list[Note]:
+    chapter_slots: list[int] = []
+    chapter_notes: list[tuple[int, Note]] = []
+    for index, note in enumerate(notes):
+        chapter_number = _chapter_number_from_title(note.title)
+        if chapter_number is None:
+            continue
+        chapter_slots.append(index)
+        chapter_notes.append((chapter_number, note))
+
+    if len(chapter_notes) < 2:
+        return notes
+
+    chapter_notes.sort(key=lambda item: item[0])
+    sorted_notes = list(notes)
+    for index, (_, note) in zip(chapter_slots, chapter_notes, strict=True):
+        sorted_notes[index] = note
+    return sorted_notes
 
 
 async def _assert_category_depth(session: AsyncSession, parent_id: str) -> None:
@@ -132,6 +213,10 @@ async def list_notes(
     notes_by_category: dict[str | None, list[Note]] = {}
     for note in notes:
         notes_by_category.setdefault(note.category_id, []).append(note)
+    notes_by_category = {
+        category_id: _sort_chapter_notes(category_notes)
+        for category_id, category_notes in notes_by_category.items()
+    }
 
     def build_node(cat: NoteCategory) -> NoteCategoryNode:
         return NoteCategoryNode(
