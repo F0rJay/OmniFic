@@ -309,7 +309,7 @@ async def test_search_chapters_returns_text_when_project_index_is_not_ready(
             )
         ]
     )
-    monkeypatch.setattr(module, "OpenFicRetrievalService", lambda: retrieval)
+    monkeypatch.setattr(module, "OmniFicRetrievalService", lambda: retrieval)
     monkeypatch.setattr(module, "EmbeddingClient", FakeEmbeddingClient)
 
     tool = _make_search_chapters_tool(module)
@@ -394,7 +394,7 @@ async def test_search_chapters_groups_ready_and_stale_results_by_current_chapter
             ),
         ]
     )
-    monkeypatch.setattr(module, "OpenFicRetrievalService", lambda: retrieval)
+    monkeypatch.setattr(module, "OmniFicRetrievalService", lambda: retrieval)
     monkeypatch.setattr(module, "EmbeddingClient", FakeEmbeddingClient)
 
     tool = _make_search_chapters_tool(module)
@@ -496,7 +496,7 @@ async def test_search_chapters_allows_stale_only_indexed_chapters(
             )
         ]
     )
-    monkeypatch.setattr(module, "OpenFicRetrievalService", lambda: retrieval)
+    monkeypatch.setattr(module, "OmniFicRetrievalService", lambda: retrieval)
     monkeypatch.setattr(module, "EmbeddingClient", FakeEmbeddingClient)
 
     tool = _make_search_chapters_tool(module)
@@ -604,7 +604,7 @@ async def test_search_chapters_skips_chunks_for_other_project_chapters(
             ),
         ]
     )
-    monkeypatch.setattr(module, "OpenFicRetrievalService", lambda: retrieval)
+    monkeypatch.setattr(module, "OmniFicRetrievalService", lambda: retrieval)
     monkeypatch.setattr(module, "EmbeddingClient", FakeEmbeddingClient)
 
     tool = _make_search_chapters_tool(module)
@@ -654,7 +654,7 @@ async def test_search_chapters_blocks_when_default_embedding_model_mismatches_in
     await setting_repo.upsert(session, "default_embedding_model", new_model.id)
     await session.commit()
     retrieval = FakeRetrievalService([])
-    monkeypatch.setattr(module, "OpenFicRetrievalService", lambda: retrieval)
+    monkeypatch.setattr(module, "OmniFicRetrievalService", lambda: retrieval)
     monkeypatch.setattr(module, "EmbeddingClient", FakeEmbeddingClient)
 
     tool = _make_search_chapters_tool(module)
@@ -701,7 +701,7 @@ async def test_search_chapters_blocks_when_embedding_dimensions_mismatch_index(
     await setting_repo.upsert(session, "default_embedding_model", model.id)
     await session.commit()
     retrieval = FakeRetrievalService([])
-    monkeypatch.setattr(module, "OpenFicRetrievalService", lambda: retrieval)
+    monkeypatch.setattr(module, "OmniFicRetrievalService", lambda: retrieval)
     monkeypatch.setattr(module, "EmbeddingClient", FakeEmbeddingClient)
 
     tool = _make_search_chapters_tool(module)
@@ -801,7 +801,7 @@ async def test_search_chapters_hides_embedding_client_init_error_details(
         raise RuntimeError(sensitive)
 
     retrieval = FakeRetrievalService([])
-    monkeypatch.setattr(module, "OpenFicRetrievalService", lambda: retrieval)
+    monkeypatch.setattr(module, "OmniFicRetrievalService", lambda: retrieval)
     monkeypatch.setattr(
         module.ModelProviderService,
         "get_decrypted_api_key",
@@ -858,7 +858,7 @@ async def test_search_chapters_hides_external_retrieval_error_details(
     await session.commit()
     sensitive = "provider api key sk-secret LanceDB /tmp/private-table"
     retrieval = FailingQueryRetrievalService(sensitive)
-    monkeypatch.setattr(module, "OpenFicRetrievalService", lambda: retrieval)
+    monkeypatch.setattr(module, "OmniFicRetrievalService", lambda: retrieval)
     monkeypatch.setattr(module, "EmbeddingClient", FakeEmbeddingClient)
 
     tool = _make_search_chapters_tool(module)
@@ -910,7 +910,7 @@ async def test_search_chapters_returns_empty_results(
     await setting_repo.upsert(session, "default_embedding_model", model.id)
     await session.commit()
     retrieval = FakeRetrievalService([])
-    monkeypatch.setattr(module, "OpenFicRetrievalService", lambda: retrieval)
+    monkeypatch.setattr(module, "OmniFicRetrievalService", lambda: retrieval)
     monkeypatch.setattr(module, "EmbeddingClient", FakeEmbeddingClient)
 
     tool = _make_search_chapters_tool(module)
@@ -997,7 +997,7 @@ async def test_search_chapters_rerank_path_uses_limited_top_n_and_invokes_rerank
             )
         ]
     )
-    monkeypatch.setattr(module, "OpenFicRetrievalService", lambda: retrieval)
+    monkeypatch.setattr(module, "OmniFicRetrievalService", lambda: retrieval)
     monkeypatch.setattr(module, "EmbeddingClient", FakeEmbeddingClient)
 
     tool = _make_search_chapters_tool(module)
@@ -1047,7 +1047,7 @@ async def test_search_chapters_drops_chunks_below_confidence_threshold(
             ),
         ]
     )
-    monkeypatch.setattr(module, "OpenFicRetrievalService", lambda: retrieval)
+    monkeypatch.setattr(module, "OmniFicRetrievalService", lambda: retrieval)
     monkeypatch.setattr(module, "EmbeddingClient", FakeEmbeddingClient)
 
     tool = _make_search_chapters_tool(module)
@@ -1106,7 +1106,7 @@ async def test_search_chapters_returns_text_when_stale_and_not_forced(
     await _seed_stale_index(session)
     await session.commit()
     retrieval = FakeRetrievalService([])
-    monkeypatch.setattr(module, "OpenFicRetrievalService", lambda: retrieval)
+    monkeypatch.setattr(module, "OmniFicRetrievalService", lambda: retrieval)
     monkeypatch.setattr(module, "EmbeddingClient", FakeEmbeddingClient)
 
     tool = _make_search_chapters_tool(module)
@@ -1132,7 +1132,7 @@ async def test_search_chapters_stale_text_appends_agent_decided_hint(
     await setting_repo.upsert(session, "index_auto_strategy", "agent_decided")
     await session.commit()
     retrieval = FakeRetrievalService([])
-    monkeypatch.setattr(module, "OpenFicRetrievalService", lambda: retrieval)
+    monkeypatch.setattr(module, "OmniFicRetrievalService", lambda: retrieval)
     monkeypatch.setattr(module, "EmbeddingClient", FakeEmbeddingClient)
 
     tool = _make_search_chapters_tool(module)

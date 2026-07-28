@@ -1033,7 +1033,7 @@ async def test_manual_compact_builds_window_and_returns_metrics_without_revision
     fake_session = MagicMock(close=AsyncMock())
     history_message = HumanMessage(
         content="上一轮用户消息",
-        response_metadata={"openfic_seq": 1},
+        response_metadata={"omnific_seq": 1},
     )
     node_message = {
         "role": "user",

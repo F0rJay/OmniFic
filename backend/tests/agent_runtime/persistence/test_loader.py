@@ -259,7 +259,7 @@ async def test_load_history_orders_tool_results_by_assistant_tool_call_order(
 
 
 @pytest.mark.asyncio
-async def test_load_history_adds_openfic_response_metadata_for_seq_and_tool_name(
+async def test_load_history_adds_omnific_response_metadata_for_seq_and_tool_name(
     db_session: AsyncSession, sample_task
 ):
     sid = "session_response_metadata"
@@ -298,12 +298,12 @@ async def test_load_history_adds_openfic_response_metadata_for_seq_and_tool_name
 
     assert len(msgs) == 3
     assert isinstance(msgs[0], HumanMessage)
-    assert msgs[0].response_metadata["openfic_seq"] == user.seq
+    assert msgs[0].response_metadata["omnific_seq"] == user.seq
     assert isinstance(msgs[1], AIMessage)
-    assert msgs[1].response_metadata["openfic_seq"] == assistant.seq
+    assert msgs[1].response_metadata["omnific_seq"] == assistant.seq
     assert isinstance(msgs[2], ToolMessage)
-    assert msgs[2].response_metadata["openfic_seq"] == tool.seq
-    assert msgs[2].response_metadata["openfic_tool_name"] == "read_chapter"
+    assert msgs[2].response_metadata["omnific_seq"] == tool.seq
+    assert msgs[2].response_metadata["omnific_tool_name"] == "read_chapter"
 
 
 @pytest.mark.asyncio

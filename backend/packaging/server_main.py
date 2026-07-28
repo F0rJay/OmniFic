@@ -16,15 +16,15 @@ def _setup_frozen_env() -> None:
         return
 
     meipass = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
-    os.environ.setdefault("OPENFIC_FRONTEND_DIST", os.path.join(meipass, "app", "frontend_dist"))
-    os.environ.setdefault("OPENFIC_ALEMBIC_INI", os.path.join(meipass, "alembic.ini"))
+    os.environ.setdefault("OMNIFIC_FRONTEND_DIST", os.path.join(meipass, "app", "frontend_dist"))
+    os.environ.setdefault("OMNIFIC_ALEMBIC_INI", os.path.join(meipass, "alembic.ini"))
 
 
 def main() -> None:
     _setup_frozen_env()
 
-    host = os.environ.get("OPENFIC_HOST", "127.0.0.1")
-    port = int(os.environ.get("OPENFIC_PORT", "8000"))
+    host = os.environ.get("OMNIFIC_HOST", "127.0.0.1")
+    port = int(os.environ.get("OMNIFIC_PORT", "8000"))
 
     import uvicorn
     from app.main import app

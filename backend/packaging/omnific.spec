@@ -1,11 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""OpenFic 后端 PyInstaller 打包配置（onedir）。
+"""OmniFic 后端 PyInstaller 打包配置（onedir）。
 
 前置条件：
   - 前端已构建并复制到 backend/app/frontend_dist/（由 CI 完成）
 执行方式（从 backend/ 目录）：
-  pyinstaller packaging/openfic.spec
-产物：dist/openfic-server/（可执行 + 依赖目录）
+  pyinstaller packaging/omnific.spec
+产物：dist/omnific-server/（可执行 + 依赖目录）
 """
 
 import glob
@@ -79,7 +79,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name="openfic-server",
+    name="omnific-server",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -94,5 +94,5 @@ coll = COLLECT(
     strip=False,
     upx=False,
     upx_exclude=[],
-    name="openfic-server",
+    name="omnific-server",
 )

@@ -6,8 +6,8 @@ import app.main as main
 
 
 def test_get_server_bind_reads_uvicorn_command_line_options(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("OPENFIC_SERVER_HOST", raising=False)
-    monkeypatch.delenv("OPENFIC_SERVER_PORT", raising=False)
+    monkeypatch.delenv("OMNIFIC_SERVER_HOST", raising=False)
+    monkeypatch.delenv("OMNIFIC_SERVER_PORT", raising=False)
     monkeypatch.setattr(
         main.sys,
         "argv",
@@ -17,9 +17,9 @@ def test_get_server_bind_reads_uvicorn_command_line_options(monkeypatch: pytest.
     assert main._get_server_bind() == ("127.0.0.1", 8001)
 
 
-def test_get_server_bind_prioritizes_openfic_environment(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("OPENFIC_SERVER_HOST", "0.0.0.0")
-    monkeypatch.setenv("OPENFIC_SERVER_PORT", "9000")
+def test_get_server_bind_prioritizes_omnific_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OMNIFIC_SERVER_HOST", "0.0.0.0")
+    monkeypatch.setenv("OMNIFIC_SERVER_PORT", "9000")
     monkeypatch.setattr(
         main.sys,
         "argv",

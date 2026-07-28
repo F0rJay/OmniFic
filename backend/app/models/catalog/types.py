@@ -14,7 +14,7 @@ class CatalogProviderModelSummary(BaseModel):
 
 
 class CatalogProviderSummary(BaseModel):
-    provider_type: str = Field(description="OpenFic provider type")
+    provider_type: str = Field(description="OmniFic provider type")
     display_name: str = Field(description="Provider display name")
     default_url: str | None = Field(
         default=None, description="Suggested default base URL for this provider"

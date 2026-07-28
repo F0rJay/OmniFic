@@ -79,10 +79,10 @@ def register_exception_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(OmniFicError)
-    async def openfic_error_handler(
+    async def omnific_error_handler(
         request: Request, exc: OmniFicError
     ) -> JSONResponse:
-        """处理其他 OpenFic 领域错误。"""
+        """处理其他 OmniFic 领域错误。"""
         logger.opt(exception=True).debug(
             "request failed: {} {}", request.method, request.url.path
         )

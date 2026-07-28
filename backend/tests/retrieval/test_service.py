@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.encryption import EncryptionService
 from app.models.clients.embedding_client import EmbeddingClientConfigLike
 from app.models.repos import model_provider_repo, model_repo
-from app.retrieval.service import OpenFicRetrievalService
+from app.retrieval.service import OmniFicRetrievalService
 from app.retrieval.types import (
     FilterableField,
     FilterableFieldType,
@@ -172,7 +172,7 @@ async def test_register_index_is_idempotent_for_same_contract(
     session: AsyncSession, tmp_path: Path
 ) -> None:
     model = await _create_embedding_model(session)
-    service = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    service = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
     contract = _make_contract(model.id)
 
     first = await service.register_index(session, "chapters", contract)
@@ -190,7 +190,7 @@ async def test_register_index_keeps_needs_rebuild_for_same_contract(
     session: AsyncSession, tmp_path: Path
 ) -> None:
     model = await _create_embedding_model(session)
-    service = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    service = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
     contract = _make_contract(model.id)
     row = await service.register_index(session, "chapters", contract)
     row.status = "needs_rebuild"
@@ -207,7 +207,7 @@ async def test_register_index_rejects_contract_mismatch(
     session: AsyncSession, tmp_path: Path
 ) -> None:
     model = await _create_embedding_model(session)
-    service = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    service = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
     contract = _make_contract(model.id)
     await service.register_index(session, "chapters", contract)
 
@@ -234,7 +234,7 @@ async def test_register_index_drops_existing_table_when_replacing_needs_rebuild_
         model_id="new-embedding",
         dimensions=4,
     )
-    service = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    service = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
     old_contract = RetrievalIndexContract(
         **{
             **_make_contract(old_model.id).model_dump(),
@@ -285,7 +285,7 @@ async def test_register_index_drops_existing_table_when_replacing_needs_rebuild_
 @pytest.mark.asyncio
 async def test_index_and_query_happy_path(session: AsyncSession, tmp_path: Path) -> None:
     model = await _create_embedding_model(session)
-    service = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    service = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
     contract = _make_contract(model.id)
     embedding_client = FakeEmbeddingClient()
 
@@ -331,7 +331,7 @@ async def test_index_documents_accepts_prechunked_input(
     session: AsyncSession, tmp_path: Path
 ) -> None:
     model = await _create_embedding_model(session)
-    service = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    service = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
     contract = _make_contract(model.id)
     embedding_client = FakeEmbeddingClient()
 
@@ -364,7 +364,7 @@ async def test_index_chunk_batches_append_one_chapter_without_reembedding_previo
     session: AsyncSession, tmp_path: Path
 ) -> None:
     model = await _create_embedding_model(session)
-    service = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    service = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
     contract = _make_contract(model.id)
     embedding_client = FakeEmbeddingClient()
 
@@ -430,7 +430,7 @@ async def test_index_chunk_batch_commits_building_status_before_embedding(
 ) -> None:
     """索引状态写入不能持有 SQLite 写锁覆盖嵌入网络请求。"""
     model = await _create_embedding_model(session)
-    service = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    service = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
     await service.register_index(session, "chapters", _make_contract(model.id))
 
     commit_count = 0
@@ -468,7 +468,7 @@ async def test_index_documents_replace_existing_document(
     session: AsyncSession, tmp_path: Path
 ) -> None:
     model = await _create_embedding_model(session)
-    service = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    service = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
     contract = _make_contract(model.id)
     embedding_client = FakeEmbeddingClient()
 
@@ -510,7 +510,7 @@ async def test_query_supports_vector_bm25_hybrid_and_rerank(
     session: AsyncSession, tmp_path: Path
 ) -> None:
     model = await _create_embedding_model(session)
-    service = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    service = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
     contract = _make_contract(model.id)
     embedding_client = FakeEmbeddingClient()
 
@@ -563,7 +563,7 @@ async def test_hybrid_rrf_score_normalized_to_confidence_range(
 ) -> None:
     """未启用 rerank 时，最终 score 应归一化到 0~1 置信度区间。"""
     model = await _create_embedding_model(session)
-    service = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    service = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
     contract = _make_contract(model.id)
     embedding_client = FakeEmbeddingClient()
 
@@ -600,7 +600,7 @@ async def test_query_returns_raw_text_without_prefix_when_present(
 ) -> None:
     """当文档带 prefix 元数据时，回传 text 应为正文（raw_text），不含前缀。"""
     model = await _create_embedding_model(session)
-    service = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    service = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
     contract = _make_contract(model.id)
     embedding_client = FakeEmbeddingClient()
 
@@ -631,7 +631,7 @@ async def test_query_supports_filter_in_and_filter_range(
     session: AsyncSession, tmp_path: Path
 ) -> None:
     model = await _create_embedding_model(session)
-    service = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    service = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
     contract = _make_contract(model.id)
     embedding_client = FakeEmbeddingClient()
 
@@ -677,7 +677,7 @@ async def test_delete_document_removes_rows(
     session: AsyncSession, tmp_path: Path
 ) -> None:
     model = await _create_embedding_model(session)
-    service = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    service = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
     contract = _make_contract(model.id)
     embedding_client = FakeEmbeddingClient()
 
@@ -708,7 +708,7 @@ async def test_delete_document_ignores_missing_table(
     session: AsyncSession, tmp_path: Path
 ) -> None:
     model = await _create_embedding_model(session)
-    service = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    service = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
 
     await service.register_index(session, "chapters", _make_contract(model.id))
 
@@ -720,7 +720,7 @@ async def test_rebuild_replaces_table_contents(
     session: AsyncSession, tmp_path: Path
 ) -> None:
     model = await _create_embedding_model(session)
-    service = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    service = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
     contract = _make_contract(model.id)
     embedding_client = FakeEmbeddingClient()
 
@@ -762,7 +762,7 @@ async def test_rebuild_indexes_keeps_queryable_state(
     session: AsyncSession, tmp_path: Path
 ) -> None:
     model = await _create_embedding_model(session)
-    service = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    service = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
     contract = _make_contract(model.id)
     embedding_client = FakeEmbeddingClient()
 
@@ -793,7 +793,7 @@ async def test_index_documents_stop_after_consecutive_failures(
     session: AsyncSession, tmp_path: Path
 ) -> None:
     model = await _create_embedding_model(session)
-    service = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    service = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
     contract = _make_contract(model.id)
     embedding_client = AlwaysFailEmbeddingClient()
 
@@ -821,7 +821,7 @@ async def test_index_documents_can_retry_after_failed_status(
     session: AsyncSession, tmp_path: Path
 ) -> None:
     model = await _create_embedding_model(session)
-    service = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    service = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
     contract = _make_contract(model.id)
 
     await service.register_index(session, "chapters", contract)
@@ -858,7 +858,7 @@ async def test_index_documents_rejects_duplicate_document_ids(
     session: AsyncSession, tmp_path: Path
 ) -> None:
     model = await _create_embedding_model(session)
-    service = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    service = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
     contract = _make_contract(model.id)
     embedding_client = FakeEmbeddingClient()
 
@@ -881,7 +881,7 @@ async def test_index_documents_skip_chunking_requires_chunks_only(
     session: AsyncSession, tmp_path: Path
 ) -> None:
     model = await _create_embedding_model(session)
-    service = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    service = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
     contract = _make_contract(model.id)
     embedding_client = FakeEmbeddingClient()
 
@@ -908,7 +908,7 @@ async def test_register_index_rejects_model_snapshot_mismatch(
     session: AsyncSession, tmp_path: Path
 ) -> None:
     model = await _create_embedding_model(session)
-    service = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    service = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
 
     with pytest.raises(ValueError, match="Embedding dimensions snapshot mismatch"):
         await service.register_index(

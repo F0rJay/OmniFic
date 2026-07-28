@@ -54,7 +54,7 @@ def _usage_int(
 
 
 def normalize_usage_tokens(usage: dict[str, Any] | None) -> dict[str, int]:
-    """Normalize provider usage payloads into OpenFic token counters."""
+    """Normalize provider usage payloads into OmniFic token counters."""
     if not usage:
         return {"token_input": 0, "token_output": 0, "tokens_total": 0, "token_cache": 0}
 

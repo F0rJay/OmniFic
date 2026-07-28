@@ -106,7 +106,7 @@ async def _invoke_model(model: Any, messages: list[BaseMessage]) -> AIMessage:
         id=response.id,
         name=response.name,
     )
-    object.__setattr__(normalized, "_openfic_first_token_ms", first_token_ms)
+    object.__setattr__(normalized, "_omnific_first_token_ms", first_token_ms)
     return normalized
 
 
@@ -472,10 +472,10 @@ def _to_history_dict(m: BaseMessage) -> dict:
     response_metadata = getattr(m, "response_metadata", None)
     response_metadata = response_metadata if isinstance(response_metadata, dict) else {}
     metadata: dict[str, Any] = {"part": "history"}
-    seq = response_metadata.get("openfic_seq")
+    seq = response_metadata.get("omnific_seq")
     if type(seq) is int:
         metadata["seq"] = seq
-    tool_name = response_metadata.get("openfic_tool_name")
+    tool_name = response_metadata.get("omnific_tool_name")
     if isinstance(tool_name, str) and tool_name:
         metadata["tool_name"] = tool_name
     out: dict = {
@@ -806,7 +806,7 @@ def create_react_agent(
                 else str(response.content),
                 tool_calls=cast(list[dict[str, Any]], response.tool_calls or []),
                 usage=_extract_usage(response),
-                first_token_ms=getattr(response, "_openfic_first_token_ms", None),
+                first_token_ms=getattr(response, "_omnific_first_token_ms", None),
             )
             if not response.tool_calls:
                 await _finish_active_audit()

@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.entities.model import Model
 from app.models.repos import model_repo
-from app.retrieval.service import OpenFicRetrievalService
+from app.retrieval.service import OmniFicRetrievalService
 from app.retrieval.internal.indexing.chunking import RecursiveCharacterChunker
 from app.retrieval.types import (
     BatchIndexResult,
@@ -634,7 +634,7 @@ class ChapterIndexIntegrationService:
     """Coordinates chapter rows, per-chapter state, and vector documents."""
 
     def __init__(self, *, retrieval_service: Any | None = None) -> None:
-        self.retrieval_service = retrieval_service or OpenFicRetrievalService()
+        self.retrieval_service = retrieval_service or OmniFicRetrievalService()
 
     def build_chapter_document(self, chapter: Chapter) -> IndexDocument:
         source_hash = compute_chapter_source_hash(chapter.content)

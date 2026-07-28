@@ -19,7 +19,7 @@ from app.settings import settings
 _engine = None
 _async_session_factory = None
 ALEMBIC_INI_PATH = Path(
-    os.getenv("OPENFIC_ALEMBIC_INI", str(Path(__file__).resolve().parents[2] / "alembic.ini"))
+    os.getenv("OMNIFIC_ALEMBIC_INI", str(Path(__file__).resolve().parents[2] / "alembic.ini"))
 )
 
 

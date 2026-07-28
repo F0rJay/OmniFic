@@ -68,7 +68,7 @@ def test_group_llm_turns_keeps_assistant_tool_calls_with_matching_tool_results()
         "calling",
         2,
         tool_calls=[
-            {"id": "call-1", "name": "search", "args": {"q": "openfic"}},
+            {"id": "call-1", "name": "search", "args": {"q": "omnific"}},
             {"id": "call-2", "function": {"name": "read", "arguments": {"path": "x"}}},
         ],
     )
@@ -124,7 +124,7 @@ def test_transcript_tool_result_name_does_not_fallback_to_assistant_tool_call() 
         "I will call",
         2,
         tool_calls=[
-            {"id": "call-1", "name": "assistant_tool_name", "args": {"q": "openfic"}},
+            {"id": "call-1", "name": "assistant_tool_name", "args": {"q": "omnific"}},
         ],
     )
     tool = ContextMessage(

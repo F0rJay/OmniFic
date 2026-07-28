@@ -8,7 +8,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.repos import model_provider_repo, model_repo
-from app.retrieval.service import OpenFicRetrievalService
+from app.retrieval.service import OmniFicRetrievalService
 from app.retrieval.types import RetrievalIndexContract
 
 
@@ -262,7 +262,7 @@ async def test_update_bound_embedding_model_dimensions_is_forbidden(
     )
     await session.commit()
 
-    retrieval = OpenFicRetrievalService(base_dir=tmp_path / "lancedb")
+    retrieval = OmniFicRetrievalService(base_dir=tmp_path / "lancedb")
     await retrieval.register_index(
         session,
         "bound-index",

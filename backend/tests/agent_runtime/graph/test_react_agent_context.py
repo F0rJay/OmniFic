@@ -558,19 +558,19 @@ def test_to_history_dict_uses_response_metadata_reasoning_content() -> None:
     assert out["additional_kwargs"] == {"reasoning_content": "从 metadata 来的思考"}
 
 
-def test_to_history_dict_uses_openfic_response_metadata_for_internal_history_fields() -> None:
+def test_to_history_dict_uses_omnific_response_metadata_for_internal_history_fields() -> None:
     from app.agent_runtime.graph.react_agent import _to_history_dict
 
     human = HumanMessage(
         content="hi",
-        response_metadata={"openfic_seq": 7},
+        response_metadata={"omnific_seq": 7},
     )
     tool = ToolMessage(
         content="result",
         tool_call_id="call_1",
         response_metadata={
-            "openfic_seq": 8,
-            "openfic_tool_name": "read_chapter",
+            "omnific_seq": 8,
+            "omnific_tool_name": "read_chapter",
         },
     )
 

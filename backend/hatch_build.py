@@ -28,15 +28,15 @@ def build_frontend_assets(backend_dir: Path, frontend_dir: Path, version: str) -
 
     pnpm = shutil.which("pnpm")
     if pnpm is None:
-        raise RuntimeError("pnpm is required for building the OpenFic frontend but it was not found")
+        raise RuntimeError("pnpm is required for building the OmniFic frontend but it was not found")
 
-    stderr.write(">>> Building OpenFic frontend\n")
+    stderr.write(">>> Building OmniFic frontend\n")
     stderr.write("### pnpm install --frozen-lockfile\n")
     subprocess.run([pnpm, "install", "--frozen-lockfile"], check=True, cwd=frontend_dir)  # noqa: S603
 
     stderr.write("\n### pnpm build\n")
     env = os.environ.copy()
-    env["OPENFIC_BUILD_VERSION"] = version
+    env["OMNIFIC_BUILD_VERSION"] = version
     subprocess.run([pnpm, "build"], check=True, cwd=frontend_dir, env=env)  # noqa: S603
 
     dist_dir = frontend_dir / "dist"

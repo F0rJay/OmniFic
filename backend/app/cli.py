@@ -54,8 +54,8 @@ def handle_version(_args: argparse.Namespace) -> None:
 def handle_serve(args: argparse.Namespace) -> None:
     _ensure_data_dir()
     configure_standard_logging()
-    os.environ["OPENFIC_SERVER_HOST"] = args.host
-    os.environ["OPENFIC_SERVER_PORT"] = str(args.port)
+    os.environ["OMNIFIC_SERVER_HOST"] = args.host
+    os.environ["OMNIFIC_SERVER_PORT"] = str(args.port)
 
     import uvicorn
 
@@ -73,7 +73,7 @@ def handle_serve(args: argparse.Namespace) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="omnific",
-        description="OpenFic 本地服务启动器",
+        description="OmniFic 本地服务启动器",
     )
 
     subparsers = parser.add_subparsers(dest="command")

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-OpenFic retrieval wrapper service.
+OmniFic retrieval wrapper service.
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ from app.storage.models.retrieval_index import RetrievalIndex
 from app.storage.repos import retrieval_index_repo
 
 
-class OpenFicRetrievalService:
+class OmniFicRetrievalService:
     def __init__(self, *, base_dir: Path | None = None):
         self.base_dir = base_dir or (settings.static_dir / "lancedb")
 

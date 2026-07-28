@@ -1037,7 +1037,7 @@ async def test_batch_cancellation_preserves_completed_chapters_and_resets_incomp
             _ = (session, index_key)
             deleted_document_ids.extend(document_ids)
 
-    monkeypatch.setattr(definition, "OpenFicRetrievalService", CleanupRetrievalService)
+    monkeypatch.setattr(definition, "OmniFicRetrievalService", CleanupRetrievalService)
 
     emit_count = 0
 
@@ -1122,7 +1122,7 @@ async def test_batch_cancellation_batches_pending_items_and_cleans_only_running_
             _ = (session, index_key)
             deleted_document_ids.extend(document_ids)
 
-    monkeypatch.setattr(definition, "OpenFicRetrievalService", CleanupRetrievalService)
+    monkeypatch.setattr(definition, "OmniFicRetrievalService", CleanupRetrievalService)
     monkeypatch.setattr(
         definition.retrieval_chapter_index_state_repo,
         "get_by_project_and_chapter",

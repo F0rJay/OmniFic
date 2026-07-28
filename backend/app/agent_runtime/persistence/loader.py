@@ -31,9 +31,9 @@ def _tool_calls(row: AgentRunMessage) -> list[dict] | None:
 
 
 def _response_metadata(row: AgentRunMessage) -> dict:
-    metadata: dict = {"openfic_seq": row.seq}
+    metadata: dict = {"omnific_seq": row.seq}
     if row.role == "tool" and row.tool_name:
-        metadata["openfic_tool_name"] = row.tool_name
+        metadata["omnific_tool_name"] = row.tool_name
     return metadata
 
 
