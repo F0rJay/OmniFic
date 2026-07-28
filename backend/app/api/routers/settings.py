@@ -4,6 +4,7 @@ Settings Router - 用户设置 API。
 """
 
 import json
+import re
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
@@ -60,6 +61,10 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 # 设置键名常量
 SETTING_KEY_LANGUAGE = "language"
 SETTING_KEY_THEME = "theme"
+SETTING_KEY_THEME_PRESET = "theme_preset"
+SETTING_KEY_THEME_ACCENT_COLOR = "theme_accent_color"
+SETTING_KEY_APP_BACKGROUND_COLOR = "app_background_color"
+SETTING_KEY_EDITOR_BACKGROUND_COLOR = "editor_background_color"
 SETTING_KEY_FONT_FAMILY = "font_family"
 SETTING_KEY_CODE_FONT_FAMILY = "code_font_family"
 SETTING_KEY_DEFAULT_MODEL = "default_model"
@@ -70,6 +75,10 @@ SETTING_KEY_AUDIT_PERSIST_DETAILS = AUDIT_DETAILS_PERSISTENCE_SETTING_KEY
 DEFAULT_SETTINGS = {
     SETTING_KEY_LANGUAGE: "zh-CN",
     SETTING_KEY_THEME: "light",
+    SETTING_KEY_THEME_PRESET: "default",
+    SETTING_KEY_THEME_ACCENT_COLOR: "#6f5fa5",
+    SETTING_KEY_APP_BACKGROUND_COLOR: "#ffffff",
+    SETTING_KEY_EDITOR_BACKGROUND_COLOR: "#fffaf2",
     SETTING_KEY_FONT_FAMILY: "SourceHanSerifCN-VF",
     SETTING_KEY_CODE_FONT_FAMILY: "JetBrainsMapleMono",
     SETTING_KEY_DEFAULT_MODEL: "",
@@ -88,6 +97,9 @@ DEFAULT_SETTINGS = {
     SETTING_KEY_AGENT_TOOL_PERMISSIONS: "[]",
     SETTING_KEY_AUDIT_PERSIST_DETAILS: "false",
 }
+
+_VALID_THEME_PRESETS = {"default", "paper", "mist", "mint", "lavender", "custom"}
+_HEX_COLOR_PATTERN = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
 @router.get(
@@ -148,6 +160,18 @@ def _parse_bool_setting(raw_value: str | None, *, default: bool = False) -> bool
 
     logger.warning("布尔设置值类型非法，已回退到默认值")
     return default
+
+
+def _normalize_theme_preset(raw_value: str | None) -> str:
+    value = (raw_value or "").strip().lower()
+    if value in _VALID_THEME_PRESETS:
+        return value
+    return DEFAULT_SETTINGS[SETTING_KEY_THEME_PRESET]
+
+
+def _normalize_hex_color(raw_value: str | None, *, default: str) -> str:
+    value = (raw_value or "").strip().lower()
+    return value if _HEX_COLOR_PATTERN.fullmatch(value) else default
 
 
 def _merge_default_agent_tool_permissions(
@@ -233,6 +257,19 @@ async def get_settings(
     return SettingsResponse(
         language=settings_dict.get(SETTING_KEY_LANGUAGE, DEFAULT_SETTINGS[SETTING_KEY_LANGUAGE]),
         theme=settings_dict.get(SETTING_KEY_THEME, DEFAULT_SETTINGS[SETTING_KEY_THEME]),
+        theme_preset=_normalize_theme_preset(settings_dict.get(SETTING_KEY_THEME_PRESET)),
+        theme_accent_color=_normalize_hex_color(
+            settings_dict.get(SETTING_KEY_THEME_ACCENT_COLOR),
+            default=DEFAULT_SETTINGS[SETTING_KEY_THEME_ACCENT_COLOR],
+        ),
+        app_background_color=_normalize_hex_color(
+            settings_dict.get(SETTING_KEY_APP_BACKGROUND_COLOR),
+            default=DEFAULT_SETTINGS[SETTING_KEY_APP_BACKGROUND_COLOR],
+        ),
+        editor_background_color=_normalize_hex_color(
+            settings_dict.get(SETTING_KEY_EDITOR_BACKGROUND_COLOR),
+            default=DEFAULT_SETTINGS[SETTING_KEY_EDITOR_BACKGROUND_COLOR],
+        ),
         font_family=settings_dict.get(
             SETTING_KEY_FONT_FAMILY, DEFAULT_SETTINGS[SETTING_KEY_FONT_FAMILY]
         ),
@@ -366,6 +403,25 @@ async def update_settings(
         settings_to_update[SETTING_KEY_LANGUAGE] = request.language
     if request.theme is not None:
         settings_to_update[SETTING_KEY_THEME] = request.theme
+    if request.theme_preset is not None:
+        settings_to_update[SETTING_KEY_THEME_PRESET] = _normalize_theme_preset(
+            request.theme_preset
+        )
+    if request.theme_accent_color is not None:
+        settings_to_update[SETTING_KEY_THEME_ACCENT_COLOR] = _normalize_hex_color(
+            request.theme_accent_color,
+            default=DEFAULT_SETTINGS[SETTING_KEY_THEME_ACCENT_COLOR],
+        )
+    if request.app_background_color is not None:
+        settings_to_update[SETTING_KEY_APP_BACKGROUND_COLOR] = _normalize_hex_color(
+            request.app_background_color,
+            default=DEFAULT_SETTINGS[SETTING_KEY_APP_BACKGROUND_COLOR],
+        )
+    if request.editor_background_color is not None:
+        settings_to_update[SETTING_KEY_EDITOR_BACKGROUND_COLOR] = _normalize_hex_color(
+            request.editor_background_color,
+            default=DEFAULT_SETTINGS[SETTING_KEY_EDITOR_BACKGROUND_COLOR],
+        )
     if request.font_family is not None:
         settings_to_update[SETTING_KEY_FONT_FAMILY] = request.font_family
     if request.code_font_family is not None:

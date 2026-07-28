@@ -80,6 +80,10 @@ async def test_get_settings_default(client: AsyncClient) -> None:
     # 验证默认值
     assert data["language"] == "zh-CN"
     assert data["theme"] == "light"
+    assert data["theme_preset"] == "default"
+    assert data["theme_accent_color"] == "#6f5fa5"
+    assert data["app_background_color"] == "#ffffff"
+    assert data["editor_background_color"] == "#fffaf2"
     assert data["font_family"] == "SourceHanSerifCN-VF"
     assert data["code_font_family"] == "JetBrainsMapleMono"
     assert data["default_model"] == ""
@@ -122,6 +126,54 @@ async def test_update_settings_theme(client: AsyncClient) -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["theme"] == "dark"
+
+
+@pytest.mark.asyncio
+async def test_update_settings_theme_customization(client: AsyncClient) -> None:
+    """测试更新并持久化主题预设与自定义颜色。"""
+    response = await client.put(
+        "/api/v1/settings",
+        json={
+            "theme_preset": "custom",
+            "theme_accent_color": "#336699",
+            "app_background_color": "#edf2f7",
+            "editor_background_color": "#fff4df",
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["theme_preset"] == "custom"
+    assert data["theme_accent_color"] == "#336699"
+    assert data["app_background_color"] == "#edf2f7"
+    assert data["editor_background_color"] == "#fff4df"
+
+    persisted = (await client.get("/api/v1/settings")).json()
+    assert persisted["theme_preset"] == "custom"
+    assert persisted["theme_accent_color"] == "#336699"
+    assert persisted["app_background_color"] == "#edf2f7"
+    assert persisted["editor_background_color"] == "#fff4df"
+
+
+@pytest.mark.asyncio
+async def test_update_settings_theme_customization_normalizes_invalid_values(
+    client: AsyncClient,
+) -> None:
+    """测试非法主题值回退到安全默认值。"""
+    response = await client.put(
+        "/api/v1/settings",
+        json={
+            "theme_preset": "unknown",
+            "theme_accent_color": "red",
+            "app_background_color": "linear-gradient(red, blue)",
+            "editor_background_color": "url(bad)",
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["theme_preset"] == "default"
+    assert data["theme_accent_color"] == "#6f5fa5"
+    assert data["app_background_color"] == "#ffffff"
+    assert data["editor_background_color"] == "#fffaf2"
 
 
 @pytest.mark.asyncio

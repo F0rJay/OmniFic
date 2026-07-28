@@ -12,6 +12,9 @@ export type LanguageCode = "zh-CN" | "en";
 /** 支持的主题 */
 export type ThemeMode = "light" | "dark";
 
+/** 支持的主题配色预设 */
+export type ThemePresetId = "default" | "paper" | "mist" | "mint" | "lavender" | "custom";
+
 export type AgentToolPermissionMode = "allow" | "ask" | "deny";
 
 export interface AgentToolPermission {
@@ -28,6 +31,10 @@ export interface AgentToolMetadata {
 export interface Settings {
   language: LanguageCode;
   theme: ThemeMode;
+  themePreset: ThemePresetId;
+  themeAccentColor: string;
+  appBackgroundColor: string;
+  editorBackgroundColor: string;
   fontFamily: string;
   codeFontFamily: string;
   defaultModel: string;
@@ -49,6 +56,10 @@ export interface Settings {
 export interface SettingsResponse {
   language: string;
   theme: string;
+  theme_preset?: string;
+  theme_accent_color?: string;
+  app_background_color?: string;
+  editor_background_color?: string;
   font_family: string;
   code_font_family?: string;
   default_model: string;
@@ -73,6 +84,10 @@ export interface SettingsResponse {
 export interface SettingsUpdateRequest {
   language?: string;
   theme?: string;
+  theme_preset?: string;
+  theme_accent_color?: string;
+  app_background_color?: string;
+  editor_background_color?: string;
   font_family?: string;
   code_font_family?: string;
   default_model?: string;

@@ -157,6 +157,10 @@ export function SettingsContent({
       const request: SettingsUpdateRequest = {
         language: settings.language,
         theme: settings.theme,
+        theme_preset: settings.themePreset,
+        theme_accent_color: settings.themeAccentColor,
+        app_background_color: settings.appBackgroundColor,
+        editor_background_color: settings.editorBackgroundColor,
         font_family: settings.fontFamily,
         code_font_family: settings.codeFontFamily,
         agent_tool_permissions: settings.agentToolPermissions.map((item) => ({

@@ -38,6 +38,10 @@ class SettingsResponse(BaseModel):
 
     language: str = Field(default="zh-CN", description="语言")
     theme: str = Field(default="light", description="主题")
+    theme_preset: str = Field(default="default", description="主题配色预设")
+    theme_accent_color: str = Field(default="#6f5fa5", description="自定义主题强调色")
+    app_background_color: str = Field(default="#ffffff", description="自定义界面背景色")
+    editor_background_color: str = Field(default="#fffaf2", description="自定义编辑区背景色")
     font_family: str = Field(default="SourceHanSerifCN-VF", description="字体")
     code_font_family: str = Field(default="JetBrainsMapleMono", description="代码字体")
     default_model: str = Field(default="", description="默认模型 ID")
@@ -72,6 +76,10 @@ class SettingsUpdateRequest(BaseModel):
 
     language: str | None = Field(default=None, description="语言")
     theme: str | None = Field(default=None, description="主题")
+    theme_preset: str | None = Field(default=None, description="主题配色预设")
+    theme_accent_color: str | None = Field(default=None, description="自定义主题强调色")
+    app_background_color: str | None = Field(default=None, description="自定义界面背景色")
+    editor_background_color: str | None = Field(default=None, description="自定义编辑区背景色")
     font_family: str | None = Field(default=None, description="字体")
     code_font_family: str | None = Field(default=None, description="代码字体")
     default_model: str | None = Field(default=None, description="默认模型 ID")

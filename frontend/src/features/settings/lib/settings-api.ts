@@ -18,6 +18,13 @@ import {
   getSupportedCodeFontFamily,
   getSupportedFontFamily,
 } from "./settings.types";
+import {
+  DEFAULT_APP_BACKGROUND_COLOR,
+  DEFAULT_EDITOR_BACKGROUND_COLOR,
+  DEFAULT_THEME_ACCENT_COLOR,
+  normalizeHexColor,
+  normalizeThemePreset,
+} from "./theme-customization";
 
 /**
  * 后端响应字段转换（snake_case -> camelCase）
@@ -26,6 +33,16 @@ export function transformSettings(raw: SettingsResponse): Settings {
   return {
     language: raw.language as Settings["language"],
     theme: raw.theme as Settings["theme"],
+    themePreset: normalizeThemePreset(raw.theme_preset),
+    themeAccentColor: normalizeHexColor(raw.theme_accent_color ?? "", DEFAULT_THEME_ACCENT_COLOR),
+    appBackgroundColor: normalizeHexColor(
+      raw.app_background_color ?? "",
+      DEFAULT_APP_BACKGROUND_COLOR,
+    ),
+    editorBackgroundColor: normalizeHexColor(
+      raw.editor_background_color ?? "",
+      DEFAULT_EDITOR_BACKGROUND_COLOR,
+    ),
     fontFamily: getSupportedFontFamily(raw.font_family),
     codeFontFamily: getSupportedCodeFontFamily(raw.code_font_family || DEFAULT_CODE_FONT_FAMILY),
     defaultModel: raw.default_model || "",
