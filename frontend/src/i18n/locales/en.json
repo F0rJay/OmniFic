@@ -271,6 +271,8 @@
     "autoSaved": "Auto-saved",
     "saving": "Saving...",
     "saved": "Saved",
+    "saveFailed": "Save failed",
+    "retrySave": "Retry save",
     "unsavedChanges": "Unsaved changes",
     "agentLockedChapterEdit": "The Agent is running, so chapters cannot be edited right now",
     "agentLockedNoteEdit": "The Agent is running, so notes cannot be edited right now",
@@ -1588,6 +1590,9 @@
       "chapterWrite": "Writing chapters",
       "callingSkill": "Calling a skill"
     },
+    "executionTimeline": "Execution progress",
+    "expandExecutionTimeline": "Expand execution progress",
+    "collapseExecutionTimeline": "Collapse execution progress",
     "applyingChanges": "Applying changes...",
     "waitingForApproval": "Waiting for approval...",
     "waitingForAnswer": "Waiting for an answer...",

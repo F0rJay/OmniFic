@@ -299,7 +299,8 @@ function ChapterListItemComponent({
       WebkitUserSelect: "none" as const,
       WebkitTouchCallout: "none" as const,
       WebkitTapHighlightColor: "transparent",
-      transition: "background-color 0.08s ease, color 0.08s ease, opacity 0.08s ease",
+      transition:
+        "background-color var(--motion-duration-fast) var(--motion-easing-standard), color var(--motion-duration-fast) var(--motion-easing-standard), opacity var(--motion-duration-instant) var(--motion-easing-standard)",
     }),
     [isActive, isDarkPressed, isPendingPressed, isPressed],
   );
@@ -462,6 +463,7 @@ function ChapterListItemComponent({
   return (
     <Box
       className="chapter-list-item-row"
+      data-active={isActive ? "true" : undefined}
       style={style}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -511,8 +513,8 @@ function SortableChapterListItemComponent({
     () => ({
       transform: CSS.Transform.toString(transform),
       transition: transition
-        ? `${transition}, background-color 0.08s ease, opacity 0.08s ease`
-        : "background-color 0.08s ease, opacity 0.08s ease",
+        ? `${transition}, background-color var(--motion-duration-fast) var(--motion-easing-standard), opacity var(--motion-duration-instant) var(--motion-easing-standard)`
+        : "background-color var(--motion-duration-fast) var(--motion-easing-standard), opacity var(--motion-duration-instant) var(--motion-easing-standard)",
       opacity: isDragging ? 0.5 : 1,
       background: isDragging ? "var(--accent-a2)" : isActive ? "var(--accent-a3)" : "transparent",
       cursor: "grab",
@@ -545,6 +547,7 @@ function SortableChapterListItemComponent({
     <Box
       ref={setNodeRef}
       className="chapter-list-item-row"
+      data-active={isActive ? "true" : undefined}
       style={style}
       onClick={handleSelect}
       {...attributes}

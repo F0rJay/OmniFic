@@ -55,3 +55,27 @@
   );
   pointer-events: none;
 }
+
+.chapter-list-item-row::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 5px;
+  z-index: 1;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--accent-9);
+  opacity: 0;
+  pointer-events: none;
+  transform: scaleY(0.4);
+  transform-origin: center;
+  transition:
+    opacity var(--motion-duration-fast) var(--motion-easing-standard),
+    transform var(--motion-duration-normal) var(--motion-easing-standard);
+}
+
+.chapter-list-item-row[data-active="true"]::before {
+  opacity: 1;
+  transform: scaleY(1);
+}

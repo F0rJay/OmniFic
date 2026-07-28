@@ -2,6 +2,8 @@ import { Box, Flex, Text, Tooltip } from "@radix-ui/themes";
 import { motion } from "motion/react";
 import { Link } from "react-router";
 
+import { MOTION_TRANSITION } from "@/lib/motion";
+
 import "./sidebar-nav.css";
 import {
   SIDEBAR_ICON_SIZE,
@@ -28,9 +30,14 @@ function SidebarNavItem({ item, isExpanded }: { item: AppSidebarNavItem; isExpan
         alignItems: "center",
         height: SIDEBAR_ITEM_HEIGHT,
       }}
-      whileTap={{ scale: 0.97 }}
-      transition={{ duration: 0.15 }}
     >
+      {item.active ? (
+        <motion.span
+          layoutId="app-sidebar-active-indicator"
+          className="app-sidebar-nav-item__active-indicator"
+          transition={MOTION_TRANSITION.normal}
+        />
+      ) : null}
       <Box
         className="app-sidebar-nav-item__icon-box"
         style={{
@@ -54,7 +61,7 @@ function SidebarNavItem({ item, isExpanded }: { item: AppSidebarNavItem; isExpan
           opacity: isExpanded ? 1 : 0,
           width: isExpanded ? 132 : 0,
         }}
-        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+        transition={MOTION_TRANSITION.normal}
         className="app-sidebar-nav-item__label"
         style={{ pointerEvents: isExpanded ? "auto" : "none" }}
       >

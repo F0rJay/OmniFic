@@ -26,7 +26,7 @@ import {
   type ScrollViewportMetrics,
 } from "./agent-messages-scroll";
 import { getAgentRunningStatus } from "./agent-running-status";
-import { AgentStatusMessage } from "./agent-status-message";
+import { AgentStatusMessage, type AgentExecutionStep } from "./agent-status-message";
 import {
   buildAgentMessageBlocks,
   getAgentRoundToolbarTargets,
@@ -195,6 +195,10 @@ export function AgentMessages({
   );
   const [pendingForkTarget, setPendingForkTarget] = useState<AgentRoundToolbarTarget | null>(null);
   const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(() => new Set());
+  const [executionSteps, setExecutionSteps] = useState<AgentExecutionStep[]>([]);
+  const executionSequenceRef = useRef(0);
+  const executionRunKeyRef = useRef<string | null>(null);
+  const wasExecutionActiveRef = useRef(false);
   const streamFollowSignal = getStreamingFollowSignal(messages);
   const runningStatus = useMemo(() => getAgentRunningStatus(messages), [messages]);
   const elapsed = useElapsedDuration(runStartedAt, status === "running");
@@ -202,6 +206,38 @@ export function AgentMessages({
     status === "running" && runningStatus
       ? t(`assistant.runningStatus.${runningStatus}`)
       : currentStage;
+  const isExecutionActive =
+    status === "running" || status === "waiting_answer" || status === "waiting_approval";
+
+  useEffect(() => {
+    if (!isExecutionActive || !statusMessage) {
+      wasExecutionActiveRef.current = false;
+      return;
+    }
+
+    const runKey = runStartedAt ?? null;
+    const isNewRun =
+      !wasExecutionActiveRef.current || (runKey !== null && executionRunKeyRef.current !== runKey);
+    const stepKey = status === "running" ? `running:${runningStatus ?? statusMessage}` : status;
+
+    wasExecutionActiveRef.current = true;
+    executionRunKeyRef.current = runKey;
+    setExecutionSteps((current) => {
+      const nextStep = {
+        id: (executionSequenceRef.current += 1),
+        key: stepKey,
+        content: statusMessage,
+      };
+      if (isNewRun || current.length === 0) return [nextStep];
+
+      const lastStep = current[current.length - 1];
+      if (lastStep?.key === stepKey) {
+        if (lastStep.content === statusMessage) return current;
+        return [...current.slice(0, -1), { ...lastStep, content: statusMessage }];
+      }
+      return [...current, nextStep].slice(-5);
+    });
+  }, [isExecutionActive, runStartedAt, runningStatus, status, statusMessage]);
 
   const getScrollContainer = useCallback(
     () => scrollContainerRef.current ?? bottomRef.current?.closest(".ai-sidebar-messages"),
@@ -682,7 +718,8 @@ export function AgentMessages({
         {(status === "running" || status === "waiting_answer" || status === "waiting_approval") &&
           statusMessage && (
             <AgentStatusMessage
-              content={statusMessage}
+              steps={executionSteps}
+              currentContent={statusMessage}
               elapsed={status === "running" ? elapsed : undefined}
             />
           )}

@@ -1,5 +1,6 @@
 import { Theme } from "@radix-ui/themes";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { MotionConfig } from "motion/react";
 import { lazy, StrictMode, Suspense, useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router";
 
@@ -177,7 +178,7 @@ function AppRoot() {
   }, [appearance, settings?.fontFamily, settings?.codeFontFamily]);
 
   return (
-    <>
+    <MotionConfig reducedMotion="user">
       <Theme
         appearance={appearance}
         accentColor="gray"
@@ -200,7 +201,7 @@ function AppRoot() {
         )}
       </Theme>
       {isReady ? <Toaster appearance={appearance} /> : null}
-    </>
+    </MotionConfig>
   );
 }
 

@@ -1,0 +1,76 @@
+.chapter-save-status {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: var(--gray-10);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.25;
+  transition:
+    color var(--motion-duration-fast) var(--motion-easing-standard),
+    opacity var(--motion-duration-normal) var(--motion-easing-standard);
+}
+
+.chapter-save-status:not(:disabled) {
+  cursor: pointer;
+}
+
+.chapter-save-status:not(:disabled):hover {
+  color: var(--gray-12);
+}
+
+.chapter-save-status:focus-visible {
+  outline: 2px solid var(--accent-8);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.chapter-save-status[data-status="unsaved"] {
+  color: var(--amber-10);
+}
+
+.chapter-save-status[data-status="saving"] {
+  color: var(--blue-10);
+}
+
+.chapter-save-status[data-status="saved"] {
+  color: var(--green-10);
+}
+
+.chapter-save-status[data-status="saved"][data-settled="true"] {
+  color: var(--gray-9);
+  opacity: 0.72;
+}
+
+.chapter-save-status[data-status="error"] {
+  color: var(--red-10);
+}
+
+.chapter-save-status__content {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.chapter-save-status__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chapter-save-status__live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

@@ -1,0 +1,120 @@
+.agent-execution-timeline {
+  overflow: hidden;
+  margin-top: 8px;
+  border: 1px solid var(--gray-a4);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-background) 88%, var(--gray-a2));
+}
+
+.agent-execution-timeline__toggle {
+  display: flex;
+  width: 100%;
+  min-height: 34px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--gray-11);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition: background-color var(--motion-duration-fast) var(--motion-easing-standard);
+}
+
+.agent-execution-timeline__toggle:hover {
+  background: var(--gray-a2);
+}
+
+.agent-execution-timeline__toggle:focus-visible {
+  outline: 2px solid var(--accent-8);
+  outline-offset: -2px;
+}
+
+.agent-execution-timeline__heading,
+.agent-execution-timeline__meta {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.agent-execution-timeline__heading {
+  gap: 7px;
+}
+
+.agent-execution-timeline__meta {
+  flex: 0 0 auto;
+  gap: 5px;
+  color: var(--gray-9);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.agent-execution-timeline__current {
+  overflow: hidden;
+  color: var(--gray-9);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-execution-timeline__chevron {
+  display: inline-flex;
+}
+
+.agent-execution-timeline__active-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--blue-9);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue-9) 14%, transparent);
+  animation: motion-breathe 1.8s ease-in-out infinite;
+}
+
+.agent-execution-timeline__steps {
+  position: relative;
+  margin: 0;
+  padding: 1px 10px 9px 17px;
+  overflow: hidden;
+  list-style: none;
+}
+
+.agent-execution-timeline__steps::before {
+  content: "";
+  position: absolute;
+  top: 7px;
+  bottom: 15px;
+  left: 20px;
+  width: 1px;
+  background: var(--gray-a5);
+}
+
+.agent-execution-timeline__step {
+  position: relative;
+  display: flex;
+  min-height: 25px;
+  align-items: center;
+  gap: 8px;
+  color: var(--gray-9);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.agent-execution-timeline__step[data-current="true"] {
+  color: var(--gray-12);
+}
+
+.agent-execution-timeline__step-icon {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--color-background);
+  color: var(--green-10);
+}

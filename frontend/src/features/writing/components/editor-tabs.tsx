@@ -35,11 +35,13 @@ import {
   X,
   XCircle,
 } from "lucide-react";
+import { motion } from "motion/react";
 import { memo, useCallback, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ContextMenu, type ContextMenuItem } from "@/components";
 import { buildChapterMentionTag, buildNoteMentionTag } from "@/features/assistant/lib/mention-text";
+import { MOTION_TRANSITION } from "@/lib/motion";
 
 import { isEmptyTab } from "../lib/tab.types";
 import type { EditorTab } from "../lib/tab.types";
@@ -110,6 +112,23 @@ const SortableTabItem = memo(function SortableTabItem({
           marginBottom: isActive ? 0 : 1,
         }}
       >
+        {isActive ? (
+          <motion.span
+            layoutId="editor-tab-active-indicator"
+            aria-hidden="true"
+            transition={MOTION_TRANSITION.normal}
+            style={{
+              position: "absolute",
+              right: 10,
+              bottom: 0,
+              left: 10,
+              height: 2,
+              borderRadius: 999,
+              background: "var(--accent-9)",
+              pointerEvents: "none",
+            }}
+          />
+        ) : null}
         {/* 类型图标 */}
         {tab.type === "chapter" ? (
           <FileText

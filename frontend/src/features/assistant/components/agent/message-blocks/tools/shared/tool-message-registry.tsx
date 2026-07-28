@@ -176,7 +176,6 @@ const TOOL_REGISTRY = {
     icon: FilePenLine,
     getTitle: () => i18n.t("assistant.tools.writeChapter"),
     getDetail: (message) => getChapterPayload(message).title,
-    defaultExpanded: () => true,
     render: (message) => <ChapterToolMessage message={message} />,
   },
   edit_chapter: {
@@ -189,7 +188,6 @@ const TOOL_REGISTRY = {
     getTitle: () => i18n.t("assistant.tools.editChapter"),
     getDetail: (message) =>
       getChapterPayload(message).title ?? formatChapterRefLabel(getToolRef(message, "chapter_ref")),
-    defaultExpanded: () => true,
     render: (message) => <ChapterToolMessage message={message} />,
   },
   delete_chapter: {
@@ -246,7 +244,6 @@ const TOOL_REGISTRY = {
     icon: NotebookPen,
     getTitle: () => i18n.t("assistant.tools.writeNote"),
     getDetail: (message) => getNotePayload(message).title,
-    defaultExpanded: () => true,
     render: (message) => <WriteNoteToolMessage message={message} />,
   },
   edit_note: {
@@ -259,7 +256,6 @@ const TOOL_REGISTRY = {
     getTitle: () => i18n.t("assistant.tools.editNote"),
     getDetail: (message) =>
       getNotePayload(message).title ?? formatNoteRefLabel(getToolRef(message, "note_ref")),
-    defaultExpanded: () => true,
     render: (message) => <EditNoteToolMessage message={message} />,
   },
   delete_note: {
@@ -553,7 +549,6 @@ const TOOL_REGISTRY = {
     icon: PenLine,
     getTitle: () => i18n.t("assistant.tools.createWorldEntry"),
     getDetail: (message) => getWorldEntryPayload(message).title,
-    defaultExpanded: () => true,
     render: (message) => <WorldEntryToolMessage message={message} />,
   },
   edit_world_entry: {
@@ -565,7 +560,6 @@ const TOOL_REGISTRY = {
     icon: PenLine,
     getTitle: () => i18n.t("assistant.tools.editWorldEntry"),
     getDetail: (message) => getWorldEntryPayload(message).title,
-    defaultExpanded: () => true,
     render: (message) => <WorldEntryToolMessage message={message} />,
   },
   delete_world_entry: {
@@ -587,7 +581,6 @@ const TOOL_REGISTRY = {
     icon: UserRoundPen,
     getTitle: () => i18n.t("assistant.tools.createCharacter"),
     getDetail: (message) => getCharacterPayload(message).name,
-    defaultExpanded: () => true,
     render: (message) => <CharacterToolMessage message={message} />,
   },
   edit_character: {
@@ -599,7 +592,6 @@ const TOOL_REGISTRY = {
     icon: UserRoundPen,
     getTitle: () => i18n.t("assistant.tools.editCharacter"),
     getDetail: (message) => getCharacterPayload(message).name,
-    defaultExpanded: () => true,
     render: (message) => <CharacterToolMessage message={message} />,
   },
   delete_character: {

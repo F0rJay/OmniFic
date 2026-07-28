@@ -37,6 +37,7 @@ import {
 } from "../lib/writing-working-copy";
 import { useTabsStore } from "../store/use-tabs-store";
 import { FindReplacePanel } from "./find-replace-panel";
+import { SaveStatusIndicator, type SaveStatus } from "./save-status-indicator";
 
 const MANUAL_SAVE_EVENT = "openfic:chapter-editor-manual-save";
 
@@ -98,9 +99,16 @@ function ChapterEditorContent({
     isChapterEditorDraftDirty(lastSavedDraftRef.current, initialDraft),
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
   const [findReplaceMode, setFindReplaceMode] = useState<"closed" | "find" | "replace">("closed");
   const [wordCount, setWordCount] = useState(() => wordsCount(initialDraft.content));
-  const saveStatus = isSaving ? "saving" : hasChanges ? "unsaved" : "saved";
+  const saveStatus: SaveStatus = isSaving
+    ? "saving"
+    : saveError
+      ? "error"
+      : hasChanges
+        ? "unsaved"
+        : "saved";
   const latestDraftRef = useRef(initialDraft);
   const latestDraftUpdatedAtRef = useRef(initialDraftUpdatedAt);
   const hasChangesRef = useRef(isChapterEditorDraftDirty(lastSavedDraftRef.current, initialDraft));
@@ -185,6 +193,7 @@ function ChapterEditorContent({
       latestDraftRef.current = nextDraft;
       hasChangesRef.current = isDirty;
       setHasChanges(isDirty);
+      setSaveError(false);
       if (isDirty) {
         persistDraft(nextDraft);
       }
@@ -239,6 +248,7 @@ function ChapterEditorContent({
       const draftUpdatedAt = latestDraftUpdatedAtRef.current;
       const currentWordCount = wordsCount(draftToSave.content);
 
+      setSaveError(false);
       setIsSaving(true);
       try {
         persistWorkingCopy(draftToSave, baseUpdatedAtRef.current, draftUpdatedAt);
@@ -263,6 +273,7 @@ function ChapterEditorContent({
           toast.success(t("writing.saved"));
         }
       } catch {
+        setSaveError(true);
         syncDirtyStateFromEditor(editor);
       } finally {
         setIsSaving(false);
@@ -569,14 +580,20 @@ function ChapterEditorContent({
         >
           {wordCount} {t("writing.words")}
         </Text>
-        <Text
-          size="1"
-          color="gray"
-        >
-          {saveStatus === "saving" && t("writing.saving")}
-          {saveStatus === "saved" && t("writing.saved")}
-          {saveStatus === "unsaved" && t("writing.unsavedChanges")}
-        </Text>
+        <SaveStatusIndicator
+          status={saveStatus}
+          label={
+            saveStatus === "saving"
+              ? t("writing.saving")
+              : saveStatus === "saved"
+                ? t("writing.saved")
+                : saveStatus === "error"
+                  ? t("writing.saveFailed")
+                  : t("writing.unsavedChanges")
+          }
+          retryLabel={t("writing.retrySave")}
+          onRetry={() => void handleSave(true)}
+        />
       </Flex>
     </Box>
   );

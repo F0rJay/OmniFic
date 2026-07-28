@@ -271,6 +271,8 @@
     "autoSaved": "已自动保存",
     "saving": "保存中...",
     "saved": "已保存",
+    "saveFailed": "保存失败",
+    "retrySave": "重试保存",
     "unsavedChanges": "有未保存的更改",
     "agentLockedChapterEdit": "Agent 运行中，章节暂不可修改",
     "agentLockedNoteEdit": "Agent 运行中，笔记暂不可修改",
@@ -1651,6 +1653,9 @@
       "chapterWrite": "正在章节写入",
       "callingSkill": "正在调用技能"
     },
+    "executionTimeline": "执行进度",
+    "expandExecutionTimeline": "展开执行进度",
+    "collapseExecutionTimeline": "收起执行进度",
     "applyingChanges": "正在应用修改...",
     "waitingForApproval": "正在等待审批...",
     "waitingForAnswer": "正在等待回答...",

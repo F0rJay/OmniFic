@@ -36,7 +36,7 @@ export function AgentThinkingMessage({ message }: AgentThinkingMessageProps) {
   const [startedAt] = useState(() => Date.now());
   const wasRunningRef = useRef(isRunning);
   const [durationMs, setDurationMs] = useState(initialDurationMs);
-  const [isExpanded, setIsExpanded] = useState(isRunning);
+  const [isExpanded, setIsExpanded] = useState(false);
   const content = message.content ?? "";
   const hasContent = content.trim().length > 0;
 
@@ -53,7 +53,6 @@ export function AgentThinkingMessage({ message }: AgentThinkingMessageProps) {
   useEffect(() => {
     if (isRunning) {
       wasRunningRef.current = true;
-      queueMicrotask(() => setIsExpanded(true));
       return;
     }
 
