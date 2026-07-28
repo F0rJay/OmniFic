@@ -1,7 +1,15 @@
+.tiptap-editor-wrapper {
+  background: var(--writing-editor-background, var(--color-background));
+  color: var(--writing-editor-foreground, var(--gray-12));
+  transition:
+    background-color var(--motion-duration-normal) var(--motion-easing-standard),
+    color var(--motion-duration-normal) var(--motion-easing-standard);
+}
+
 .tiptap-editor {
   min-height: 400px;
   outline: none;
-  color: var(--gray-12);
+  color: var(--writing-editor-foreground, var(--gray-12));
   font-size: 1rem;
   line-height: 1.8;
 }
@@ -82,9 +90,14 @@
   content: attr(data-placeholder);
   float: left;
   height: 0;
-  color: var(--gray-a9);
+  color: var(--writing-editor-muted, var(--gray-a9));
   pointer-events: none;
   text-indent: 0;
+}
+
+.tiptap-editor ::selection,
+.tiptap-editor-wrapper input::selection {
+  background: var(--writing-editor-selection, var(--accent-a4));
 }
 
 .tiptap-editor .search-result {

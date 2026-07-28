@@ -144,7 +144,7 @@ export function TitleInput({
           fontSize: "2rem",
           fontWeight: 700,
           lineHeight: 1.3,
-          color: "var(--gray-12)",
+          color: "var(--writing-editor-foreground, var(--gray-12))",
           padding: 0,
           cursor: disabled ? "not-allowed" : "text",
         }}

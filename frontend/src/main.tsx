@@ -1,7 +1,7 @@
 import { Theme } from "@radix-ui/themes";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { MotionConfig } from "motion/react";
-import { lazy, StrictMode, Suspense, useState, useEffect } from "react";
+import { lazy, StrictMode, Suspense, useState, useEffect, useMemo } from "react";
 import { BrowserRouter, Routes, Route } from "react-router";
 
 import App from "./App.tsx";
@@ -11,6 +11,13 @@ import { AppLayout } from "./features/app-shell";
 import { CharactersPage } from "./features/characters";
 import { PromptChainsPage } from "./features/prompt-chains";
 import { fetchSettings } from "./features/settings/lib/settings-api";
+import {
+  DEFAULT_APP_BACKGROUND_COLOR,
+  DEFAULT_EDITOR_BACKGROUND_COLOR,
+  DEFAULT_THEME_ACCENT_COLOR,
+  DEFAULT_THEME_PRESET,
+  createThemeCssVariables,
+} from "./features/settings/lib/theme-customization";
 import { WorldInfoPage } from "./features/world-info";
 import { WritingPage } from "./features/writing";
 import { checkHealth } from "./lib/api-client";
@@ -177,6 +184,26 @@ function AppRoot() {
     });
   }, [appearance, settings?.fontFamily, settings?.codeFontFamily]);
 
+  const themeCssVariables = useMemo(
+    () =>
+      createThemeCssVariables(
+        {
+          themePreset: settings?.themePreset ?? DEFAULT_THEME_PRESET,
+          themeAccentColor: settings?.themeAccentColor ?? DEFAULT_THEME_ACCENT_COLOR,
+          appBackgroundColor: settings?.appBackgroundColor ?? DEFAULT_APP_BACKGROUND_COLOR,
+          editorBackgroundColor: settings?.editorBackgroundColor ?? DEFAULT_EDITOR_BACKGROUND_COLOR,
+        },
+        appearance,
+      ),
+    [
+      appearance,
+      settings?.appBackgroundColor,
+      settings?.editorBackgroundColor,
+      settings?.themeAccentColor,
+      settings?.themePreset,
+    ],
+  );
+
   return (
     <MotionConfig reducedMotion="user">
       <Theme
@@ -185,6 +212,7 @@ function AppRoot() {
         grayColor="gray"
         radius="medium"
         scaling="100%"
+        style={themeCssVariables}
       >
         {!isReady ? (
           <GlobalLoading
