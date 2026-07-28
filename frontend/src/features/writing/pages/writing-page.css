@@ -145,7 +145,7 @@
   top: 0;
   bottom: 0;
   left: 50%;
-  width: 0.3px;
+  width: 1px;
   transform: translateX(-50%);
   background: var(--gray-a5);
   transition:
@@ -155,8 +155,17 @@
 }
 
 .resize-handle[data-separator]:hover::after {
-  width: 4px;
-  background: var(--gray-a7);
+  width: 3px;
+  background: var(--gray-a11);
+}
+
+.resize-handle[data-separator]:focus-visible {
+  outline: none;
+}
+
+.resize-handle[data-separator]:focus-visible::after {
+  width: 3px;
+  background: var(--accent-9);
 }
 
 .writing-page-editor-shell {
@@ -234,8 +243,8 @@
 }
 
 .resize-handle[data-separator][data-resize-handle-state="drag"]::after {
-  width: 4px;
-  background: var(--accent-a5);
+  width: 3px;
+  background: var(--accent-9);
 }
 
 @media (max-width: 767px) {
