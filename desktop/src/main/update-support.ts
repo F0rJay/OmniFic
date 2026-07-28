@@ -3,10 +3,10 @@ export interface UpdateSupportEnvironment {
   arch: string;
 }
 
-export function getUpdateArchitectureName(environment: UpdateSupportEnvironment): "x86_64" | "aarch64" | null {
+export function getUpdateArchitectureName(environment: UpdateSupportEnvironment): "x86_64" | "arm64" | null {
   if (environment.platform !== "win32") return null;
   if (environment.arch === "x64") return "x86_64";
-  if (environment.arch === "arm64") return "aarch64";
+  if (environment.arch === "arm64") return "arm64";
   return null;
 }
 

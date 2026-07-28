@@ -100,16 +100,16 @@ jobs:
             artifact_arch: x86_64
           - os: windows-11-arm
             electron_args: '--win --arm64'
-            artifact_suffix: windows-aarch64
-            artifact_arch: aarch64
+            artifact_suffix: windows-arm64
+            artifact_arch: arm64
           - os: macos-15-intel
             electron_args: '--mac --x64'
             artifact_suffix: mac-x86_64
             artifact_arch: x86_64
           - os: macos-15
             electron_args: '--mac --arm64'
-            artifact_suffix: mac-aarch64
-            artifact_arch: aarch64
+            artifact_suffix: mac-arm64
+            artifact_arch: arm64
     runs-on: ${{ matrix.os }}
     env:
       ELECTRON_CACHE: ${{ github.workspace }}/.electron-cache

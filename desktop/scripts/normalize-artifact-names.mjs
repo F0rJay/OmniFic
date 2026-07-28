@@ -3,9 +3,8 @@ import path from "node:path";
 
 const outputDirectory = path.resolve(process.argv[2] ?? "dist-electron");
 const architectureNames = new Map([
-  ["arm_aarch64", "aarch64"],
+  ["arm_aarch64", "arm64"],
   ["x64", "x86_64"],
-  ["arm64", "aarch64"],
 ]);
 
 function normalizeArtifactName(fileName) {
@@ -27,6 +26,6 @@ for (const entry of await readdir(outputDirectory, { withFileTypes: true })) {
 for (const entry of await readdir(outputDirectory, { withFileTypes: true })) {
   if (!entry.isFile()) continue;
   if (!/^OmniFic-.+-win-setup\.exe(?:\.blockmap)?$/.test(entry.name)) continue;
-  if (entry.name.includes("-win-x86_64-setup") || entry.name.includes("-win-aarch64-setup")) continue;
+  if (entry.name.includes("-win-x86_64-setup") || entry.name.includes("-win-arm64-setup")) continue;
   await rm(path.join(outputDirectory, entry.name));
 }

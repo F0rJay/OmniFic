@@ -5,7 +5,7 @@ import path from "node:path";
 const outputDirectory = path.resolve(process.argv[2] ?? "dist-electron");
 const packageJson = JSON.parse(await readFile(path.resolve("package.json"), "utf8"));
 const version = process.env.OMNIFIC_UPDATE_VERSION ?? packageJson.version;
-const architectures = ["x86_64", "aarch64"];
+const architectures = ["x86_64", "arm64"];
 
 async function getFileInfo(fileName) {
   const filePath = path.join(outputDirectory, fileName);

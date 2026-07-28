@@ -306,16 +306,16 @@ jobs:
             artifact_arch: x86_64
           - os: windows-11-arm
             electron_args: '--win --arm64'
-            artifact_name: windows-update-aarch64
-            artifact_arch: aarch64
+            artifact_name: windows-update-arm64
+            artifact_arch: arm64
           - os: macos-15-intel
             electron_args: '--mac --x64'
             artifact_name: macos-update-x86_64
             artifact_arch: x86_64
           - os: macos-15
             electron_args: '--mac --arm64'
-            artifact_name: macos-update-aarch64
-            artifact_arch: aarch64
+            artifact_name: macos-update-arm64
+            artifact_arch: arm64
     runs-on: ${{ matrix.os }}
     env:
       ELECTRON_CACHE: ${{ github.workspace }}/.electron-cache
@@ -458,6 +458,7 @@ jobs:
         run: |
           gh release upload "${{ needs.context.outputs.release_tag }}" \
             desktop/dist-electron/OmniFic-*-mac-*.zip \
+            desktop/dist-electron/OmniFic-*-mac-*.dmg \
             desktop/dist-electron/latest-mac.yml \
             --clobber
 
@@ -466,18 +467,29 @@ jobs:
     needs: [context, ensure-release, desktop, desktop-windows-update, desktop-macos-update, docker-manifest]
     if: ${{ always() && needs.ensure-release.result == 'success' && needs.desktop.result == 'success' && needs.desktop-windows-update.result == 'success' && needs.desktop-macos-update.result == 'success' && needs.docker-manifest.result == 'success' }}
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/download-artifact@v8
-        with:
-          pattern: desktop-*
-          merge-multiple: true
-          path: assets
-      - name: 列出产物
+      - name: 验证 GitHub Release 桌面产物
         run: |
-          mkdir -p assets
-          find assets -type f -print
-      # release-please 已创建 Release（含 changelog body），此处仅追加构建产物
-      - uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ needs.context.outputs.release_tag }}
-          files: assets/*
+          version="${{ needs.context.outputs.version }}"
+          assets="$(gh release view "${{ needs.context.outputs.release_tag }}" --repo "${{ github.repository }}" --json assets --jq '.assets[].name')"
+          for expected in \
+            "OmniFic-${version}-win-x86_64-setup.exe" \
+            "OmniFic-${version}-win-arm64-setup.exe" \
+            "OmniFic-${version}-win-x86_64.zip" \
+            "OmniFic-${version}-win-arm64.zip" \
+            "OmniFic-${version}-mac-x86_64.dmg" \
+            "OmniFic-${version}-mac-arm64.dmg" \
+            "OmniFic-${version}-mac-x86_64.zip" \
+            "OmniFic-${version}-mac-arm64.zip" \
+            latest.yml \
+            latest-win-x86_64.yml \
+            latest-win-arm64.yml \
+            latest-mac.yml
+          do
+            grep -Fxq "$expected" <<< "$assets" || {
+              echo "GitHub Release 缺少产物：$expected" >&2
+              exit 1
+            }
+          done

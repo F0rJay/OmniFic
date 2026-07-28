@@ -10,7 +10,7 @@ const packageJson = JSON.parse(await readFile(path.resolve("package.json"), "utf
 const version = process.env.OMNIFIC_UPDATE_VERSION ?? packageJson.version;
 const allArchitectures = [
   { artifact: "x86_64", executable: "x86_64" },
-  { artifact: "aarch64", executable: "arm64" },
+  { artifact: "arm64", executable: "arm64" },
 ];
 const requestedArchitecture = process.env.OMNIFIC_ARTIFACT_ARCH;
 const architectures = requestedArchitecture
