@@ -30,8 +30,7 @@ frontend/src/
 │   ├── world-info/        # 世界书
 │   ├── settings/          # 设置页
 │   ├── prompt-chains/     # 提示词链
-│   ├── dashboard/         # 数据面板
-│   └── bookshelf/         # 书架（实验性）
+│   └── dashboard/         # 数据面板
 ├── components/            # 共享组件
 ├── lib/                   # 工具库、API 客户端、类型
 ├── i18n/                  # 国际化
@@ -69,7 +68,6 @@ pnpm dev
 | `/characters` | 角色管理 |
 | `/prompt-chains` | 提示词链 |
 | `/dashboard` | 数据面板 |
-| `/bookshelf` | 书架（实验性） |
 
 ## 国际化
 

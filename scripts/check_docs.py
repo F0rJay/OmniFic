@@ -44,7 +44,10 @@ def check_links() -> list[str]:
     errors = []
     md_files = list(PROJECT_ROOT.glob("**/*.md"))
     for md_file in md_files:
-        if "node_modules" in str(md_file) or ".venv" in str(md_file):
+        relative_parts = md_file.relative_to(PROJECT_ROOT).parts
+        if any(
+            part in {"node_modules", ".venv", "third_party"} for part in relative_parts
+        ):
             continue
         content = md_file.read_text(encoding="utf-8")
         for match in LINK_RE.finditer(content):
@@ -55,7 +58,9 @@ def check_links() -> list[str]:
                 continue
             target_path = (md_file.parent / target).resolve()
             if not target_path.exists():
-                errors.append(f"BROKEN: {md_file.relative_to(PROJECT_ROOT)} -> {target}")
+                errors.append(
+                    f"BROKEN: {md_file.relative_to(PROJECT_ROOT)} -> {target}"
+                )
     return errors
 
 

@@ -45,7 +45,8 @@ docs: 重写 README
 #### 测试
 
 - 后端：`pytest`
-- 前端：`pnpm type-check`（暂无测试框架）
+- 前端：`pnpm test`（Vitest）+ `pnpm type-check`
+- 桌面：`pnpm test:runtime-paths`
 
 详见 [测试指南](docs/develop/testing.md)。
 

@@ -9,7 +9,7 @@
 ### Skill（技能）
 
 - **定义**：可被 Agent 调用的预设能力模块，包含系统提示和工具权限。
-- **代码位置**：`backend/app/skills/*.yaml`, `backend/app/agent_runtime/context/parts/skills.py`
+- **代码位置**：`backend/app/storage/models/skill.py`, `backend/app/skills/loader.py`, `backend/app/agent_runtime/context/parts/skills.py`
 - **延伸阅读**：`docs/features/codex-slash.md`
 - **常见混淆**：Skill != Prompt Chain。Skill 是 Agent 运行时能力，Prompt Chain 是用户自定义的提示词模板。
 
@@ -38,7 +38,7 @@
 
 ### Project
 
-- **定义**：项目 = 一本书。包含 chapter/volume/character/world_info 等子资源。书架上的"书"复用 Project 模型。
+- **定义**：一本作品的顶层容器，包含卷、章、笔记、角色、世界书关联、任务和写作统计等数据。
 - **代码位置**：`backend/app/storage/models/project.py`
 
 ### Volume（卷）
