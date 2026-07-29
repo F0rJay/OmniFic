@@ -308,7 +308,7 @@ jobs:
 
           uv_version="$(docker exec "$container_id" /bin/uv --version)" || \
             fail_smoke "无法读取镜像内的 uv 版本"
-          test "$uv_version" = "uv 0.11.32" || \
+          [[ "$uv_version" == "uv 0.11.32" || "$uv_version" == "uv 0.11.32 "* ]] || \
             fail_smoke "镜像内 uv 版本不匹配：$uv_version"
 
           docker exec "$container_id" test -s /usr/share/doc/base-files/copyright || \
