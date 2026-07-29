@@ -42,7 +42,7 @@ Windows 安装包支持应用内更新。macOS 包使用 ad-hoc 签名以保证 
 
 ## 候选包验证
 
-GitHub Actions 的 `Desktop Release Candidate` 工作流会构建后端 wheel，并将其内置到 Windows/macOS 候选安装包。候选产物仅上传到 Actions Artifacts，不会创建 GitHub Release，也不会发布 PyPI 或 GHCR。实机验证通过后再创建正式版本 tag。
+GitHub Actions 的 `Desktop Release Candidate` 工作流会构建后端 wheel，并将其内置到 Windows/macOS 候选安装包。工作流仍会生成并校验完整桌面产物，但 Actions Artifacts 只上传 Windows `setup.exe` 或 macOS DMG，避免把安装包、ZIP、blockmap 和更新元数据重复打包成数百 MB 的候选下载。候选流程不会创建 GitHub Release，也不会发布 PyPI 或 GHCR；实机验证通过后再创建正式版本 tag。
 
 ## 卸载与数据清理
 

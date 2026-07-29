@@ -159,10 +159,8 @@ jobs:
         with:
           name: OmniFic-${{ needs.context.outputs.version }}-rc-${{ matrix.artifact_suffix }}
           path: |
-            desktop/dist-electron/*.exe
-            desktop/dist-electron/*.blockmap
-            desktop/dist-electron/*.zip
-            desktop/dist-electron/*.dmg
-            desktop/dist-electron/*.yml
+            desktop/dist-electron/OmniFic-*-win-*-setup.exe
+            desktop/dist-electron/OmniFic-*-mac-*.dmg
           if-no-files-found: error
+          compression-level: 0
           retention-days: 7

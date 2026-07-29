@@ -9,6 +9,7 @@
 - 将 Windows/macOS ARM 桌面产物统一命名为 `arm64`，并补齐 GitHub Release 的 macOS DMG 上传
 - 增加桌面 WebView 诊断日志与发行前产物校验
 - 桌面安装包内置同版本 OmniFic wheel，并增加仅上传 Actions Artifacts 的候选包构建流程
+- 精简候选包下载内容，仅上传 Windows 安装程序或 macOS DMG，完整更新产物继续在 CI 内构建校验
 - 补充中英文安装与彻底卸载指南，并更新 README 与官网发行入口
 - 新增中英文产品使用指南，覆盖模型配置、创作工作流、Agent 协作与故障排查
 
