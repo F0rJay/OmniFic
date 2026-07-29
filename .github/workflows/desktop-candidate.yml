@@ -15,6 +15,8 @@ env:
   NODE_VERSION: '22.18.0'
   PNPM_VERSION: '11.8.0'
   UV_CACHE_DIR: ${{ github.workspace }}/.uv-cache
+  UV_HTTP_TIMEOUT: '15'
+  UV_HTTP_RETRIES: '1'
 
 jobs:
   context:
@@ -53,6 +55,11 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            backend/pyproject.toml
+            backend/uv.lock
       - name: 构建前端
         working-directory: frontend
         run: |
@@ -61,7 +68,7 @@ jobs:
       - name: 构建后端 wheel
         working-directory: backend
         run: |
-          uv build
+          python3 ../scripts/run_uv_with_fallback.py build
           wheel="$(find dist -maxdepth 1 -name 'omnific-*.whl' -print -quit)"
           sdist="$(find dist -maxdepth 1 -name 'omnific-*.tar.gz' -print -quit)"
           python3 ../scripts/check_license_compliance.py \
@@ -73,7 +80,9 @@ jobs:
         run: |
           smoke_root="$(mktemp -d)"
           python -m venv "$smoke_root/venv"
-          "$smoke_root/venv/bin/python" -m pip install dist/omnific-*.whl
+          python3 ../scripts/run_uv_with_fallback.py pip install \
+            --python "$smoke_root/venv/bin/python" \
+            dist/omnific-*.whl
           "$smoke_root/venv/bin/python" -c 'import greenlet; print(f"greenlet {greenlet.__version__}")'
           "$smoke_root/venv/bin/omnific" version | grep "${{ needs.context.outputs.version }}"
           OMNIFIC_DATA_DIR="$smoke_root/data" "$smoke_root/venv/bin/omnific" serve --host 127.0.0.1 --port 8765 > "$smoke_root/server.log" 2>&1 &

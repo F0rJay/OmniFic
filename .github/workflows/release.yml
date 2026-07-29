@@ -1,3 +1,4 @@
+# Modified by OmniFic contributors from OpenFic v0.7.5.
 name: Release
 
 on:
@@ -11,6 +12,10 @@ permissions:
 concurrency:
   group: release-please-${{ github.ref }}
   cancel-in-progress: false
+
+env:
+  UV_HTTP_TIMEOUT: '15'
+  UV_HTTP_RETRIES: '1'
 
 jobs:
   release-please:
@@ -52,7 +57,7 @@ jobs:
           git checkout "$PR_HEAD_REF"
 
           pushd backend
-          uv lock
+          python3 ../scripts/run_uv_with_fallback.py lock
           popd
 
           if git diff --quiet -- backend/uv.lock; then

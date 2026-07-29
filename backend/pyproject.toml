@@ -1,6 +1,6 @@
 # Modified by OmniFic contributors from OpenFic v0.7.5.
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling==1.31.0"]
 build-backend = "hatchling.build"
 
 [project]

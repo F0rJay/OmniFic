@@ -14,6 +14,8 @@ env:
   PYTHON_VERSION: '3.12'
   NODE_VERSION: '22.18.0'
   PNPM_VERSION: '11.8.0'
+  UV_HTTP_TIMEOUT: '15'
+  UV_HTTP_RETRIES: '1'
 
 jobs:
   compliance:
@@ -32,6 +34,11 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            backend/pyproject.toml
+            backend/uv.lock
 
       - name: Install locked frontend dependencies
         working-directory: frontend
@@ -41,7 +48,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Install locked Python runtime dependencies
         working-directory: backend
-        run: uv sync --frozen --no-dev
+        run: python3 ../scripts/run_uv_with_fallback.py sync --frozen --no-dev
 
       - name: Verify source and dependency license compliance
         run: python3 scripts/check_license_compliance.py
@@ -57,7 +64,7 @@ jobs:
       - name: Build and verify Python archives
         working-directory: backend
         run: |
-          uv build
+          python3 ../scripts/run_uv_with_fallback.py build
           wheel="$(find dist -maxdepth 1 -name 'omnific-*.whl' -print -quit)"
           sdist="$(find dist -maxdepth 1 -name 'omnific-*.tar.gz' -print -quit)"
           test -n "$wheel"

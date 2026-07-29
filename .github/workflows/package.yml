@@ -19,6 +19,8 @@ env:
   NODE_VERSION: '22.18.0'
   PNPM_VERSION: '11.8.0'
   UV_CACHE_DIR: ${{ github.workspace }}/.uv-cache
+  UV_HTTP_TIMEOUT: '15'
+  UV_HTTP_RETRIES: '1'
 
 jobs:
   # ---------------------------------------------------------------- context
@@ -169,7 +171,7 @@ jobs:
       - name: 构建后端 Python 包
         working-directory: backend
         run: |
-          uv build
+          python3 ../scripts/run_uv_with_fallback.py build
           wheel="$(find dist -maxdepth 1 -name 'omnific-*.whl' -print -quit)"
           sdist="$(find dist -maxdepth 1 -name 'omnific-*.tar.gz' -print -quit)"
           python3 ../scripts/check_license_compliance.py \
@@ -183,7 +185,9 @@ jobs:
           smoke_venv="$smoke_root/venv"
           smoke_data="$smoke_root/data"
           python -m venv "$smoke_venv"
-          "$smoke_venv/bin/python" -m pip install dist/omnific-*.whl
+          python3 ../scripts/run_uv_with_fallback.py pip install \
+            --python "$smoke_venv/bin/python" \
+            dist/omnific-*.whl
           "$smoke_venv/bin/python" -c 'import greenlet; print(f"greenlet {greenlet.__version__}")'
           "$smoke_venv/bin/omnific" version | grep "${{ needs.context.outputs.version }}"
           OMNIFIC_DATA_DIR="$smoke_data" "$smoke_venv/bin/omnific" serve --host 127.0.0.1 --port 8765 > "$smoke_root/server.log" 2>&1 &
