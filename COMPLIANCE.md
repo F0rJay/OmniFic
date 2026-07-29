@@ -4,26 +4,16 @@ OmniFic is an Apache-2.0 derivative of OpenFic v0.7.5. The unmodified Apache
 license text is in `LICENSE`; required attribution is in `NOTICE`; dependency
 and font terms are in `THIRD_PARTY_NOTICES` and `third_party/fonts/`.
 
-## Modification notices
+## Upstream attribution and modifications
 
-Files inherited from OpenFic and changed by OmniFic carry this statement in a
-format appropriate to the file:
+The repository-level `NOTICE`, `CHANGELOG.md`, Git history, and source headers
+identify OmniFic as a modified derivative of OpenFic v0.7.5. Machine-readable
+JSON manifests, translation catalogs, and binary image assets are not mutated
+solely to embed custom attribution metadata, because extra fields or chunks can
+change tool behavior without improving the readability of distributed notices.
 
-> Modified by OmniFic contributors from OpenFic v0.7.5.
-
-For strict JSON files, the statement is stored in the top-level
-`_omnificModificationNotice` field. For PNG files, it is stored in a PNG
-`tEXt` chunk named `Modification Notice`. The release-please manifest is
-excluded because every top-level key is interpreted as a releasable package
-path; attribution remains available through the repository-level `NOTICE`
-without introducing an invalid release component.
-
-Apply or verify notices with:
-
-```bash
-python3 scripts/apply_modification_notices.py
-python3 scripts/apply_modification_notices.py --check
-```
+Release compliance focuses on keeping the required attribution readable in
+the source tree and in every distributed artifact.
 
 ## Third-party notices
 
@@ -80,11 +70,16 @@ listed in `THIRD_PARTY_NOTICES`. The official Python/Debian base layers are
 used without removing their installed license and package-copyright
 materials.
 
-Run the compliance gate with:
+Run the artifact-focused compliance gate with:
 
 ```bash
 python3 scripts/check_license_compliance.py
 ```
+
+The gate verifies the standard Apache-2.0 license by content hash rather than
+requiring the deleted upstream Git tag to exist. It also checks repository
+attribution, dependency disclosures, font provenance, packaging configuration,
+and the legal files embedded in frontend, Python, Docker, and desktop outputs.
 
 This is an engineering compliance process and is not a substitute for legal
 advice about ownership, patents, trademarks, or jurisdiction-specific duties.

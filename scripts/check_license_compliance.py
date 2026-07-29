@@ -14,6 +14,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+LICENSE_SHA256 = "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
 LEGAL_FILES = {
     "LICENSE": ROOT / "LICENSE",
     "NOTICE": ROOT / "NOTICE",
@@ -42,13 +43,9 @@ def check_root_files(*, check_generated: bool) -> None:
         if not path.is_file() or path.stat().st_size == 0:
             fail(f"missing legal file: {path.relative_to(ROOT)}")
 
-    upstream_license = subprocess.check_output(
-        ["git", "show", "v0.7.5:LICENSE"], cwd=ROOT
-    )
-    if (ROOT / "LICENSE").read_bytes() != upstream_license:
-        fail(
-            "LICENSE differs from the unmodified Apache-2.0 text inherited from OpenFic v0.7.5"
-        )
+    license_hash = hashlib.sha256((ROOT / "LICENSE").read_bytes()).hexdigest()
+    if license_hash != LICENSE_SHA256:
+        fail("LICENSE differs from the expected unmodified Apache-2.0 text")
 
     notice = (ROOT / "NOTICE").read_text(encoding="utf-8")
     for marker in ("OpenFic v0.7.5", "Dexie.js", "David Fahlander"):
@@ -66,7 +63,6 @@ def check_root_files(*, check_generated: bool) -> None:
         if marker not in third_party_notices:
             fail(f"THIRD_PARTY_NOTICES is missing desktop runtime disclosure: {marker}")
 
-    run(sys.executable, "scripts/apply_modification_notices.py", "--check")
     if check_generated:
         run(sys.executable, "scripts/generate_third_party_notices.py", "--check")
 

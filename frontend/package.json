@@ -106,6 +106,5 @@
     "typescript": "~5.9.3",
     "vite-plus": "^0.2.4"
   },
-  "packageManager": "pnpm@11.8.0",
-  "_omnificModificationNotice": "Modified by OmniFic contributors from OpenFic v0.7.5."
+  "packageManager": "pnpm@11.8.0"
 }
