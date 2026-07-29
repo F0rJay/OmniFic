@@ -290,11 +290,30 @@ jobs:
           image="${{ needs.context.outputs.image }}:${{ needs.context.outputs.version }}-${{ matrix.suffix }}"
           container_id="$(docker run -d -p 127.0.0.1::8000 "$image")"
           trap 'docker logs "$container_id"; docker rm -f "$container_id"' EXIT
+
+          fail_smoke() {
+            echo "::error title=Docker 镜像冒烟验证失败::$1"
+            docker inspect "$container_id" --format 'status={{.State.Status}} exit_code={{.State.ExitCode}} error={{.State.Error}}' || true
+            exit 1
+          }
+
+          sleep 2
+          running="$(docker inspect "$container_id" --format '{{.State.Running}}')"
+          test "$running" = "true" || fail_smoke "容器在运行时检查前已经退出"
+
           for legal_file in LICENSE NOTICE THIRD_PARTY_NOTICES fonts/FONTS.md fonts/OFL-1.1.txt; do
-            docker exec "$container_id" test -s "/app/legal/$legal_file"
+            docker exec "$container_id" test -s "/app/legal/$legal_file" || \
+              fail_smoke "镜像缺少法律材料：/app/legal/$legal_file"
           done
-          docker exec "$container_id" test "$(docker exec "$container_id" /bin/uv --version)" = "uv 0.11.32"
-          docker exec "$container_id" test -s /usr/share/doc/base-files/copyright
+
+          uv_version="$(docker exec "$container_id" /bin/uv --version)" || \
+            fail_smoke "无法读取镜像内的 uv 版本"
+          test "$uv_version" = "uv 0.11.32" || \
+            fail_smoke "镜像内 uv 版本不匹配：$uv_version"
+
+          docker exec "$container_id" test -s /usr/share/doc/base-files/copyright || \
+            fail_smoke "基础镜像缺少 Debian base-files 版权文件"
+
           port="$(docker port "$container_id" 8000/tcp | sed 's/.*://')"
           for attempt in $(seq 1 30); do
             if curl --fail --silent --show-error "http://127.0.0.1:${port}/api/v1/health"; then
@@ -302,7 +321,7 @@ jobs:
             fi
             sleep 1
           done
-          exit 1
+          fail_smoke "health API 在 30 秒内未就绪"
       - name: 推送已验证的架构镜像
         run: |
           image="${{ needs.context.outputs.image }}"
