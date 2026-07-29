@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { dialog, ipcMain, type BrowserWindow } from "electron";
 import {
   IpcChannels,

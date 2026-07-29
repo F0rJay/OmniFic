@@ -1,3 +1,4 @@
+<!-- Modified by OmniFic contributors from OpenFic v0.7.5. -->
 # OmniFic Frontend
 
 React + Vite 前端，提供写作编辑器、世界书管理、Agent 对话界面。

@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import NumberFlow from "@number-flow/react";
 import { Box, Flex, IconButton, Text, Tooltip } from "@radix-ui/themes";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";

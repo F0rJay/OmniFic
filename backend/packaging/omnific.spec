@@ -1,3 +1,4 @@
+# Modified by OmniFic contributors from OpenFic v0.7.5.
 # -*- mode: python ; coding: utf-8 -*-
 """OmniFic 后端 PyInstaller 打包配置（onedir）。
 

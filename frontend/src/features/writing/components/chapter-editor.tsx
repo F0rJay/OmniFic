@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { Box, Flex, Text, IconButton, Tooltip } from "@radix-ui/themes";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { AtSign, Globe, FileText } from "lucide-react";

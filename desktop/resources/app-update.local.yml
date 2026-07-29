@@ -1,3 +1,4 @@
+# Modified by OmniFic contributors from OpenFic v0.7.5.
 provider: generic
 url: http://127.0.0.1:4567
 updaterCacheDirName: omnific-desktop-updater

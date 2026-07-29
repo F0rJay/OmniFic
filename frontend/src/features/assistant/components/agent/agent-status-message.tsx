@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { Box, Text } from "@radix-ui/themes";
 import { Check, ChevronDown } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";

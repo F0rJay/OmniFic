@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { app, type WebContents } from "electron";
 import { stat } from "node:fs/promises";
 import { IpcChannels, type SetupProgressEvent } from "../../shared/ipc.js";

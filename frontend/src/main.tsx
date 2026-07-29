@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { Theme } from "@radix-ui/themes";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { MotionConfig } from "motion/react";

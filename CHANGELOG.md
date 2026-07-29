@@ -1,3 +1,4 @@
+<!-- Modified by OmniFic contributors from OpenFic v0.7.5. -->
 # Changelog
 
 ## 0.8.1 (2026-07-29)

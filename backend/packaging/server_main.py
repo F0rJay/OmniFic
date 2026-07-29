@@ -1,3 +1,4 @@
+# Modified by OmniFic contributors from OpenFic v0.7.5.
 """PyInstaller 打包入口。
 
 Electron 壳通过 spawn 本可执行文件拉起后端服务。

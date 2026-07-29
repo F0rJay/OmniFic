@@ -1,3 +1,4 @@
+# Modified by OmniFic contributors from OpenFic v0.7.5.
 name: Package
 
 on:
@@ -66,12 +67,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v6
         with:
           version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
       - name: 配置 pnpm store
         run: pnpm config set store-dir "${{ github.workspace }}/.pnpm-store"
       - uses: actions/cache/restore@v5
@@ -87,6 +93,9 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           OMNIFIC_BUILD_VERSION=${{ needs.context.outputs.version }} pnpm build
+          python3 ../scripts/check_license_compliance.py \
+            --skip-generated-check \
+            --artifact-dir dist
       - uses: actions/upload-artifact@v7
         with:
           name: frontend-dist
@@ -104,6 +113,8 @@ jobs:
     environment: pypi
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v6
         with:
           version: ${{ env.PNPM_VERSION }}
@@ -157,7 +168,14 @@ jobs:
             ${{ runner.os }}-${{ runner.arch }}-uv-${{ env.PYTHON_VERSION }}-
       - name: 构建后端 Python 包
         working-directory: backend
-        run: uv build
+        run: |
+          uv build
+          wheel="$(find dist -maxdepth 1 -name 'omnific-*.whl' -print -quit)"
+          sdist="$(find dist -maxdepth 1 -name 'omnific-*.tar.gz' -print -quit)"
+          python3 ../scripts/check_license_compliance.py \
+            --skip-generated-check \
+            --wheel "$wheel" \
+            --sdist "$sdist"
       - name: 冒烟验证本地 wheel
         working-directory: backend
         run: |
@@ -246,6 +264,11 @@ jobs:
           image="${{ needs.context.outputs.image }}:${{ needs.context.outputs.version }}-${{ matrix.suffix }}"
           container_id="$(docker run -d -p 127.0.0.1::8000 "$image")"
           trap 'docker logs "$container_id"; docker rm -f "$container_id"' EXIT
+          for legal_file in LICENSE NOTICE THIRD_PARTY_NOTICES fonts/FONTS.md fonts/OFL-1.1.txt; do
+            docker exec "$container_id" test -s "/app/legal/$legal_file"
+          done
+          docker exec "$container_id" test "$(docker exec "$container_id" /bin/uv --version)" = "uv 0.11.32"
+          docker exec "$container_id" test -s /usr/share/doc/base-files/copyright
           port="$(docker port "$container_id" 8000/tcp | sed 's/.*://')"
           for attempt in $(seq 1 30); do
             if curl --fail --silent --show-error "http://127.0.0.1:${port}/api/v1/health"; then
@@ -374,6 +397,9 @@ jobs:
       - name: 构建 Electron 安装包
         working-directory: desktop
         run: pnpm exec electron-builder --config electron-builder.yml ${{ matrix.electron_args }} --publish never
+      - name: 验证桌面安装包许可证材料
+        working-directory: desktop
+        run: node scripts/verify-legal-resources.mjs
       - name: 统一安装包架构命名
         working-directory: desktop
         run: node scripts/normalize-artifact-names.mjs

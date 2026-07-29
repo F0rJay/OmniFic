@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { app, shell, type BrowserWindow } from "electron";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";

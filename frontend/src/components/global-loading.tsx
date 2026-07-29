@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { Box, Button, Flex } from "@radix-ui/themes";
 import { RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";

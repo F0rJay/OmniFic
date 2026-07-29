@@ -1,3 +1,4 @@
+# Modified by OmniFic contributors from OpenFic v0.7.5.
 # -*- coding: utf-8 -*-
 """
 Note Service - 笔记业务逻辑层。

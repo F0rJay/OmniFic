@@ -1,3 +1,4 @@
+<!-- Modified by OmniFic contributors from OpenFic v0.7.5. -->
 # Contributing to OmniFic
 
 欢迎贡献！无论是报告 Bug、提出功能建议，还是提交代码，请先阅读本指南。
@@ -67,4 +68,8 @@ OmniFic/
 
 ## 许可证
 
-[Apache License 2.0](LICENSE)
+除非贡献者明确另行声明，提交给本项目并意图纳入项目的贡献依照
+[Apache License 2.0](LICENSE) 提供。修改继承自 OpenFic 的文件时必须保留文件顶部的
+修改声明；新增或升级依赖、字体或其他第三方材料时，必须同步更新
+[NOTICE](NOTICE)、[THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES) 与
+[合规流程](COMPLIANCE.md)。

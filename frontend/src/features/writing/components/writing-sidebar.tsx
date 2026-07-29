@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { Flex, SegmentedControl } from "@radix-ui/themes";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";

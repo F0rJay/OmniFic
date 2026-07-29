@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { app, BrowserWindow, shell } from "electron";
 import { appendFileSync, mkdirSync } from "node:fs";
 import path from "node:path";

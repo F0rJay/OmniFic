@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import type { ComponentProps } from "react";
 
 import { ProductLogo } from "./product-logo";

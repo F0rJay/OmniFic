@@ -1,10 +1,11 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { app } from "electron";
 import { spawn } from "node:child_process";
 import { access, mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { downloadFile, extractTarGz } from "./archive.js";
 import { resolvePythonAsset } from "./python-assets.js";
-import { getPortablePythonPath } from "./python-paths.js";
+import { getPortablePythonLicensePath, getPortablePythonPath } from "./python-paths.js";
 import { matchesPortablePythonVersion } from "./python-version.js";
 
 export { getPortablePythonPath } from "./python-paths.js";
@@ -73,14 +74,19 @@ function readPythonVersion(pythonPath: string): Promise<string | null> {
 }
 
 export async function inspectPortablePython(runtimeDir: string): Promise<RuntimeIntegrityCheck> {
-  const pythonPath = getPortablePythonPath(getPortablePythonRoot(runtimeDir));
+  const rootDir = getPortablePythonRoot(runtimeDir);
+  const asset = resolvePythonAsset();
+  const pythonPath = getPortablePythonPath(rootDir);
   if (!(await pathExists(pythonPath))) {
     return { complete: false, message: "未找到便携式 Python" };
   }
 
   const installedVersion = await readPythonVersion(pythonPath);
-  if (!installedVersion || !matchesPortablePythonVersion(installedVersion, resolvePythonAsset().version)) {
+  if (!installedVersion || !matchesPortablePythonVersion(installedVersion, asset.version)) {
     return { complete: false, message: "便携式 Python 不可用或版本不匹配" };
+  }
+  if (!(await pathExists(getPortablePythonLicensePath(rootDir, asset.version)))) {
+    return { complete: false, message: "便携式 Python 缺少许可证文件" };
   }
 
   return { complete: true, message: "便携式 Python 已就绪" };
@@ -116,6 +122,10 @@ export async function ensurePortablePython(
 
   if (!(await pathExists(pythonPath))) {
     throw new Error(`portable Python not found after extraction: ${pythonPath}`);
+  }
+  const licensePath = getPortablePythonLicensePath(rootDir, asset.version);
+  if (!(await pathExists(licensePath))) {
+    throw new Error(`portable Python license not found after extraction: ${licensePath}`);
   }
 
   await rm(archivePath, { force: true });

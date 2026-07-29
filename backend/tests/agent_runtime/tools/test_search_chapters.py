@@ -1,3 +1,4 @@
+# Modified by OmniFic contributors from OpenFic v0.7.5.
 import json
 import importlib
 from dataclasses import dataclass

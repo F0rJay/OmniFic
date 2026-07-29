@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { Box, Flex, IconButton, Text, Tooltip } from "@radix-ui/themes";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUp, CircleUserRound, ExternalLink, ShieldCheck, Square } from "lucide-react";

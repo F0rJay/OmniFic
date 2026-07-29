@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 

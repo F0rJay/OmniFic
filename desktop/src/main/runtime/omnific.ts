@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { net } from "electron";
 import { spawn } from "node:child_process";
 import { access, appendFile, mkdir, readdir, rm } from "node:fs/promises";
@@ -15,6 +16,7 @@ import {
 } from "./omnific-commands.js";
 import type { StartupProgressTracker } from "../startup-progress.js";
 import { selectBundledOmniFicWheel } from "./bundled-wheel.js";
+import { UV_VERSION } from "./python-assets.js";
 
 export type OmniFicRuntimeStep = "create-venv" | "install-uv" | "install-omnific";
 
@@ -320,7 +322,7 @@ export async function ensureOmniFicRuntime(
     onProgress("install-uv", `安装 uv（${new URL(packageIndex.indexUrl).host}，${packageIndex.proxyStatus}）`);
     await run(
       venvPythonPath,
-      ["-m", "pip", "install", "--force-reinstall", "uv"],
+      ["-m", "pip", "install", "--force-reinstall", `uv==${UV_VERSION}`],
       runtimeDir,
       (message) => onProgress("install-uv", message),
       packageIndex.environment,

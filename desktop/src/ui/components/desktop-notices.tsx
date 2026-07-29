@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { useEffect, useState } from "react";
 import { AlertTriangle, ChevronRight, Download, ExternalLink, PackageSearch, RefreshCw, RotateCcw, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";

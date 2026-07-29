@@ -1,3 +1,4 @@
+# Modified by OmniFic contributors from OpenFic v0.7.5.
 # -*- coding: utf-8 -*-
 """
 数据库连接与 session 管理。

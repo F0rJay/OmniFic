@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { createHash } from "node:crypto";
 import { access, readFile, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";

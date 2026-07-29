@@ -1,3 +1,4 @@
+# Modified by OmniFic contributors from OpenFic v0.7.5.
 *.code-workspace
 .agent
 .agents
@@ -32,3 +33,6 @@ desktop/dist
 desktop/dist-electron
 desktop/out
 .DS_Store
+/backend/NOTICE
+/backend/THIRD_PARTY_NOTICES
+/backend/third_party/

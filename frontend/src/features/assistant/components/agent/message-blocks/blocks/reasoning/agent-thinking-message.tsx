@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { Box, Text } from "@radix-ui/themes";
 import { Brain } from "lucide-react";
 import { useEffect, useRef, useState } from "react";

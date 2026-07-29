@@ -1,3 +1,4 @@
+# Modified by OmniFic contributors from OpenFic v0.7.5.
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -105,10 +106,14 @@ packages = ["app"]
 [tool.hatch.build.targets.wheel.force-include]
 "alembic.ini" = "alembic.ini"
 "LICENSE" = "LICENSE"
+"NOTICE" = "NOTICE"
+"THIRD_PARTY_NOTICES" = "THIRD_PARTY_NOTICES"
+"third_party/fonts/FONTS.md" = "third_party/fonts/FONTS.md"
+"third_party/fonts/OFL-1.1.txt" = "third_party/fonts/OFL-1.1.txt"
 "frontend" = "frontend"
 
 [tool.hatch.build.targets.sdist]
-force-include = { "alembic.ini" = "alembic.ini", "../LICENSE" = "LICENSE", "frontend" = "frontend", "app/skills" = "app/skills" }
+force-include = { "alembic.ini" = "alembic.ini", "../LICENSE" = "LICENSE", "../NOTICE" = "NOTICE", "../THIRD_PARTY_NOTICES" = "THIRD_PARTY_NOTICES", "../third_party/fonts/FONTS.md" = "third_party/fonts/FONTS.md", "../third_party/fonts/OFL-1.1.txt" = "third_party/fonts/OFL-1.1.txt", "frontend" = "frontend", "app/skills" = "app/skills" }
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

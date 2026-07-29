@@ -1,3 +1,4 @@
+# Modified by OmniFic contributors from OpenFic v0.7.5.
 # -*- coding: utf-8 -*-
 """
 Model API Schemas - 模型请求/响应模型。

@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import type { ThemeMode } from "@/features/settings/lib/settings.types";
 
 export interface DesktopAppearancePayload {

@@ -1,3 +1,4 @@
+# Modified by OmniFic contributors from OpenFic v0.7.5.
 from __future__ import annotations
 
 import os
@@ -8,7 +9,10 @@ from sys import stderr
 
 try:
     from hatchling.builders.hooks.plugin.interface import BuildHookInterface
-except ModuleNotFoundError:  # pragma: no cover - fallback for test runtime without hatchling installed
+except (
+    ModuleNotFoundError
+):  # pragma: no cover - fallback for test runtime without hatchling installed
+
     class BuildHookInterface:  # type: ignore[no-redef]
         def __init__(self, *args: object, **kwargs: object) -> None:
             self.root = kwargs.get("root", ".")
@@ -28,7 +32,9 @@ def build_frontend_assets(backend_dir: Path, frontend_dir: Path, version: str) -
 
     pnpm = shutil.which("pnpm")
     if pnpm is None:
-        raise RuntimeError("pnpm is required for building the OmniFic frontend but it was not found")
+        raise RuntimeError(
+            "pnpm is required for building the OmniFic frontend but it was not found"
+        )
 
     stderr.write(">>> Building OmniFic frontend\n")
     stderr.write("### pnpm install --frozen-lockfile\n")
@@ -48,6 +54,28 @@ def build_frontend_assets(backend_dir: Path, frontend_dir: Path, version: str) -
     stderr.write(f"\n### copied frontend dist to {target_dir}\n")
 
 
+def stage_legal_files(backend_dir: Path) -> None:
+    repository_root = backend_dir.parent
+    mappings = {
+        repository_root / "NOTICE": backend_dir / "NOTICE",
+        repository_root / "THIRD_PARTY_NOTICES": backend_dir / "THIRD_PARTY_NOTICES",
+        repository_root / "third_party" / "fonts" / "FONTS.md": backend_dir
+        / "third_party"
+        / "fonts"
+        / "FONTS.md",
+        repository_root / "third_party" / "fonts" / "OFL-1.1.txt": backend_dir
+        / "third_party"
+        / "fonts"
+        / "OFL-1.1.txt",
+    }
+    for source, target in mappings.items():
+        if source.is_file():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+        elif not target.is_file():
+            raise RuntimeError(f"Legal file is unavailable for packaging: {target}")
+
+
 class CustomBuildHook(BuildHookInterface):
     def initialize(self, version: str, build_data: dict[str, object]) -> None:
         super().initialize(version, build_data)
@@ -57,5 +85,8 @@ class CustomBuildHook(BuildHookInterface):
             target_dir.mkdir(parents=True, exist_ok=True)
             stderr.write(">>> Skipping frontend build for editable install\n")
             return
+        stage_legal_files(backend_dir)
         frontend_dir = backend_dir.parent / "frontend"
-        build_frontend_assets(backend_dir=backend_dir, frontend_dir=frontend_dir, version=version)
+        build_frontend_assets(
+            backend_dir=backend_dir, frontend_dir=frontend_dir, version=version
+        )

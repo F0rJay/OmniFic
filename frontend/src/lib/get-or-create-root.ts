@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { createRoot, type Root } from "react-dom/client";
 
 const ROOT_KEY = "__omnificReactRoot";

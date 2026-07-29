@@ -1,3 +1,4 @@
+# Modified by OmniFic contributors from OpenFic v0.7.5.
 # -*- coding: utf-8 -*-
 """
 Settings Router - 用户设置 API。

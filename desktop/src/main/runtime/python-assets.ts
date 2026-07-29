@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 export interface PythonAsset {
   version: string;
   tag: string;
@@ -7,6 +8,7 @@ export interface PythonAsset {
 
 const PYTHON_VERSION = "3.13.14";
 const RELEASE_TAG = "20260623";
+export const UV_VERSION = "0.11.32";
 const GITHUB_BASE_URL = `https://github.com/astral-sh/python-build-standalone/releases/download/${RELEASE_TAG}`;
 const MIRROR_PREFIX = "https://gh-proxy.com/";
 

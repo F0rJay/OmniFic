@@ -1,3 +1,4 @@
+<!-- Modified by OmniFic contributors from OpenFic v0.7.5. -->
 ![OmniFic：由翻动书页与数字字流构成的品牌横幅](./docs/assets/readme/omnific-hero.webp)
 
 <h1 align="center">OmniFic</h1>
@@ -264,4 +265,6 @@ OmniFic Fork 自 [OpenFic v0.7.5](https://github.com/syrizelink/OpenFic)。项�
 
 ## 📦 许可证
 
-OmniFic 依据 [Apache License 2.0](./LICENSE) 开源。使用或分发时，也请保留上游项目要求的版权与许可证声明。
+OmniFic 依据 [Apache License 2.0](./LICENSE) 开源。使用或分发时，也请保留
+[NOTICE](./NOTICE)、[第三方许可证清单](./THIRD_PARTY_NOTICES) 与上游项目要求的
+版权和许可证声明。发布合规流程见 [COMPLIANCE.md](./COMPLIANCE.md)。

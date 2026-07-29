@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import type { AssistantMentionCandidate } from "@/lib/mention.types";
 import { pinyinMatch } from "@/lib/pinyin-search";
 import type { Skill } from "@/lib/skill.types";

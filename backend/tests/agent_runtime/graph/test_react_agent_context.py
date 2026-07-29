@@ -1,3 +1,4 @@
+# Modified by OmniFic contributors from OpenFic v0.7.5.
 import asyncio
 from collections import deque
 from types import SimpleNamespace

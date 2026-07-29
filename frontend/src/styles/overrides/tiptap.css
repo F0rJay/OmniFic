@@ -1,3 +1,4 @@
+/* Modified by OmniFic contributors from OpenFic v0.7.5. */
 .tiptap-editor-wrapper {
   background: var(--writing-editor-background, var(--color-background));
   color: var(--writing-editor-foreground, var(--gray-12));

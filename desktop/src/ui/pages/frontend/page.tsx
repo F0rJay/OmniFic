@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { useEffect, type RefObject } from "react";
 
 interface FrontendPageProps {

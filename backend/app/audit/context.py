@@ -1,3 +1,4 @@
+# Modified by OmniFic contributors from OpenFic v0.7.5.
 """Common context manager for audited LLM invocations."""
 
 from __future__ import annotations

@@ -1,3 +1,4 @@
+<!-- Modified by OmniFic contributors from OpenFic v0.7.5. -->
 # OmniFic Desktop
 
 Electron 桌面应用，将 OmniFic 打包为原生 Windows 与 macOS 应用。Linux 构建配置仅保留给本地实验，不发布官方 Linux 桌面包；Linux 用户可使用 PyPI、Docker 或源码运行。

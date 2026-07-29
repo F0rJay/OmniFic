@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { useEffect, useState, type CSSProperties, type MouseEvent } from "react";
 import { Link2, Link2Off, Minus, Plus, RefreshCw, Square, Star, Trash2, X } from "lucide-react";
 import type { DesktopConfig, DesktopInstance } from "../../shared/config";

@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { HoverCard, Text } from "@radix-ui/themes";
 import { useMemo, useSyncExternalStore, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";

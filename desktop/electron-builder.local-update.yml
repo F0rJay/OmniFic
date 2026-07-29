@@ -1,3 +1,4 @@
+# Modified by OmniFic contributors from OpenFic v0.7.5.
 appId: com.omnific.app
 productName: OmniFic
 
@@ -10,6 +11,20 @@ files:
   - package.json
 
 extraResources:
+  - from: ../LICENSE
+    to: legal/LICENSE
+  - from: ../NOTICE
+    to: legal/NOTICE
+  - from: ../THIRD_PARTY_NOTICES
+    to: legal/THIRD_PARTY_NOTICES
+  - from: ../third_party/fonts/FONTS.md
+    to: legal/fonts/FONTS.md
+  - from: ../third_party/fonts/OFL-1.1.txt
+    to: legal/fonts/OFL-1.1.txt
+  - from: node_modules/electron/dist/LICENSE
+    to: legal/electron/LICENSE
+  - from: node_modules/electron/dist/LICENSES.chromium.html
+    to: legal/electron/LICENSES.chromium.html
   - from: ../frontend/dist
     to: frontend-dist
     filter:

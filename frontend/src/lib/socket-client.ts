@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { io, type Socket } from "socket.io-client";
 
 import { getRuntimeConfig } from "./runtime-config";

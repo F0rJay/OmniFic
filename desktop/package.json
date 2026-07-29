@@ -1,4 +1,5 @@
 {
+  "_omnificModificationNotice": "Modified by OmniFic contributors from OpenFic v0.7.5.",
   "name": "omnific-desktop",
   "private": true,
   "version": "0.8.1",
@@ -11,7 +12,7 @@
     "build": "pnpm build:setup && pnpm build:main",
     "test:runtime-paths": "pnpm build:main && node --test tests/*.test.mjs",
     "build:main": "tsc -p tsconfig.main.json",
-    "build:setup": "vp build",
+    "build:setup": "vp build && node ../scripts/copy-legal-files.mjs dist",
     "type-check": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.renderer.json --noEmit",
     "lint": "eslint . --ext .js,.jsx,.mjs,.cjs,.ts,.tsx,.mts,.cts",
     "package": "electron-builder --config electron-builder.yml && node scripts/normalize-artifact-names.mjs",

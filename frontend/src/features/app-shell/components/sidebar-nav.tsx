@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { Box, Flex, Text, Tooltip } from "@radix-ui/themes";
 import { motion } from "motion/react";
 import { Link } from "react-router";

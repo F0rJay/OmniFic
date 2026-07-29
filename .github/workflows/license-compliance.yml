@@ -1,0 +1,76 @@
+# SPDX-License-Identifier: Apache-2.0
+name: License Compliance
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: '3.12'
+  NODE_VERSION: '22.18.0'
+  PNPM_VERSION: '11.8.0'
+
+jobs:
+  compliance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install locked frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+      - name: Install locked desktop dependencies
+        working-directory: desktop
+        run: pnpm install --frozen-lockfile
+      - name: Install locked Python runtime dependencies
+        working-directory: backend
+        run: uv sync --frozen --no-dev
+
+      - name: Verify source and dependency license compliance
+        run: python3 scripts/check_license_compliance.py
+
+      - name: Build and verify frontend legal material
+        working-directory: frontend
+        run: |
+          pnpm build
+          python3 ../scripts/check_license_compliance.py \
+            --skip-generated-check \
+            --artifact-dir dist
+
+      - name: Build and verify Python archives
+        working-directory: backend
+        run: |
+          uv build
+          wheel="$(find dist -maxdepth 1 -name 'omnific-*.whl' -print -quit)"
+          sdist="$(find dist -maxdepth 1 -name 'omnific-*.tar.gz' -print -quit)"
+          test -n "$wheel"
+          test -n "$sdist"
+          python3 ../scripts/check_license_compliance.py \
+            --skip-generated-check \
+            --wheel "$wheel" \
+            --sdist "$sdist"
+
+      - name: Build and verify desktop legal material
+        working-directory: desktop
+        run: |
+          pnpm build
+          python3 ../scripts/check_license_compliance.py \
+            --skip-generated-check \
+            --artifact-dir dist

@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import type { AgentMessage } from "@/lib/agent.types";
 
 import type { BlockDisplayMessage } from "./display-message-types";

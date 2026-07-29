@@ -1,3 +1,4 @@
+# Modified by OmniFic contributors from OpenFic v0.7.5.
 # Use PowerShell 7 instead of sh on Windows.
 set windows-shell := ["pwsh.exe", "-NoLogo", "-NoProfile", "-Command"]
 

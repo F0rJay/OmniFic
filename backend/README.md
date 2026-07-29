@@ -1,3 +1,4 @@
+<!-- Modified by OmniFic contributors from OpenFic v0.7.5. -->
 # OmniFic Backend
 
 Python FastAPI 后端，提供 REST API、Agent Runtime、WebSocket、数据库管理。

@@ -1,3 +1,4 @@
+# Modified by OmniFic contributors from OpenFic v0.7.5.
 """OmniFic CLI 入口。
 
 用于以 pipx/uvx 安装后启动本地服务。

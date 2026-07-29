@@ -1,3 +1,4 @@
+# Modified by OmniFic contributors from OpenFic v0.7.5.
 """Background job for indexing project chapters into retrieval."""
 
 import inspect

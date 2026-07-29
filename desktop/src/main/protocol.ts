@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { app, net, protocol, session } from "electron";
 import { existsSync } from "node:fs";
 import path from "node:path";

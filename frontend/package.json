@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vp build && node scripts/generate-precachelist.mjs",
+    "build": "vp build && node ../scripts/copy-legal-files.mjs dist && node scripts/generate-precachelist.mjs",
     "dev": "vp dev",
     "format": "oxfmt . --write",
     "format:check": "oxfmt . --check",
@@ -106,5 +106,6 @@
     "typescript": "~5.9.3",
     "vite-plus": "^0.2.4"
   },
-  "packageManager": "pnpm@11.8.0"
+  "packageManager": "pnpm@11.8.0",
+  "_omnificModificationNotice": "Modified by OmniFic contributors from OpenFic v0.7.5."
 }

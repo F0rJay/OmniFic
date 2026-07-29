@@ -1,3 +1,4 @@
+# Modified by OmniFic contributors from OpenFic v0.7.5.
 """ReAct subgraph factory.
 
 Provides `create_react_agent` which builds an isolated ReAct (Reason + Act)

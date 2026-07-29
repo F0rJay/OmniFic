@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1
+# Modified by OmniFic contributors from OpenFic v0.7.5.
 
 # ---- 前端构建：固定到构建平台（amd64）一次构建，产物与架构无关 ----
-FROM --platform=$BUILDPLATFORM node:22-slim AS frontend
+FROM --platform=$BUILDPLATFORM node:22.18.0-slim AS frontend
 WORKDIR /build
 RUN apt-get update \
     && apt-get install --no-install-recommends -y ca-certificates \
@@ -14,16 +15,20 @@ COPY frontend/ ./
 RUN pnpm build
 
 # ---- 后端运行：按目标平台构建（amd64 / arm64）----
-FROM python:3.12-slim AS backend
+FROM python:3.12.11-slim-bookworm AS backend
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1
 
-COPY --from=ghcr.io/astral-sh/uv:0.7 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.11.32 /uv /uvx /bin/
 
 WORKDIR /app
+
+# Legal notices for OmniFic, its Apache-2.0 upstream, dependencies, and fonts.
+COPY LICENSE NOTICE THIRD_PARTY_NOTICES ./legal/
+COPY third_party/fonts ./legal/fonts
 
 # 先装依赖（利用层缓存）
 COPY backend/pyproject.toml backend/uv.lock ./

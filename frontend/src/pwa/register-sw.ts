@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import i18n from "i18next";
 import { toast } from "sonner";
 

@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 import { Box, Flex, Popover, ScrollArea, Text, TextField } from "@radix-ui/themes";
 import { ChevronDown, Component, Search } from "lucide-react";
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";

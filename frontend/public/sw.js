@@ -1,3 +1,4 @@
+// Modified by OmniFic contributors from OpenFic v0.7.5.
 importScripts("/sw-precache.js");
 
 const CACHE_NAME = "omnific-shell-v1";

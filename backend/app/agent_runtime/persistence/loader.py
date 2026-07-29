@@ -1,3 +1,4 @@
+# Modified by OmniFic contributors from OpenFic v0.7.5.
 """DB 历史 → ReAct 子图初始 messages。"""
 
 import json

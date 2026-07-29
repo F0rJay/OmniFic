@@ -41,6 +41,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v6
         with:
           version: ${{ env.PNPM_VERSION }}
@@ -58,7 +60,14 @@ jobs:
           OMNIFIC_BUILD_VERSION=${{ needs.context.outputs.version }} pnpm build
       - name: 构建后端 wheel
         working-directory: backend
-        run: uv build
+        run: |
+          uv build
+          wheel="$(find dist -maxdepth 1 -name 'omnific-*.whl' -print -quit)"
+          sdist="$(find dist -maxdepth 1 -name 'omnific-*.tar.gz' -print -quit)"
+          python3 ../scripts/check_license_compliance.py \
+            --skip-generated-check \
+            --wheel "$wheel" \
+            --sdist "$sdist"
       - name: 冒烟验证候选 wheel
         working-directory: backend
         run: |
@@ -145,6 +154,9 @@ jobs:
       - name: 构建候选安装包
         working-directory: desktop
         run: pnpm exec electron-builder --config electron-builder.yml ${{ matrix.electron_args }} --publish never
+      - name: 验证候选安装包许可证材料
+        working-directory: desktop
+        run: node scripts/verify-legal-resources.mjs
       - name: 统一候选包架构命名
         working-directory: desktop
         run: node scripts/normalize-artifact-names.mjs

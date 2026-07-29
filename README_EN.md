@@ -1,3 +1,4 @@
+<!-- Modified by OmniFic contributors from OpenFic v0.7.5. -->
 ![OmniFic brand banner with a turning-page loop and flowing digital text](./docs/assets/readme/omnific-hero.webp)
 
 <h1 align="center">OmniFic</h1>
@@ -264,4 +265,8 @@ Other sources of inspiration include:
 
 ## 📦 License
 
-OmniFic is released under the [Apache License 2.0](./LICENSE). Please retain any copyright and license notices required by the upstream project when using or redistributing it.
+OmniFic is released under the [Apache License 2.0](./LICENSE). When using or
+redistributing it, retain [NOTICE](./NOTICE), the
+[third-party license bundle](./THIRD_PARTY_NOTICES), and all copyright and
+license notices required by the upstream project. See
+[COMPLIANCE.md](./COMPLIANCE.md) for the release compliance process.
