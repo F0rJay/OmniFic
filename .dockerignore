@@ -26,3 +26,4 @@ backend/.env
 tmp
 docs
 *.md
+!third_party/fonts/FONTS.md

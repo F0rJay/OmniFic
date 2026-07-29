@@ -3,7 +3,7 @@
 
 # ---- 前端构建：固定到构建平台（amd64）一次构建，产物与架构无关 ----
 FROM --platform=$BUILDPLATFORM node:22.18.0-slim AS frontend
-WORKDIR /build
+WORKDIR /build/frontend
 RUN apt-get update \
     && apt-get install --no-install-recommends -y ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
@@ -12,6 +12,9 @@ COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml 
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile --store-dir /pnpm/store
 COPY frontend/ ./
+COPY scripts/copy-legal-files.mjs /build/scripts/copy-legal-files.mjs
+COPY LICENSE NOTICE THIRD_PARTY_NOTICES /build/
+COPY third_party/fonts /build/third_party/fonts
 RUN pnpm build
 
 # ---- 后端运行：按目标平台构建（amd64 / arm64）----
@@ -39,7 +42,7 @@ RUN --mount=type=cache,id=uv-cache,target=/root/.cache/uv \
 COPY backend/ ./
 
 # 前端构建产物打入包内
-COPY --from=frontend /build/dist ./app/frontend_dist
+COPY --from=frontend /build/frontend/dist ./app/frontend_dist
 
 ENV OMNIFIC_FRONTEND_DIST=/app/app/frontend_dist \
     OMNIFIC_DATA_DIR=/data

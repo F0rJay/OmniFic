@@ -77,9 +77,13 @@ def check_root_files(*, check_generated: bool) -> None:
         "Dockerfile": [
             "FROM python:3.12.11-slim-bookworm",
             "ghcr.io/astral-sh/uv:0.11.32",
+            "WORKDIR /build/frontend",
+            "COPY scripts/copy-legal-files.mjs /build/scripts/copy-legal-files.mjs",
             "COPY LICENSE NOTICE THIRD_PARTY_NOTICES",
             "COPY third_party/fonts",
+            "COPY --from=frontend /build/frontend/dist",
         ],
+        ".dockerignore": ["!third_party/fonts/FONTS.md"],
         "desktop/electron-builder.yml": [
             "../LICENSE",
             "../NOTICE",
