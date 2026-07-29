@@ -23,8 +23,12 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASELINE = "v0.7.5"
 NOTICE_TEXT = "Modified by OmniFic contributors from OpenFic v0.7.5."
 JSON_NOTICE_KEY = "_omnificModificationNotice"
-RELEASE_MANIFEST_NOTICE_KEY = "MODIFIED-BY-OMNIFIC-CONTRIBUTORS-FROM-OPENFIC-V0.7.5"
 PNG_NOTICE_KEY = "Modification Notice"
+
+# release-please treats every top-level manifest key as a releasable package
+# path. Adding a metadata field would therefore create a nonexistent release
+# component and break the release workflow.
+NOTICE_EXEMPT_RELATIVE_PATHS = {".release-please-manifest.json"}
 
 
 HASH_COMMENT_NAMES = {
@@ -164,18 +168,6 @@ def apply_json_notice(path: Path, *, check: bool) -> bool:
         )
         return True
 
-    if path.name == ".release-please-manifest.json":
-        if data.get(RELEASE_MANIFEST_NOTICE_KEY) == "0.0.0":
-            return True
-        if check:
-            return False
-        brace = text.find("{")
-        insertion = f'{newline}  "{RELEASE_MANIFEST_NOTICE_KEY}": "0.0.0",'
-        path.write_bytes(
-            (text[: brace + 1] + insertion + text[brace + 1 :]).encode("utf-8")
-        )
-        return True
-
     if data.get(JSON_NOTICE_KEY) == NOTICE_TEXT:
         return True
     if check:
@@ -255,7 +247,11 @@ def main() -> int:
     args = parser.parse_args()
 
     missing: list[str] = []
-    paths = modified_paths(args.baseline)
+    paths = [
+        path
+        for path in modified_paths(args.baseline)
+        if path.relative_to(ROOT).as_posix() not in NOTICE_EXEMPT_RELATIVE_PATHS
+    ]
     for path in paths:
         if not handle_path(path, check=args.check):
             missing.append(str(path.relative_to(ROOT)))

@@ -13,7 +13,10 @@ format appropriate to the file:
 
 For strict JSON files, the statement is stored in the top-level
 `_omnificModificationNotice` field. For PNG files, it is stored in a PNG
-`tEXt` chunk named `Modification Notice`.
+`tEXt` chunk named `Modification Notice`. The release-please manifest is
+excluded because every top-level key is interpreted as a releasable package
+path; attribution remains available through the repository-level `NOTICE`
+without introducing an invalid release component.
 
 Apply or verify notices with:
 
