@@ -315,7 +315,6 @@ export const AssistantSidebar = forwardRef<AssistantSidebarHandle, AssistantSide
       queryFn: fetchSettings,
       staleTime: 5 * 60 * 1000,
     });
-
     const { mutate: toggleToolApprovalBypass, isPending: isTogglingToolApprovalBypass } =
       useMutation({
         mutationFn: async (enabled: boolean) =>
@@ -1581,7 +1580,9 @@ export const AssistantSidebar = forwardRef<AssistantSidebarHandle, AssistantSide
                     readOnly
                   />
                 ) : (
-                  agentSidebar.SpecialPanelsComponent
+                  <>
+                    {agentSidebar.SpecialPanelsComponent}
+                  </>
                 )
               }
               value={inputValue}
@@ -1615,7 +1616,10 @@ export const AssistantSidebar = forwardRef<AssistantSidebarHandle, AssistantSide
               runtimeStatus={runtimeStatus}
               onGoalChange={handleGoalChange}
               onToggleToolApprovalBypass={handleToggleToolApprovalBypass}
-              forceSpecialPanels={!isViewingSubagent && projectedSubagentSpecialPanels.length > 0}
+              forceSpecialPanels={
+                !isViewingSubagent &&
+                projectedSubagentSpecialPanels.length > 0
+              }
               readOnly={isViewingSubagent}
               readOnlyMessage={subagentReadOnlyMessage}
             />

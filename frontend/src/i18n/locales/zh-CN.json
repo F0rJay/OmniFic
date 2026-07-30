@@ -1741,10 +1741,12 @@
       "previous": "上一步",
       "next": "下一步",
       "submit": "提交回答",
+      "confirmSelection": "确认选择",
       "customInput": "自行输入",
       "customInputDescription": "输入自定义回答",
       "customInputPlaceholder": "输入自定义回答...",
-      "customAnswerAriaLabel": "{{title}}的自定义回答"
+      "customAnswerAriaLabel": "{{title}}的自定义回答",
+      "confirmCustomAnswer": "确认自定义回答"
     },
     "specialPanels": {
       "clarificationTitle": "需要补充信息",

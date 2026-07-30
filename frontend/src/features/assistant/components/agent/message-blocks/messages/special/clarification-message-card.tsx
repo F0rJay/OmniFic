@@ -1,6 +1,4 @@
-import { Box, Flex, Text } from "@radix-ui/themes";
-import { AlertCircle } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { Box } from "@radix-ui/themes";
 
 import type { AgentMessage } from "../../../../../../../lib/agent.types";
 import { MessageCardShell } from "../../shared/message-shell";
@@ -13,6 +11,7 @@ import {
 import {
   ClarificationQuestionActions,
   ClarificationQuestionBody,
+  ClarificationQuestionHeader,
 } from "./clarification-question-flow";
 import { useClarificationQuestionFlow } from "./use-clarification-question-flow";
 
@@ -47,37 +46,21 @@ function ClarificationMessageCardContent({
   prompt,
   onSubmitQuestionAnswer,
 }: ClarificationMessageCardContentProps) {
-  const { t } = useTranslation();
   const model = useClarificationQuestionFlow(prompt, { onSubmitQuestionAnswer });
+  const currentQuestion = prompt.questions[model.currentStep];
 
   return (
     <MessageCardShell>
-      <Flex
-        align="center"
-        gap="2"
-        style={{ marginBottom: "12px" }}
-      >
-        <AlertCircle
-          size={16}
-          style={{ color: "var(--gray-11)" }}
-        />
-        <Text
-          size="2"
-          weight="medium"
-          style={{ color: "var(--gray-12)" }}
-        >
-          {t("assistant.clarificationCardTitle")}
-        </Text>
-      </Flex>
+      <ClarificationQuestionHeader model={model} />
       <ClarificationQuestionBody
         model={model}
         bodyClassName="agent-question-panel-body"
       />
-      {(model.shouldStep || model.canRenderSubmit) && (
+      {currentQuestion?.multiSelect ? (
         <Box mt="3">
           <ClarificationQuestionActions model={model} />
         </Box>
-      )}
+      ) : null}
     </MessageCardShell>
   );
 }

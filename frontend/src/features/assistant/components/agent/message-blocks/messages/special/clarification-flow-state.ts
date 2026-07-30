@@ -9,6 +9,7 @@ export const CUSTOM_CLARIFICATION_ANSWER = "__custom__";
 
 export type ClarificationAnswers = Record<number, string | string[]>;
 export type ClarificationCustomAnswers = Record<number, string>;
+export type ClarificationCompletionAction = "stay" | "next" | "submit";
 
 export type { ClarificationAnswerItem };
 
@@ -79,6 +80,35 @@ export function isClarificationStepComplete(
 ): boolean {
   if (!questions[stepIndex]) return false;
   return isAnswerValid(resolveClarificationAnswer(answers, customAnswers, stepIndex));
+}
+
+export function updateClarificationAnswerSelection(
+  answers: ClarificationAnswers,
+  index: number,
+  value: string,
+  isMulti: boolean,
+): ClarificationAnswers {
+  if (!isMulti) return { ...answers, [index]: value };
+
+  const existing = answers[index];
+  const selected = Array.isArray(existing) ? existing : [];
+  const nextSelected = selected.includes(value)
+    ? selected.filter((selectedValue) => selectedValue !== value)
+    : [...selected, value];
+
+  return { ...answers, [index]: nextSelected };
+}
+
+export function getClarificationCompletionAction(
+  questions: ClarificationQuestion[],
+  answers: ClarificationAnswers,
+  customAnswers: ClarificationCustomAnswers,
+  stepIndex: number,
+): ClarificationCompletionAction {
+  if (!isClarificationStepComplete(questions, answers, customAnswers, stepIndex)) {
+    return "stay";
+  }
+  return stepIndex >= questions.length - 1 ? "submit" : "next";
 }
 
 export function canSubmitClarificationAnswers(

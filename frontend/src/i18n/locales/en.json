@@ -1678,10 +1678,12 @@
       "previous": "Previous",
       "next": "Next",
       "submit": "Submit answers",
+      "confirmSelection": "Confirm selection",
       "customInput": "Type your own answer",
       "customInputDescription": "Enter a custom answer",
       "customInputPlaceholder": "Enter a custom answer...",
-      "customAnswerAriaLabel": "Custom answer for {{title}}"
+      "customAnswerAriaLabel": "Custom answer for {{title}}",
+      "confirmCustomAnswer": "Confirm custom answer"
     },
     "specialPanels": {
       "clarificationTitle": "More information needed",
