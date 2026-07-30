@@ -176,6 +176,8 @@ class AgentTool(BaseTool):
         for hook in self._pre_hooks:
             hook_result = await hook(hook_ctx)
             if not hook_result.proceed:
+                if hook_result.output is not None:
+                    return hook_result.output
                 from langgraph.types import interrupt
 
                 resume_value = interrupt(

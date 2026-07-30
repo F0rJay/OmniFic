@@ -2,10 +2,11 @@ from app.agent_runtime.model_config import to_client_model_config
 from app.models.clients.model_factory import create_chat_model, ModelConfig
 
 
-def test_to_client_model_config_excludes_internal_model_record_id():
+def test_to_client_model_config_excludes_internal_model_metadata():
     config = to_client_model_config(
         {
             "model_record_id": "model-record-1",
+            "model_name": "GPT-4o",
             "provider_type": "openai-compatible",
             "base_url": "https://api.openai.com/v1",
             "api_key": "sk-test",

@@ -12,7 +12,12 @@ from app.agent_runtime.modes import AgentMode
 from app.agent_runtime.persistence.task_projection import (
     load_task_messages_for_agent_session,
 )
+from app.agent_runtime.persistence.child_runs import (
+    close_child_run_tree,
+    list_descendant_child_runs,
+)
 from app.agent_runtime.runner.checkpointer import delete_checkpoints_for_thread
+from app.agent_runtime.runner.run_registry import get_agent_run_registry
 
 from app.api.schemas.task import (
     TaskListItem,
@@ -40,6 +45,20 @@ async def _cleanup_task_checkpoints(session_id: str | None) -> None:
     logger.bind(session_id=session_id).info(
         "Deleted {} checkpoint rows for task cleanup",
         deleted_rows,
+    )
+
+
+async def _close_task_child_runs(session: AsyncSession, session_id: str | None) -> None:
+    if not session_id:
+        return
+    registry = get_agent_run_registry()
+    descendants = await list_descendant_child_runs(session, session_id)
+    for row in descendants:
+        await registry.cancel_child_and_wait(row.parent_session_id, row.id)
+    await close_child_run_tree(
+        session,
+        session_id,
+        error="parent task deleted",
     )
 
 
@@ -199,6 +218,7 @@ async def delete_task(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="任务运行中，不能删除",
             )
+        await _close_task_child_runs(session, task.agent_session_id)
         await task_service.delete_task(session, task_id)
         await session.commit()
         await _cleanup_task_checkpoints(task.agent_session_id)
@@ -226,6 +246,7 @@ async def delete_all_tasks(
         skipped_running_count = len(tasks) - len(deletable_tasks)
 
         for task in deletable_tasks:
+            await _close_task_child_runs(session, task.agent_session_id)
             await task_service.delete_task(session, task.id)
 
         await session.commit()

@@ -53,6 +53,8 @@ DEFAULT_AGENT_DEFINITIONS: Mapping[str, AgentDefinition] = MappingProxyType(
                 "orchestration",
                 "interaction",
                 "plan",
+                "writing_readiness_read",
+                "writing_start",
                 "chapter_read",
                 "chapter_write",
                 "summary_read",
@@ -61,9 +63,9 @@ DEFAULT_AGENT_DEFINITIONS: Mapping[str, AgentDefinition] = MappingProxyType(
                 "note_read",
                 "note_write",
                 "character_read",
-                "character_write"
+                "character_write",
             ),
-            enabled_skills=(),
+            enabled_skills=("builtin-skill--worldbook-design",),
             metadata=MappingProxyType({}),
             delegatable_agents=(
                 "explore",
@@ -85,13 +87,15 @@ DEFAULT_AGENT_DEFINITIONS: Mapping[str, AgentDefinition] = MappingProxyType(
                 "orchestration",
                 "interaction",
                 "plan",
+                "writing_readiness_read",
+                "writing_start",
                 "chapter_read",
                 "summary_read",
                 "world_read",
                 "note_read",
                 "character_read",
             ),
-            enabled_skills=(),
+            enabled_skills=("builtin-skill--story-state-tracking",),
             metadata=MappingProxyType({}),
             delegatable_agents=(
                 "explore",
@@ -114,9 +118,13 @@ DEFAULT_AGENT_DEFINITIONS: Mapping[str, AgentDefinition] = MappingProxyType(
                 "summary_read",
                 "world_read",
                 "note_read",
-                "character_read"
+                "character_read",
+                "writing_readiness_read",
             ),
-            enabled_skills=(),
+            enabled_skills=(
+                "builtin-skill--story-state-tracking",
+                "builtin-skill--story-deconstruction",
+            ),
             metadata=MappingProxyType({}),
         ),
         "composer": AgentDefinition(
@@ -135,9 +143,19 @@ DEFAULT_AGENT_DEFINITIONS: Mapping[str, AgentDefinition] = MappingProxyType(
                 "note_read",
                 "note_write",
                 "character_read",
-                "character_write"
+                "character_write",
+                "writing_readiness_read",
             ),
-            enabled_skills=(),
+            enabled_skills=(
+                "builtin-skill--character-design",
+                "builtin-skill--character-relationship",
+                "builtin-skill--emotional-arc",
+                "builtin-skill--opening-design",
+                "builtin-skill--story-hooks",
+                "builtin-skill--reversal-design",
+                "builtin-skill--villain-reveal",
+                "builtin-skill--dialogue-design",
+            ),
             metadata=MappingProxyType({}),
         ),
         "auditor": AgentDefinition(
@@ -153,9 +171,15 @@ DEFAULT_AGENT_DEFINITIONS: Mapping[str, AgentDefinition] = MappingProxyType(
                 "world_read",
                 "plan",
                 "note_read",
-                "character_read"
+                "character_read",
+                "writing_readiness_read",
+                "writing_readiness_review",
             ),
-            enabled_skills=(),
+            enabled_skills=(
+                "builtin-skill--story-quality",
+                "builtin-skill--reader-contract",
+                "builtin-skill--story-state-tracking",
+            ),
             metadata=MappingProxyType({}),
         ),
         "writer": AgentDefinition(
@@ -173,9 +197,19 @@ DEFAULT_AGENT_DEFINITIONS: Mapping[str, AgentDefinition] = MappingProxyType(
                 "chapter_write",
                 "note_read",
                 "note_write",
-                "character_read"
+                "character_read",
+                "writing_readiness_read",
             ),
-            enabled_skills=(),
+            enabled_skills=(
+                "builtin-skill--prose-format",
+                "builtin-skill--deslop-writing",
+                "builtin-skill--dialogue-design",
+                "builtin-skill--emotional-arc",
+                "builtin-skill--character-relationship",
+                "builtin-skill--opening-design",
+                "builtin-skill--story-hooks",
+                "builtin-skill--story-state-tracking",
+            ),
             metadata=MappingProxyType({}),
         ),
         "actor": AgentDefinition(
@@ -195,9 +229,14 @@ DEFAULT_AGENT_DEFINITIONS: Mapping[str, AgentDefinition] = MappingProxyType(
                 "note_read",
                 "note_write",
                 "character_read",
-                "character_write"
+                "character_write",
+                "writing_readiness_read",
             ),
-            enabled_skills=(),
+            enabled_skills=(
+                "builtin-skill--deslop-writing",
+                "builtin-skill--prose-format",
+                "builtin-skill--story-state-tracking",
+            ),
             metadata=MappingProxyType({}),
         ),
         "reviewer": AgentDefinition(
@@ -213,9 +252,16 @@ DEFAULT_AGENT_DEFINITIONS: Mapping[str, AgentDefinition] = MappingProxyType(
                 "world_read",
                 "plan",
                 "character_read",
-                "note_read"
+                "note_read",
+                "writing_readiness_read",
             ),
-            enabled_skills=(),
+            enabled_skills=(
+                "builtin-skill--story-quality",
+                "builtin-skill--deslop-lexicon",
+                "builtin-skill--reader-contract",
+                "builtin-skill--prose-format",
+                "builtin-skill--story-state-tracking",
+            ),
             metadata=MappingProxyType({}),
         ),
     }

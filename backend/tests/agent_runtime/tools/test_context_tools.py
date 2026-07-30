@@ -416,6 +416,40 @@ async def test_list_world_entries_returns_enabled_entry_titles() -> None:
 
 
 @pytest.mark.asyncio
+async def test_list_world_entries_persists_lazily_created_world_info() -> None:
+    from app.agent_runtime.tools.impls.context.world_entry import ListWorldEntriesTool
+
+    tool = ListWorldEntriesTool(_state=_make_state())
+    created_world = SimpleNamespace(id="world-new")
+
+    with patch(
+        "app.agent_runtime.tools.impls.context.world_entry.create_session"
+    ) as mock_cs, patch(
+        "app.agent_runtime.tools.impls.context.world_entry.world_info_repo"
+    ) as mock_world_repo, patch(
+        "app.agent_runtime.tools.impls.context.world_entry.world_info_service"
+    ) as mock_world_service, patch(
+        "app.agent_runtime.tools.impls.context.world_entry.world_info_entry_repo"
+    ) as mock_entry_repo:
+        mock_session = AsyncMock()
+        mock_cs.return_value = mock_session
+        mock_world_repo.get_by_project_id = AsyncMock(return_value=None)
+        mock_world_service.get_or_create_world_info_by_project = AsyncMock(
+            return_value=created_world
+        )
+        mock_entry_repo.list_enabled_by_world_info = AsyncMock(return_value=[])
+
+        result = await tool.ainvoke({})
+
+    assert json.loads(result) == {"entries": []}
+    mock_world_service.get_or_create_world_info_by_project.assert_awaited_once_with(
+        mock_session,
+        "proj-1",
+    )
+    mock_session.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
 async def test_read_world_entry_reads_content_by_title() -> None:
     from app.agent_runtime.tools.impls.context.world_entry import ReadWorldEntryTool
 

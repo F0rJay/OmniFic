@@ -103,6 +103,7 @@ class SessionRunner:
         self._graph: CompiledStateGraph | None = None
         self._inject_queue: asyncio.Queue[tuple[str | None, str, str]] = asyncio.Queue()
         self._queued_user_messages: dict[str, tuple[str, datetime]] = {}
+        self._queued_user_model_configs: dict[str, dict] = {}
         self._cancelled_user_message_ids: set[str] = set()
         self._cancel_event = asyncio.Event()
         self._translator = EventTranslator(session_id)
@@ -124,6 +125,64 @@ class SessionRunner:
     def update_model_config(self, model_config: dict) -> None:
         self._validate_model_config(model_config)
         self.model_config = dict(model_config)
+
+    async def record_model_change(
+        self,
+        *,
+        previous_model_config: dict,
+        next_model_config: dict,
+        session: AsyncSession | None = None,
+    ) -> None:
+        previous_name = str(
+            previous_model_config.get("model_name")
+            or previous_model_config.get("model_id")
+            or ""
+        )
+        next_name = str(
+            next_model_config.get("model_name")
+            or next_model_config.get("model_id")
+            or ""
+        )
+        payload = {
+            "kind": "model_changed",
+            "previous_model_id": previous_model_config.get("model_record_id"),
+            "previous_model_name": previous_name,
+            "model_id": next_model_config.get("model_record_id"),
+            "model_name": next_name,
+        }
+        write_session = session or await create_session()
+        try:
+            message = await repo.insert_message(
+                write_session,
+                session_id=self.session_id,
+                task_id=self.task_id,
+                project_id=self.project_id,
+                role="system",
+                status="complete",
+                content="",
+                message_type="model_changed",
+                display_channel="list",
+                llm_visibility="hidden",
+                metadata=payload,
+            )
+        finally:
+            if session is None:
+                await write_session.close()
+
+        await self._emit_agent_event(
+            "agent:model_changed",
+            {
+                "id": message.id,
+                "correlation_id": message.id,
+                "session_id": self.session_id,
+                "created_at": message.created_at.isoformat(),
+                "type": "model_changed",
+                "role": "system",
+                "status": "completed",
+                "display": "list",
+                "payload": payload,
+            },
+        )
 
     async def _get_graph(self) -> CompiledStateGraph:
         if self._graph is None:
@@ -874,10 +933,18 @@ class SessionRunner:
     async def inject_message(self, content: str, message_id: str) -> None:
         await self._inject_queue.put((message_id, "user", content))
 
-    async def queue_pending_user_message(self, content: str) -> dict[str, str]:
+    async def queue_pending_user_message(
+        self,
+        content: str,
+        *,
+        model_config: dict | None = None,
+    ) -> dict[str, str]:
         message_id = generate_id()
         created_at = datetime.now(UTC)
         self._queued_user_messages[message_id] = (content, created_at)
+        if model_config is not None:
+            self._validate_model_config(model_config)
+            self._queued_user_model_configs[message_id] = dict(model_config)
         created_at_iso = _format_utc_iso_datetime(created_at)
         await self._emit_pending_user_message(
             content,
@@ -896,6 +963,7 @@ class SessionRunner:
         queued = self._queued_user_messages.pop(message_id, None)
         if queued is None:
             return None
+        self._queued_user_model_configs.pop(message_id, None)
         self._cancelled_user_message_ids.add(message_id)
         content, created_at = queued
         created_at_iso = _format_utc_iso_datetime(created_at)
@@ -932,6 +1000,23 @@ class SessionRunner:
 
         message_id, content, created_at = pending
         created_at_iso = _format_utc_iso_datetime(created_at)
+        next_model_config = self._queued_user_model_configs.get(message_id)
+        if next_model_config is not None:
+            previous_model_config = dict(self.model_config)
+            self.update_model_config(next_model_config)
+            previous_identity = previous_model_config.get(
+                "model_record_id",
+                previous_model_config.get("model_id"),
+            )
+            next_identity = next_model_config.get(
+                "model_record_id",
+                next_model_config.get("model_id"),
+            )
+            if previous_identity != next_identity:
+                await self.record_model_change(
+                    previous_model_config=previous_model_config,
+                    next_model_config=next_model_config,
+                )
         await self._persist_user_message(
             content,
             message_id=message_id,
@@ -939,6 +1024,7 @@ class SessionRunner:
         )
 
         self._queued_user_messages.pop(message_id, None)
+        self._queued_user_model_configs.pop(message_id, None)
         next_queue: asyncio.Queue[tuple[str | None, str, str]] = asyncio.Queue()
         while not self._inject_queue.empty():
             queued_message_id, role, queued_content = self._inject_queue.get_nowait()
@@ -968,6 +1054,7 @@ class SessionRunner:
     def cancel(self) -> None:
         self._cancel_event.set()
         self._queued_user_messages.clear()
+        self._queued_user_model_configs.clear()
         self._cancelled_user_message_ids.clear()
         self._inject_queue = asyncio.Queue()
 

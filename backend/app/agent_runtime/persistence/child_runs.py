@@ -769,6 +769,81 @@ async def recycle_child_run(
     return row
 
 
+async def list_descendant_child_runs(
+    session: AsyncSession,
+    parent_session_id: str,
+) -> list[AgentChildRun]:
+    """Return all descendants in leaf-first order for deterministic shutdown."""
+    descendants: list[AgentChildRun] = []
+    for row in await list_child_runs_for_parent(session, parent_session_id):
+        descendants.extend(await list_descendant_child_runs(session, row.child_thread_id))
+        descendants.append(row)
+    return descendants
+
+
+async def _close_child_run_rows(
+    session: AsyncSession,
+    rows: list[AgentChildRun],
+    *,
+    error: str | None,
+) -> list[AgentChildRun]:
+    now = datetime.now(UTC)
+    closed: list[AgentChildRun] = []
+    for row in rows:
+        if not row.is_active:
+            continue
+        await _cancel_open_child_run_requests(
+            session,
+            child_run_id=row.id,
+            now=now,
+            error=error,
+        )
+        row.is_active = False
+        row.recycled_at = now
+        row.pending_approval_id = None
+        row.pending_approval_json = None
+        if row.status not in TERMINAL_CHILD_RUN_STATUSES:
+            row.status = "cancelled"
+            row.completed_at = now
+            row.last_completed_at = now
+            if error is not None:
+                row.error = error
+        row.updated_at = now
+        closed.append(row)
+
+    await session.commit()
+    for row in closed:
+        await session.refresh(row)
+    return closed
+
+
+async def close_child_run_tree(
+    session: AsyncSession,
+    parent_session_id: str,
+    *,
+    error: str | None = None,
+) -> list[AgentChildRun]:
+    """Close every active descendant when its owning parent session ends."""
+    rows = await list_descendant_child_runs(session, parent_session_id)
+    return await _close_child_run_rows(session, rows, error=error)
+
+
+async def close_all_active_child_runs(
+    session: AsyncSession,
+    *,
+    error: str | None = None,
+) -> list[AgentChildRun]:
+    """Close persisted child runs that cannot survive a backend restart."""
+    result = await session.execute(
+        select(AgentChildRun).where(col(AgentChildRun.is_active).is_(True))
+    )
+    return await _close_child_run_rows(
+        session,
+        list(result.scalars().all()),
+        error=error,
+    )
+
+
 async def list_active_child_runs(
     session: AsyncSession,
     *,

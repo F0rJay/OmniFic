@@ -12,8 +12,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.errors import NotFoundError
 from app.core.storage import delete_cover_file, save_cover_file
 from app.storage.models.project import Project
-from app.storage.repos import chapter_repo, project_repo, volume_repo
-from app.storage.services import volume_service
+from app.storage.repos import (
+    chapter_repo,
+    project_repo,
+    volume_repo,
+    world_info_repo,
+    writing_readiness_repo,
+)
+from app.storage.services import volume_service, world_info_service
+from app.storage.services.world_info_service import get_or_create_world_info_by_project
 
 
 @dataclass
@@ -47,6 +54,7 @@ async def create_project(
     project = Project(title=title, description=description)
     project = await project_repo.create(session, project)
     await volume_service.create_default_volume(session, project.id)
+    await get_or_create_world_info_by_project(session, project.id)
 
     # 如果提供了封面文件，保存封面
     if cover_file:
@@ -158,6 +166,10 @@ async def delete_project(session: AsyncSession, project_id: str) -> None:
     # 删除项目下的所有章节
     await chapter_repo.delete_by_project(session, project_id)
     await volume_repo.delete_by_project(session, project_id)
+    await writing_readiness_repo.delete_by_project(session, project_id)
+    world_info = await world_info_repo.get_by_project_id(session, project_id)
+    if world_info is not None:
+        await world_info_service.delete_world_info(session, world_info.id)
 
     # 删除封面文件（如果存在）
     if project.cover_path:

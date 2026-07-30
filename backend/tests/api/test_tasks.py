@@ -10,6 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent_runtime.modes import AgentMode
 from app.agent_runtime.persistence import repo as agent_run_repo
+from app.agent_runtime.persistence.child_runs import create_child_run
+from app.agent_runtime.persistence.model import AgentChildRun
 from app.storage.services import task_service
 
 
@@ -268,6 +270,44 @@ class TestTaskAPI:
 
         get_response = await client.get(f"/api/v1/tasks/{task.id}")
         assert get_response.status_code == status.HTTP_404_NOT_FOUND
+
+    async def test_delete_task_closes_active_child_runs_and_releases_settings_lock(
+        self,
+        client: AsyncClient,
+        session: AsyncSession,
+    ) -> None:
+        task, _project_id, _chapter_id = await self.create_agent_task(client, session)
+        child = await create_child_run(
+            session,
+            parent_session_id=task.agent_session_id or "",
+            parent_task_id=task.id,
+            parent_thread_id=task.agent_session_id or "",
+            child_thread_id=f"{task.agent_session_id}:child:orphan-regression",
+            agent_key="composer",
+            dispatch_id="dispatch-orphan-regression",
+            tool_call_id="tool-orphan-regression",
+            request={"task": "stale child"},
+            status="running",
+        )
+
+        locked = await client.get("/api/v1/settings/agent-session-lock")
+        assert locked.json() == {"is_locked": True}
+
+        with patch(
+            "app.api.routers.tasks.delete_checkpoints_for_thread",
+            new=AsyncMock(return_value=0),
+        ):
+            response = await client.delete(f"/api/v1/tasks/{task.id}")
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        persisted_child = await session.get(AgentChildRun, child.id)
+        assert persisted_child is not None
+        await session.refresh(persisted_child)
+        assert persisted_child.is_active is False
+        assert persisted_child.status == "cancelled"
+
+        unlocked = await client.get("/api/v1/settings/agent-session-lock")
+        assert unlocked.json() == {"is_locked": False}
 
     async def test_delete_task_rejects_running_task(
         self,

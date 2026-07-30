@@ -15,6 +15,7 @@ from app.agent_runtime.tools.registry import ToolRegistry
 from app.storage.database import create_session
 from app.storage.models.world_info_entry import WorldInfoEntry
 from app.storage.repos import world_info_entry_repo, world_info_repo
+from app.storage.services import world_info_service
 from app.storage.services import world_info_entry_service
 
 
@@ -135,9 +136,12 @@ def _build_world_entry_diff(
 
 async def _get_project_world_info(session, project_id: str):
     world_info = await world_info_repo.get_by_project_id(session, project_id)
-    if world_info is None:
-        raise ToolExecutionError("当前项目未绑定世界书")
-    return world_info
+    if world_info is not None:
+        return world_info
+    return await world_info_service.get_or_create_world_info_by_project(
+        session,
+        project_id,
+    )
 
 
 async def _resolve_entry_by_title(session, world_info_id: str, title: str) -> WorldInfoEntry:
@@ -192,6 +196,10 @@ class ListWorldEntriesTool(AgentTool):
         session = await create_session()
         try:
             world_info = await _get_project_world_info(session, self.project_id)
+            # Read-only Agent tools own an independent session. Persist a lazily
+            # created world book before the session is closed so historical
+            # projects are repaired permanently rather than only for this call.
+            await session.commit()
             entries = await world_info_entry_repo.list_enabled_by_world_info(
                 session, world_info.id
             )
@@ -219,6 +227,7 @@ class ReadWorldEntryTool(AgentTool):
         session = await create_session()
         try:
             world_info = await _get_project_world_info(session, self.project_id)
+            await session.commit()
             entry = await _resolve_entry_by_title(session, world_info.id, title)
             return json.dumps(
                 {

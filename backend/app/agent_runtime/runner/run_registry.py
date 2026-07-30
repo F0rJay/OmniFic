@@ -106,6 +106,15 @@ class AgentRunRegistry:
             task.cancel()
             return True
 
+    async def cancel_child_and_wait(self, session_id: str, child_run_id: str) -> bool:
+        async with self._lock:
+            task = (self._tasks.get(session_id) or {}).get(child_run_id)
+            if task is None or task.done():
+                return False
+            task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+        return True
+
     async def cancel(self, session_id: str) -> bool:
         async with self._lock:
             self._cancelled_sessions.add(session_id)

@@ -270,6 +270,18 @@ def _project_rows(
     projected: list[TaskMessage] = []
     projected_tool_index_by_id: dict[str, int] = {}
     for row in rows:
+        if row.message_type == "model_changed":
+            projected.append(
+                _base_message(
+                    row,
+                    message_type="model_changed",
+                    display_channel="list",
+                    payload={"kind": "model_changed", **row.metadata},
+                    tool_calls=[],
+                )
+            )
+            continue
+
         if row.message_type == "compaction":
             projected.append(
                 _base_message(

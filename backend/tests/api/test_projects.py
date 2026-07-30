@@ -5,6 +5,9 @@ Project API 测试。
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.storage.repos import world_info_repo
 
 
 @pytest.mark.asyncio
@@ -23,6 +26,23 @@ async def test_create_project(client: AsyncClient) -> None:
     assert "id" in data
     assert "created_at" in data
     assert "updated_at" in data
+
+
+@pytest.mark.asyncio
+async def test_create_project_also_creates_project_world_info(
+    client: AsyncClient,
+    session: AsyncSession,
+) -> None:
+    response = await client.post(
+        "/api/v1/projects",
+        data={"title": "自带世界书的小说"},
+    )
+
+    assert response.status_code == 201
+    project_id = response.json()["id"]
+    world_info = await world_info_repo.get_by_project_id(session, project_id)
+    assert world_info is not None
+    assert world_info.project_id == project_id
 
 
 @pytest.mark.asyncio
@@ -182,7 +202,10 @@ async def test_update_project_not_found(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_delete_project(client: AsyncClient) -> None:
+async def test_delete_project(
+    client: AsyncClient,
+    session: AsyncSession,
+) -> None:
     """测试删除项目。"""
     # 创建项目
     create_response = await client.post(
@@ -190,6 +213,7 @@ async def test_delete_project(client: AsyncClient) -> None:
         data={"title": "待删除小说"},
     )
     project_id = create_response.json()["id"]
+    assert await world_info_repo.get_by_project_id(session, project_id) is not None
 
     # 删除项目
     response = await client.delete(f"/api/v1/projects/{project_id}")
@@ -198,6 +222,7 @@ async def test_delete_project(client: AsyncClient) -> None:
     # 确认已删除
     get_response = await client.get(f"/api/v1/projects/{project_id}")
     assert get_response.status_code == 404
+    assert await world_info_repo.get_by_project_id(session, project_id) is None
 
 
 @pytest.mark.asyncio

@@ -1245,3 +1245,56 @@ async def test_consume_next_pending_user_message_keeps_pending_when_persist_fail
     assert remaining == [("msg_pending_1", "user", "压缩后继续处理")]
     emit_pending_user_message.assert_not_awaited()
     emit_runtime_user_message.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_consume_pending_message_applies_its_model_before_next_turn():
+    runner = SessionRunner(
+        session_id="sess_pending_model_001",
+        task_id="task_pending_model_001",
+        model_config={
+            "model_record_id": "old-record",
+            "model_name": "Old Model",
+            "provider_type": "openai",
+            "model_id": "old-model",
+            "api_key": "k",
+            "base_url": "",
+            "max_context_tokens": 8000,
+        },
+        project_id="proj_pending_model_001",
+    )
+    next_model_config = {
+        "model_record_id": "new-record",
+        "model_name": "New Model",
+        "provider_type": "anthropic",
+        "model_id": "new-model",
+        "api_key": "next-k",
+        "base_url": "https://example.test",
+        "max_context_tokens": 16000,
+    }
+
+    with patch.object(
+        runner, "_emit_pending_user_message", AsyncMock()
+    ), patch.object(
+        runner, "inject_message", AsyncMock()
+    ):
+        pending = await runner.queue_pending_user_message(
+            "下一轮",
+            model_config=next_model_config,
+        )
+
+    with patch.object(
+        runner, "record_model_change", AsyncMock()
+    ) as record_model_change, patch.object(
+        runner, "_persist_user_message", AsyncMock()
+    ), patch.object(
+        runner, "_emit_pending_user_message", AsyncMock()
+    ), patch.object(
+        runner, "_emit_runtime_user_message", AsyncMock()
+    ):
+        result = await runner.consume_next_pending_user_message_for_continuation()
+
+    assert result == (pending["message_id"], "下一轮")
+    assert runner.model_config == next_model_config
+    record_model_change.assert_awaited_once()
+    assert pending["message_id"] not in runner._queued_user_model_configs

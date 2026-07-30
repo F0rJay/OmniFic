@@ -5,6 +5,7 @@ from app.agent_runtime.tools.hooks.dispatch_description import (
 )
 from app.agent_runtime.tools.hooks.note_refresh import note_refresh_post_hook
 from app.agent_runtime.tools.hooks.world_entry_refresh import world_entry_refresh_post_hook
+from app.agent_runtime.tools.hooks.writing_readiness import writing_readiness_gate_hook
 
 __all__ = [
     "auth_hook",
@@ -12,4 +13,5 @@ __all__ = [
     "build_dispatch_subagent_description_hook",
     "note_refresh_post_hook",
     "world_entry_refresh_post_hook",
+    "writing_readiness_gate_hook",
 ]

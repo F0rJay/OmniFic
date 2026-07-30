@@ -65,6 +65,7 @@ from app.models.catalog import ModelProviderCatalogService
 from app.settings import settings as app_settings
 from app.socket import init_socketio
 from app.storage.database import close_db, create_session, init_db
+from app.agent_runtime.persistence.child_runs import close_all_active_child_runs
 from app.storage.services import task_service
 
 
@@ -111,6 +112,18 @@ async def _reset_task_running_state() -> int:
         cleared = await task_service.clear_running_tasks(session)
         await session.commit()
         return cleared
+    finally:
+        await session.close()
+
+
+async def _close_stale_child_runs() -> int:
+    session = await create_session()
+    try:
+        closed = await close_all_active_child_runs(
+            session,
+            error="parent session is no longer running",
+        )
+        return len(closed)
     finally:
         await session.close()
 
@@ -274,6 +287,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     cleared_tasks = await _reset_task_running_state()
     if cleared_tasks:
         logger.warning(f"已重置 {cleared_tasks} 个遗留的运行中任务状态")
+    closed_child_runs = await _close_stale_child_runs()
+    if closed_child_runs:
+        logger.warning(f"已关闭 {closed_child_runs} 个遗留的子 Agent 会话")
     await _seed_builtin_models()
     await init_checkpointer()
     await load_audit_details_persistence()

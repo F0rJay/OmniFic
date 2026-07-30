@@ -24,6 +24,7 @@ from app.storage.repos import (
     task_repo,
     task_message_repo,
     writing_activity_repo,
+    writing_readiness_repo,
 )
 
 __all__ = [
@@ -47,4 +48,5 @@ __all__ = [
     "task_message_repo",
     "task_repo",
     "writing_activity_repo",
+    "writing_readiness_repo",
 ]

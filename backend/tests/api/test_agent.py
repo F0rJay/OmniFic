@@ -271,6 +271,18 @@ class TestAgentAPI:
                 "key": "reference_skill",
                 "is_readonly": True,
             },
+            {
+                "key": "get_writing_readiness",
+                "is_readonly": True,
+            },
+            {
+                "key": "submit_writing_readiness_review",
+                "is_readonly": False,
+            },
+            {
+                "key": "authorize_writing_request",
+                "is_readonly": False,
+            },
         ]
 
     async def test_create_agent_session_success(self, client: AsyncClient, session) -> None:
@@ -398,7 +410,7 @@ class TestAgentAPI:
         resolve_model_config.assert_awaited_once_with(session, target["model_id"], "high")
         assert runner.model_config == resolved_config
 
-    async def test_send_agent_message_keeps_interrupted_run_model(
+    async def test_send_agent_message_switches_model_for_interrupted_session(
         self,
         client: AsyncClient,
         session,
@@ -426,9 +438,15 @@ class TestAgentAPI:
         runner.continue_with_user_message = MagicMock(return_value=AsyncMock())
         _SESSION_RUNNERS["session-model-resume"] = runner
 
+        next_model_config = {
+            "max_context_tokens": 32000,
+            "model_id": "new-model",
+            "model_record_id": "new-model-record",
+            "model_name": "New Model",
+        }
         with patch(
             "app.api.routers.agent_runtime._resolve_model_config",
-            AsyncMock(),
+            AsyncMock(return_value=next_model_config),
         ) as resolve_model_config, patch(
             "app.api.routers.agent_runtime._launch_task",
             AsyncMock(),
@@ -439,12 +457,31 @@ class TestAgentAPI:
             )
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()["model_updated"] is False
-        resolve_model_config.assert_not_awaited()
-        assert runner.model_config == original_model_config
+        assert response.json()["model_updated"] is True
+        resolve_model_config.assert_awaited_once_with(session, "new-model-record", None)
+        assert runner.model_config == next_model_config
         runner.continue_with_user_message.assert_called_once_with("继续原任务")
 
-    async def test_send_agent_message_queues_without_updating_model(
+        persisted_rows = await message_repo.list_by_session(session, "session-model-resume")
+        assert [row.message_type for row in persisted_rows] == ["model_changed"]
+
+        task_response = await client.get("/api/v1/tasks/task-model-resume")
+        model_change_messages = [
+            message
+            for message in task_response.json()["messages"]
+            if message["message_type"] == "model_changed"
+        ]
+        assert len(model_change_messages) == 1
+        assert model_change_messages[0]["role"] == "system"
+        assert model_change_messages[0]["payload"] == {
+            "kind": "model_changed",
+            "previous_model_id": None,
+            "previous_model_name": "original-model",
+            "model_id": "new-model-record",
+            "model_name": "New Model",
+        }
+
+    async def test_send_agent_message_queues_model_for_next_turn(
         self,
         client: AsyncClient,
         session,
@@ -475,7 +512,17 @@ class TestAgentAPI:
 
         with patch(
             "app.api.routers.agent_runtime._resolve_model_config",
-            AsyncMock(),
+            AsyncMock(
+                return_value={
+                    "model_record_id": "next-model-record",
+                    "model_name": "Next Model",
+                    "provider_type": "openai",
+                    "model_id": "next-model",
+                    "api_key": "k",
+                    "base_url": "",
+                    "max_context_tokens": 8000,
+                }
+            ),
         ) as resolve_model_config, patch(
             "app.api.routers.agent_runtime.get_agent_run_registry"
         ) as get_registry:
@@ -486,9 +533,22 @@ class TestAgentAPI:
             )
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()["model_updated"] is False
-        resolve_model_config.assert_not_awaited()
-        runner.queue_pending_user_message.assert_awaited_once_with("排队消息")
+        assert response.json()["model_updated"] is True
+        resolve_model_config.assert_awaited_once_with(
+            session, "next-model-record", None
+        )
+        runner.queue_pending_user_message.assert_awaited_once_with(
+            "排队消息",
+            model_config={
+                "model_record_id": "next-model-record",
+                "model_name": "Next Model",
+                "provider_type": "openai",
+                "model_id": "next-model",
+                "api_key": "k",
+                "base_url": "",
+                "max_context_tokens": 8000,
+            },
+        )
 
     async def test_create_agent_session_rejects_mode_field(self, client: AsyncClient) -> None:
         target = await _seed_agent_target(client)
@@ -882,7 +942,7 @@ class TestAgentAPI:
         assert data["is_running"] is True
         fake_registry.is_running.assert_awaited_once_with(session_id)
 
-    async def test_send_message_keeps_task_running_when_async_child_is_still_running(
+    async def test_send_message_closes_async_children_when_parent_run_finishes(
         self,
         client: AsyncClient,
         session,
@@ -951,16 +1011,17 @@ class TestAgentAPI:
 
             run_gate.set()
             await run_finished.wait()
+            await asyncio.wait_for(child_finished.wait(), timeout=1)
             await asyncio.sleep(0.05)
 
             updated_task = await task_service.get_task(session, task_id)
             await session.refresh(updated_task)
-            assert updated_task.is_running is True
+            await session.refresh(row)
+            assert updated_task.is_running is False
+            assert row.is_active is False
+            assert row.status == "cancelled"
 
-            child_gate.set()
-            await child_finished.wait()
-
-    async def test_cancel_session_cascades_to_nested_subagent_sessions_without_deactivating_them(
+    async def test_cancel_session_cascades_to_and_closes_nested_subagent_sessions(
         self,
         client: AsyncClient,
         session,
@@ -1036,32 +1097,16 @@ class TestAgentAPI:
         )
         assert parent_children.status_code == status.HTTP_200_OK
         assert nested_children.status_code == status.HTTP_200_OK
-        assert parent_children.json() == [
-            {
-                "child_run_id": child.id,
-                "child_thread_id": child.child_thread_id,
-                "agent_key": "writer",
-                "agent_number": child.metadata_json["agent_number"],
-                "status": "cancelled",
-                "queued_messages": 0,
-                "is_active": True,
-                "pending_approval": None,
-            },
-        ]
-        assert nested_children.json() == [
-            {
-                "child_run_id": nested_child.id,
-                "child_thread_id": nested_child.child_thread_id,
-                "agent_key": "reviewer",
-                "agent_number": nested_child.metadata_json["agent_number"],
-                "status": "cancelled",
-                "queued_messages": 0,
-                "is_active": True,
-                "pending_approval": None,
-            },
-        ]
+        assert parent_children.json() == []
+        assert nested_children.json() == []
+        await session.refresh(child)
+        await session.refresh(nested_child)
+        assert child.status == "cancelled"
+        assert child.is_active is False
+        assert nested_child.status == "cancelled"
+        assert nested_child.is_active is False
 
-    async def test_cancel_session_keeps_completed_subagent_status_unchanged(
+    async def test_cancel_session_closes_completed_and_running_subagents(
         self,
         client: AsyncClient,
         session,
@@ -1127,34 +1172,15 @@ class TestAgentAPI:
         await session.refresh(completed_child)
         await session.refresh(running_child)
         assert completed_child.status == "completed"
+        assert completed_child.is_active is False
         assert running_child.status == "cancelled"
+        assert running_child.is_active is False
 
         children_response = await client.get(
             f"/api/v1/agent/sessions/{parent_session_id}/subagents"
         )
         assert children_response.status_code == status.HTTP_200_OK
-        assert children_response.json() == [
-            {
-                "child_run_id": completed_child.id,
-                "child_thread_id": completed_child.child_thread_id,
-                "agent_key": "writer",
-                "agent_number": completed_child.metadata_json["agent_number"],
-                "status": "completed",
-                "queued_messages": 0,
-                "is_active": True,
-                "pending_approval": None,
-            },
-            {
-                "child_run_id": running_child.id,
-                "child_thread_id": running_child.child_thread_id,
-                "agent_key": "reviewer",
-                "agent_number": running_child.metadata_json["agent_number"],
-                "status": "cancelled",
-                "queued_messages": 0,
-                "is_active": True,
-                "pending_approval": None,
-            },
-        ]
+        assert children_response.json() == []
 
     async def test_cancel_session_publishes_cancelled_subagent_status_to_parent_stream(
         self,
@@ -1236,7 +1262,7 @@ class TestAgentAPI:
                     "agent_number": child.metadata_json["agent_number"],
                     "status": "cancelled",
                     "queued_messages": 0,
-                    "is_active": True,
+                    "is_active": False,
                     "pending_approval": None,
                 }
             ]

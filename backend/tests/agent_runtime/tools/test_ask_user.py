@@ -50,7 +50,10 @@ class TestAskUser:
         assert payload["type"] == "ask_user"
         assert len(payload["questions"]) == 1
         serialized_payload = json.loads(json.dumps(payload))
-        assert serialized_payload["questions"] == _valid_input()["questions"]
+        assert serialized_payload["questions"] == [
+            {**question, "multi_select": False}
+            for question in _valid_input()["questions"]
+        ]
 
     async def test_ask_user_returns_response_after_resume(self):
         from app.agent_runtime.tools.impls.interaction.ask_user import AskUserTool

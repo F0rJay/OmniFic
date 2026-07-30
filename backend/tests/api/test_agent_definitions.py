@@ -23,8 +23,70 @@ async def test_list_agent_definitions(client: AsyncClient):
     plan = next(d for d in data["definitions"] if d["key"] == "plan")
     assert build["kind"] == "primary"
     assert plan["kind"] == "primary"
-    assert build["enabled_skills"] == []
-    assert plan["enabled_skills"] == []
+    assert build["enabled_skills"] == ["builtin-skill--worldbook-design"]
+    assert plan["enabled_skills"] == ["builtin-skill--story-state-tracking"]
+    assert "writing_start" in build["enabled_tool_categories"]
+    assert "writing_start" in plan["enabled_tool_categories"]
+
+
+@pytest.mark.asyncio
+async def test_builtin_agent_default_skill_assignments(client: AsyncClient):
+    response = await client.get("/api/v1/agent-definitions")
+    assert response.status_code == status.HTTP_200_OK
+    definitions = {
+        item["key"]: item["enabled_skills"]
+        for item in response.json()["definitions"]
+    }
+
+    assert definitions == {
+        "build": ["builtin-skill--worldbook-design"],
+        "plan": ["builtin-skill--story-state-tracking"],
+        "explore": [
+            "builtin-skill--story-state-tracking",
+            "builtin-skill--story-deconstruction",
+        ],
+        "composer": [
+            "builtin-skill--character-design",
+            "builtin-skill--character-relationship",
+            "builtin-skill--emotional-arc",
+            "builtin-skill--opening-design",
+            "builtin-skill--story-hooks",
+            "builtin-skill--reversal-design",
+            "builtin-skill--villain-reveal",
+            "builtin-skill--dialogue-design",
+        ],
+        "auditor": [
+            "builtin-skill--story-quality",
+            "builtin-skill--reader-contract",
+            "builtin-skill--story-state-tracking",
+        ],
+        "writer": [
+            "builtin-skill--prose-format",
+            "builtin-skill--deslop-writing",
+            "builtin-skill--dialogue-design",
+            "builtin-skill--emotional-arc",
+            "builtin-skill--character-relationship",
+            "builtin-skill--opening-design",
+            "builtin-skill--story-hooks",
+            "builtin-skill--story-state-tracking",
+        ],
+        "actor": [
+            "builtin-skill--deslop-writing",
+            "builtin-skill--prose-format",
+            "builtin-skill--story-state-tracking",
+        ],
+        "reviewer": [
+            "builtin-skill--story-quality",
+            "builtin-skill--deslop-lexicon",
+            "builtin-skill--reader-contract",
+            "builtin-skill--prose-format",
+            "builtin-skill--story-state-tracking",
+        ],
+    }
+    assert all(
+        "builtin-skill--short-submission" not in skill_ids
+        for skill_ids in definitions.values()
+    )
 
 
 @pytest.mark.asyncio
@@ -201,7 +263,10 @@ async def test_update_builtin_creates_override(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_reset_builtin_agent_definition(client: AsyncClient):
-    update_body = {"display_name": "Custom Reviewer"}
+    update_body = {
+        "display_name": "Custom Reviewer",
+        "enabled_skills": ["user-only-skill"],
+    }
     await client.put("/api/v1/agent-definitions/reviewer", json=update_body)
 
     response = await client.post("/api/v1/agent-definitions/reviewer/reset")
@@ -210,6 +275,13 @@ async def test_reset_builtin_agent_definition(client: AsyncClient):
     assert data["key"] == "reviewer"
     assert data["source"] == "builtin"
     assert data["display_name"] == "Reviewer"
+    assert data["enabled_skills"] == [
+        "builtin-skill--story-quality",
+        "builtin-skill--deslop-lexicon",
+        "builtin-skill--reader-contract",
+        "builtin-skill--prose-format",
+        "builtin-skill--story-state-tracking",
+    ]
 
 
 @pytest.mark.asyncio

@@ -13,12 +13,29 @@ from app.api.schemas.project import (
     ProjectListResponse,
     ProjectResponse,
 )
+from app.api.schemas.writing_readiness import WritingReadinessResponse
 from app.core.errors import NotFoundError
 from app.core.storage import get_cover_url
 from app.storage.database import get_session
-from app.storage.services import project_service
+from app.storage.services import project_service, writing_readiness_service
 
 router = APIRouter(prefix="/projects", tags=["projects"])
+
+
+@router.get(
+    "/{project_id}/writing-readiness",
+    response_model=WritingReadinessResponse,
+    summary="获取 Agent 正文开写准备状态",
+)
+async def get_writing_readiness(
+    project_id: str,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> WritingReadinessResponse:
+    try:
+        payload = await writing_readiness_service.get_status(session, project_id)
+        return WritingReadinessResponse.model_validate(payload)
+    except NotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
 @router.post(

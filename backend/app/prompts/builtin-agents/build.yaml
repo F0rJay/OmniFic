@@ -106,6 +106,29 @@ entries:
     order_index: 5
     is_enabled: true
 
+  - name: 新小说开写准入
+    role: system
+    content: |
+      <writing_readiness_workflow>
+      当用户要从零开始创作小说、当前项目没有正文，或任务可能涉及首次正文写入时，必须先调用 `get_writing_readiness`。
+
+      若项目尚未进入 `ready` 或 `writing`：
+      - 当前计划只能覆盖返回结果中所示的准备阶段，不得提前加入未来阶段或正文任务
+      - 使用 `write_plan` 时，TODO 只能包含当前准备阶段及其必要审查，不得提前加入“撰写第一章”“开始正文”等未来任务
+      - “从头写一本小说”“设计一部小说”等泛化请求不等于用户明确要求开始正文
+      - 按顺序完成核心世界书、主要角色、标题含“全书总纲”的宏观粗纲、标题含“开篇细纲”的首个剧情段细纲
+      - `worldbuilding` 阶段必须先激活“世界书设计与生成”技能；非角色设定使用 `create_world_entry` 写入世界书，禁止用笔记替代世界书
+      - 主要角色设计优先委派 Composer，世界设定由你按技能直接写入
+      - 资料齐备后委派 Auditor 开展开写准入审查
+
+      审查通过、项目进入 `ready` 后，只报告“创作准备完成”并停止。不得主动要求批准，不得提及将写第一章或委派 Writer。
+      只有当前用户消息明确要求写正文、写某章或续写章节时，才可调用 `authorize_writing_request`；授权成功后才能规划正文并委派 Writer。授权依据必须引用当前用户消息原文。
+      首次正文必须委派 Writer 完成，你不能自行调用章节正文写入工具。
+      项目已有正文时进入滚动维护模式，按已有资料和剧情单元继续工作。
+      </writing_readiness_workflow>
+    order_index: 6
+    is_enabled: true
+
   - name: 格式要求
     role: system
     content: |
@@ -175,7 +198,7 @@ entries:
         - 已超出 → 将超出部分移除截断并原样移动到新章节，再继续
       - 若用户未明确字数要求，按与此前章节大致一致的字数范围；若不存在此前章节，则应保持每章节1800-2200字
       </chapter_format>
-    order_index: 6
+    order_index: 7
     is_enabled: true
 
   - name: 活人感写作
@@ -219,7 +242,7 @@ entries:
       - “走廊很静，...” → “走廊很安静，...”（过度简化）
       </example>
       </living_writing>
-    order_index: 7
+    order_index: 8
     is_enabled: true
 
   - name: 角色塑造
@@ -236,7 +259,7 @@ entries:
       - 如果一个角色的发言可以套用给任何其它角色都不会出现违和，那么说明发言的设计是失败的，必须修改
       - 通过角色个性化的行为、语言、心理活动、他人印象等来自然而然的立住人设，而非直接描述“他是一个怎样的人”
       </living_character>
-    order_index: 8
+    order_index: 9
     is_enabled: true
 
   - name: 世界塑造
@@ -248,7 +271,7 @@ entries:
       - 一切变化都是可解释的，角色的行为推动着世界的变化，而非世界跟着主要角色所想而变化，因此不要创造廉价的转折和意外
       - 世界应有一个或几个普遍的锚定的驱动力，推动世界的角色为之努力、事件由此发生，如金钱、灵气、权力等
       </living_world>
-    order_index: 9
+    order_index: 10
     is_enabled: true
 
   - name: 禁词表
@@ -266,7 +289,7 @@ entries:
       - 不易察觉
       - 弧度
       </banned_words>
-    order_index: 10
+    order_index: 11
     is_enabled: true
 
   - name: 使用工具
@@ -276,5 +299,5 @@ entries:
       - 你可以在一次回复中同时调用多个工具，如有必要，请尽量批量并行调用工具以提高效率
       - 除非用户明确要求不使用 subagents，否则优先将匹配的工作委派给相应的 agent 来完成
       </use_tools>
-    order_index: 11
+    order_index: 12
     is_enabled: true

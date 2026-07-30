@@ -21,6 +21,7 @@ from app.storage.repos import setting_repo
 EXPECTED_AGENT_TOOL_PERMISSIONS = [
     {"tool_name": "activate_skill", "mode": "allow"},
     {"tool_name": "ask_user", "mode": "allow"},
+    {"tool_name": "authorize_writing_request", "mode": "allow"},
     {"tool_name": "create_character", "mode": "ask"},
     {"tool_name": "create_note_category", "mode": "ask"},
     {"tool_name": "create_volume", "mode": "ask"},
@@ -38,6 +39,7 @@ EXPECTED_AGENT_TOOL_PERMISSIONS = [
     {"tool_name": "edit_note_category", "mode": "ask"},
     {"tool_name": "edit_volume", "mode": "ask"},
     {"tool_name": "edit_world_entry", "mode": "ask"},
+    {"tool_name": "get_writing_readiness", "mode": "allow"},
     {"tool_name": "list_chapters", "mode": "allow"},
     {"tool_name": "list_characters", "mode": "allow"},
     {"tool_name": "list_notes", "mode": "allow"},
@@ -55,6 +57,7 @@ EXPECTED_AGENT_TOOL_PERMISSIONS = [
     {"tool_name": "recycle_subagent", "mode": "allow"},
     {"tool_name": "reference_skill", "mode": "allow"},
     {"tool_name": "search_chapters", "mode": "allow"},
+    {"tool_name": "submit_writing_readiness_review", "mode": "allow"},
     {"tool_name": "update_index", "mode": "allow"},
     {"tool_name": "write_chapter", "mode": "ask"},
     {"tool_name": "write_note", "mode": "ask"},

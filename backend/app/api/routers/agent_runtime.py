@@ -19,9 +19,8 @@ from app.agent_runtime.agents.definitions import load_agent_definition
 from app.agent_runtime.context.compaction.service import CompactionError
 from app.agent_runtime.persistence.child_runs import get_child_run_by_pending_approval
 from app.agent_runtime.persistence.child_runs import (
-    TERMINAL_CHILD_RUN_STATUSES,
+    close_child_run_tree,
     count_pending_child_run_requests,
-    cancel_child_run,
     list_active_child_runs,
     list_child_runs_for_parent,
 )
@@ -131,6 +130,9 @@ TOOL_DISPLAY_ORDER = {
     "delete_world_entry": 37,
     "activate_skill": 38,
     "reference_skill": 39,
+    "get_writing_readiness": 40,
+    "submit_writing_readiness_review": 41,
+    "authorize_writing_request": 42,
 }
 
 
@@ -242,17 +244,13 @@ async def _cancel_subagent_session_tree(
     for session_id in session_ids_to_cancel:
         await registry.cancel(session_id)
 
-    for row in descendants:
-        if not row.is_active:
-            continue
-        if row.status in TERMINAL_CHILD_RUN_STATUSES:
-            continue
-        await cancel_child_run(
-            session,
-            row.id,
-            error="parent session cancelled",
-        )
-        if status_publisher is not None:
+    closed = await close_child_run_tree(
+        session,
+        root_session_id,
+        error="parent session cancelled",
+    )
+    if status_publisher is not None:
+        for row in closed:
             await status_publisher.publish_parent_subagent_status(row.id)
 
 
@@ -310,6 +308,7 @@ async def _build_model_config(
 ) -> dict:
     model_config = {
         "model_record_id": model.id,
+        "model_name": model.name,
         "provider_type": provider.provider_type,
         "base_url": provider.url,
         "api_key": api_key,
@@ -453,6 +452,43 @@ def _make_status_session_factory(session: AsyncSession) -> Callable[[], AsyncSes
     return factory
 
 
+async def _close_subagents_after_parent_run(
+    *,
+    db_session_factory: Callable[[], AsyncSession],
+    root_session_id: str,
+    registry,
+) -> None:
+    lifecycle_session = db_session_factory()
+    try:
+        descendants = await _list_descendant_child_runs(
+            lifecycle_session,
+            parent_session_id=root_session_id,
+        )
+        cancel_child_and_wait = getattr(registry, "cancel_child_and_wait", None)
+        cancel_child = getattr(registry, "cancel_child", None)
+        for row in descendants:
+            if callable(cancel_child_and_wait):
+                await cancel_child_and_wait(row.parent_session_id, row.id)
+            elif callable(cancel_child):
+                await cancel_child(row.parent_session_id, row.id)
+
+        closed = await close_child_run_tree(
+            lifecycle_session,
+            root_session_id,
+            error="parent session finished",
+        )
+        if closed:
+            status_publisher = SubagentRunner(
+                session_factory=db_session_factory,
+                model_config={"max_context_tokens": 1},
+                project_id="",
+            )
+            for row in closed:
+                await status_publisher.publish_parent_subagent_status(row.id)
+    finally:
+        await lifecycle_session.close()
+
+
 async def _launch_task(
     *,
     db_session_factory: Callable[[], AsyncSession],
@@ -480,6 +516,16 @@ async def _launch_task(
                 "Agent task failed"
             )
         finally:
+            try:
+                await _close_subagents_after_parent_run(
+                    db_session_factory=db_session_factory,
+                    root_session_id=session_id,
+                    registry=registry,
+                )
+            except Exception:
+                logger.bind(session_id=session_id).opt(exception=True).error(
+                    "Agent child-session cleanup failed"
+                )
             current_task = asyncio.current_task()
             removed = False
             if current_task is not None:
@@ -558,6 +604,16 @@ async def _launch_continuation_task_replacing_current(
                 "Agent continuation task failed"
             )
         finally:
+            try:
+                await _close_subagents_after_parent_run(
+                    db_session_factory=db_session_factory,
+                    root_session_id=session_id,
+                    registry=registry,
+                )
+            except Exception:
+                logger.bind(session_id=session_id).opt(exception=True).error(
+                    "Agent continuation child-session cleanup failed"
+                )
             continuation_task = asyncio.current_task()
             removed = False
             if continuation_task is not None:
@@ -704,25 +760,60 @@ async def send_agent_message(
         await enqueue_session_title_job(session, task, body.message)
         await background_service.commit_and_notify(session)
     if await registry.is_running(session_id):
-        pending_message = await runner.queue_pending_user_message(body.message)
+        pending_model_config = None
+        if body.model_id:
+            try:
+                pending_model_config = await _resolve_model_config(
+                    session, body.model_id, body.reasoning_effort
+                )
+            except NotFoundError as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+                ) from exc
+            except ValueError as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=str(exc),
+                ) from exc
+        if pending_model_config is None:
+            pending_message = await runner.queue_pending_user_message(body.message)
+        else:
+            pending_message = await runner.queue_pending_user_message(
+                body.message,
+                model_config=pending_model_config,
+            )
         return AgentSendMessageResponse(
             success=True,
             session_id=session_id,
             message="Agent 消息已排队",
             queued=True,
-            model_updated=False,
+            model_updated=pending_model_config is not None,
             pending_message=AgentPendingMessageResponse(**pending_message),
         )
     can_continue = await runner.can_continue()
     model_updated = False
-    if body.model_id and not can_continue:
+    if body.model_id:
         try:
-            runner.update_model_config(
-                await _resolve_model_config(
-                    session, body.model_id, body.reasoning_effort
-                )
+            previous_model_config = dict(runner.model_config)
+            next_model_config = await _resolve_model_config(
+                session, body.model_id, body.reasoning_effort
             )
+            runner.update_model_config(next_model_config)
             model_updated = True
+            previous_identity = previous_model_config.get(
+                "model_record_id",
+                previous_model_config.get("model_id"),
+            )
+            next_identity = next_model_config.get(
+                "model_record_id",
+                next_model_config.get("model_id"),
+            )
+            if previous_identity != next_identity:
+                await runner.record_model_change(
+                    previous_model_config=previous_model_config,
+                    next_model_config=next_model_config,
+                    session=session,
+                )
         except NotFoundError as exc:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)

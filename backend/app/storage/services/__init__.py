@@ -17,6 +17,7 @@ from app.storage.services import (
     skill_service,
     task_service,
     writing_activity_service,
+    writing_readiness_service,
     world_info_entry_service,
     world_info_service,
 )
@@ -35,6 +36,7 @@ __all__ = [
     "skill_service",
     "task_service",
     "writing_activity_service",
+    "writing_readiness_service",
     "world_info_entry_service",
     "world_info_service",
 ]

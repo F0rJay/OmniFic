@@ -35,7 +35,13 @@ from app.agent_runtime.runner.event_scope import SUBAGENT_CHILD_EVENT_TAG
 from app.agent_runtime.runner.run_registry import get_agent_run_registry
 from app.agent_runtime.streaming.replay_buffer import get_agent_event_replay_buffer
 from app.agent_runtime.tools import ToolRegistry
-from app.agent_runtime.tools.hooks import auth_hook, chapter_refresh_post_hook, note_refresh_post_hook, world_entry_refresh_post_hook
+from app.agent_runtime.tools.hooks import (
+    auth_hook,
+    chapter_refresh_post_hook,
+    note_refresh_post_hook,
+    world_entry_refresh_post_hook,
+    writing_readiness_gate_hook,
+)
 from app.agent_runtime.tools.impls.skill.skill import skill_tool_names_for_definition
 from app.agent_runtime.types import (
     DEFAULT_AGENT_RECURSION_LIMIT,
@@ -290,7 +296,7 @@ class SubagentRunner:
         return ToolRegistry.get_tools(
             names=names,
             state=runtime_state,
-            pre_hooks=[auth_hook],
+            pre_hooks=[writing_readiness_gate_hook, auth_hook],
             post_hooks=[chapter_refresh_post_hook, note_refresh_post_hook, world_entry_refresh_post_hook],
         )
 
