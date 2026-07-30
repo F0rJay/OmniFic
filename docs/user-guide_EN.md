@@ -36,10 +36,10 @@ The primary sidebar contains:
 Inside a project, the workspace normally has three areas:
 
 - Left: the volume/chapter tree and notes tree.
-- Center: chapter and note editors with multiple tabs.
+- Center: the editor for the current chapter or note.
 - Right: Agent conversations, task state, tool calls, and context controls.
 
-Each panel can be collapsed. On narrow windows, some panels become drawers or overlays.
+In the Projects, Worldbook, and Characters workspaces, the left material panel, center editor, and right Agent panel can each be collapsed independently. Use the restore button on the narrow collapsed rail to expand a panel again. On narrow windows, some areas become drawers or overlays.
 
 ## Configure model services
 
@@ -104,7 +104,7 @@ Select **Chapters** in the project sidebar:
 - Create volumes and edit their names, descriptions, and order.
 - Create, duplicate, rename, move, or delete chapters.
 - Enter sorting mode to drag volumes and chapters, then save the new order.
-- Open a chapter in the editor or use its menu to open it in a new tab.
+- Select a chapter to open it in the center editor. When switching chapters, the current draft first enters the autosave flow.
 
 Deleting a project, volume, or chapter is irreversible. Deleting a volume that contains chapters requires an additional confirmation.
 
@@ -120,7 +120,7 @@ Useful shortcuts:
 | `Ctrl + F` | `Command + F` | Find |
 | `Ctrl + H` | `Command + H` | Find and replace |
 
-Use multiple tabs to keep chapters, outlines, and reference notes open together. Tabs can be locked, closed individually, or closed in groups.
+The editor-collapse control is at the far right of the editor toolbar. The material and Agent panels provide matching controls in their headers, and all three use the same restore behavior.
 
 ### Notes
 
@@ -132,6 +132,17 @@ Switch the left panel from **Chapters** to **Notes** to:
 - Lock notes that an Agent must not edit.
 
 Chapters, notes, volumes, and selected editor text can be attached to the current Agent conversation.
+
+### Export creative content
+
+The **Export** action in the editor toolbar downloads the current content without requiring you to leave the editor:
+
+- Chapters and notes are exported as UTF-8 Markdown with the current title and latest editor content.
+- A worldbook entry is exported as a single-entry SillyTavern-compatible JSON file that preserves enabled state and ordering.
+- A character profile is exported as `chara_card_v2` JSON with its name, description, and OmniFic extension metadata. The current release does not embed the portrait image in the file.
+- The filename is based on the current title or name, with characters unsupported by Windows or macOS replaced automatically.
+
+These files are useful for item-level backups and interchange, but they do not replace a complete backup of the OmniFic data directory. See [content export](./features/content-export.md) for format details.
 
 ## Characters and worldbooks
 
@@ -215,6 +226,21 @@ Cancelling an Agent does not automatically undo data that was already written su
 The Agent panel stores conversation and task history. Use `/` commands to inspect status, switch model or reasoning effort, maintain a persistent goal, and select skills.
 
 Persistent goals help long tasks survive conversation compaction or reopening. See the [`/` command center](./features/codex-slash.md) and [persistent task goals](./features/task-goal.md).
+
+When the model changes during a task, the change remains in the transcript as a dedicated status notice. In clarification flows, a single choice advances or submits automatically, multiple choices require confirmation, and custom answers receive focus immediately. Long question sets scroll independently and allow previous answers to be revised.
+
+### First-draft readiness gate
+
+When a new project does not yet contain any chapter, an Agent cannot begin drafting before the project is prepared. The first chapter requires all of the following:
+
+1. At least one core worldbook entry.
+2. At least one principal character.
+3. A project note whose title identifies a book-level macro outline, using one of the supported Chinese title phrases such as `全书总纲`, `全书粗纲`, `全书宏观大纲`, or `宏观大纲`.
+4. A project note whose title identifies an opening-level detailed outline, such as `开篇细纲`, `开局细纲`, `首段细纲`, or `首个剧情段细纲`.
+5. An Auditor review that passes against the current material snapshot.
+6. An explicit request in the current user message to draft, write a chapter, or continue the manuscript before that turn can be authorized for the first write.
+
+Changing core worldbook entries, principal characters, or either outline after a passing review makes the review stale and requires another review. A broad request such as “design a novel from scratch” begins planning but does not itself authorize manuscript text. Once the project already has chapters, it enters the normal writing stage and the first-draft gate no longer repeats. See [first-draft writing readiness](./features/writing-readiness.md) for the complete mechanism.
 
 ### Primary Agents and subagents
 

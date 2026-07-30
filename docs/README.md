@@ -1,6 +1,6 @@
 # OmniFic 文档导航
 
-> 最后更新：2026-07-29
+> 最后更新：2026-07-31
 
 ## 当前状态
 
@@ -19,6 +19,8 @@
 | `docs/glossary.md` | ✅ Active | 术语合约 |
 | `docs/features/*` | ✅ Active | 功能文档 |
 | `docs/develop/*` | ✅ Active | 开发指南 |
+| `docs/runbooks/*` | ✅ Active | 开发与发布操作手册 |
+| `docs/index.html` | ✅ Active | GitHub Pages 官网 |
 
 ## 按目标阅读
 
@@ -43,17 +45,18 @@
 2. `backend/README.md` — 后端启动
 3. `frontend/README.md` — 前端构建
 4. `desktop/README.md` — 桌面打包
+5. `docs/runbooks/release.md` — 正式发布与更新日志数据源
 
 ### 维护文档
 
 1. 本文件 — 文档索引
 2. `docs/glossary.md` — 术语新增/变更流程
-3. 每个文档底部的元数据块
+3. 功能文档或架构文档中的审查元数据
 
 ## 文档约定
 
-- **状态标注**：每份文档开头声明 `Active / In Progress / Superseded`
-- **元数据**：关键文档底部包含代码范围 + 审查日期 + 触发条件
+- **状态标注**：统一在本索引维护；历史材料明确标记 `Archived`
+- **元数据**：架构与功能实现文档包含代码范围、审查日期和触发条件；用户指南使用“最后更新 / 适用版本”
 - **交叉引用**：使用相对路径链接，不重新定义已有术语
 - **术语**：统一使用 `docs/glossary.md` 中的定义
 
@@ -84,6 +87,8 @@
 | `features/relay-provider.md` | 中转站供应商 |
 | `features/worldbook-import.md` | 世界书导入 |
 | `features/txt-volume-import.md` | TXT 分卷导入 |
+| `features/content-export.md` | 章节、笔记、世界书条目与角色卡导出 |
+| `features/writing-readiness.md` | 首次正文写作准入、审查与当前回合授权 |
 
 ### 开发指南
 
@@ -99,3 +104,4 @@
 |---|---|
 | `runbooks/local-dev-restart.md` | 本地开发重启 |
 | `runbooks/migration-apply.md` | 数据库迁移 |
+| `runbooks/release.md` | 正式发布、发行说明与发布后审计 |

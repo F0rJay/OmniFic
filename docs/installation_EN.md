@@ -93,7 +93,7 @@ Open `http://127.0.0.1:9000`. See the [development setup guide](./develop/setup.
 
 Before an upgrade, migration, or complete removal, back up the data directory. Desktop data includes manuscripts, checkpoints, covers, character images, configuration, and logs. Record any custom runtime directory selected during desktop setup as well.
 
-Do not overwrite an OmniFic 0.8.1 directory with an OpenFic or OmniFic 0.8.0 directory. The naming migration does not guarantee compatibility with legacy configuration or paths.
+Do not overwrite the current OmniFic data directory with an OpenFic or OmniFic 0.8.0 directory. The naming migration does not guarantee compatibility with legacy configuration or paths.
 
 ## Remove the Windows desktop application
 

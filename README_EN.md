@@ -43,8 +43,8 @@ The project uses a Python backend, a React frontend, and an Electron shell. Prim
 
 | Area | What OmniFic provides |
 | --- | --- |
-| **Long-form writing** | Projects, covers, volumes, chapters, nested notes, multi-tab editing, autosave, find and replace, and chapter ordering |
-| **Characters and lore** | Project-scoped character profiles, portraits, worldbooks, searchable entries, and project associations |
+| **Long-form writing** | Projects, covers, volumes, chapters, nested notes, autosave, find and replace, chapter ordering, and Markdown export |
+| **Characters and lore** | Project-scoped character profiles, portraits, searchable worldbooks, and portable JSON export |
 | **Material import** | TXT novel import with volume and chapter structure, plus worldbook import from SillyTavern JSON and common document formats |
 | **Agent collaboration** | Persistent tasks and transcripts, with tools that let Agents search the manuscript, inspect context, and edit creative material |
 | **Long-context support** | Chapter and range summaries, chapter retrieval indexes, conversation compaction, and persistent task goals |
@@ -84,16 +84,18 @@ flowchart LR
 
 - Create, search, sort, and manage fiction projects with descriptions, cover uploads, and cover cropping
 - Organize manuscripts into volumes and chapters with create, rename, duplicate, move, delete, and drag-to-reorder operations
-- Open chapters and notes in multiple tabs in the desktop layout while preserving the most recently edited location
+- Switch between chapters and notes in a consistent three-panel workspace, with independent collapse and restore controls for the material, editor, and Agent panels
 - Write with a TipTap rich-text editor supporting headings, lists, quotes, code blocks, undo, redo, and in-editor find and replace
 - Keep an autosaved working copy with explicit saving, saved, failed, and retry states
 - Build categorized note trees with nested categories, moving, duplication, visibility controls, and locks that prevent Agent edits
+- Export the current live chapter or note draft as a UTF-8 Markdown file
 
 ### Characters and worldbooks
 
 - Maintain project-scoped character profiles, descriptions, and portraits with search, favorites, multi-select, and batch actions
 - Create worldbooks that can be associated with projects, manage enabled and disabled entries, and search names and content
 - Import SillyTavern worldbook JSON with a preview and append-or-overwrite modes
+- Export an individual worldbook entry as SillyTavern-compatible JSON or a character profile as a `chara_card_v2` JSON card
 - Convert Markdown, PDF, Word, PowerPoint, TXT, and similar material into candidate worldbook entries
 - Optionally use a model to improve entry names, merge repeated material, and split entries that are too long
 
@@ -106,6 +108,8 @@ See [multi-format worldbook import](./docs/features/worldbook-import.md).
 - Control project mutations through tool permissions, pre-execution approval, and change previews
 - Support clarification questions, plan displays, queued messages, cancellation, message editing, and regeneration
 - Allow a primary Agent to delegate work to subagents and expose each child task's queued, running, waiting, and completed state
+- Gate the first chapter of a new project on core worldbuilding, principal characters, two levels of outline, an Auditor review, and explicit authorization in the current user turn
+- Preserve model-switch notices in the transcript and present single-choice, multiple-choice, and custom clarification answers as a continuous flow
 - Use `/` commands to switch models and reasoning effort, inspect status, maintain a persistent task goal, and select skills
 - Add chapters, volumes, notes, or selected editor text directly to a conversation
 
