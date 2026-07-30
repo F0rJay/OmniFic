@@ -36,6 +36,9 @@ export const REGISTERED_TOOL_NAMES = [
   "delete_world_entry",
   "search_chapters",
   "update_index",
+  "get_writing_readiness",
+  "authorize_writing_request",
+  "submit_writing_readiness_review",
   "write_plan",
   "activate_skill",
   "reference_skill",
@@ -50,6 +53,7 @@ export type ToolGroup =
   | "note"
   | "volume"
   | "context"
+  | "readiness"
   | "plan"
   | "skill";
 
@@ -320,6 +324,27 @@ export const TOOL_DESCRIPTOR_META = {
     toolName: "update_index",
     group: "chapter",
     tag: "update-index",
+    isExplore: false,
+    contentMode: "hidden",
+  },
+  get_writing_readiness: {
+    toolName: "get_writing_readiness",
+    group: "readiness",
+    tag: "read",
+    isExplore: true,
+    contentMode: "hidden",
+  },
+  authorize_writing_request: {
+    toolName: "authorize_writing_request",
+    group: "readiness",
+    tag: "authorize",
+    isExplore: false,
+    contentMode: "hidden",
+  },
+  submit_writing_readiness_review: {
+    toolName: "submit_writing_readiness_review",
+    group: "readiness",
+    tag: "review",
     isExplore: false,
     contentMode: "hidden",
   },

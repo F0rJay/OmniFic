@@ -5,6 +5,7 @@ import { getString, isRecord, normalizeToolResult } from "./tool-result-normaliz
 
 export const AGENT_SOCKET_EVENTS = [
   "agent:text",
+  "agent:model_changed",
   "agent:pending_message",
   "agent:token",
   "agent:reasoning",
@@ -86,6 +87,20 @@ export function toAgentEvent(
       content,
       payload: isRecord(data.payload) ? data.payload : {},
     } as AgentEvent;
+  }
+
+  if (eventName === "agent:model_changed") {
+    const id = eventId("model-changed", data);
+    return {
+      id,
+      correlation_id: id,
+      type: "model_changed",
+      role: "system",
+      status: "completed",
+      display: "list",
+      created_at: getString(data.created_at),
+      payload: isRecord(data.payload) ? data.payload : {},
+    };
   }
 
   if (eventName === "agent:pending_message") {

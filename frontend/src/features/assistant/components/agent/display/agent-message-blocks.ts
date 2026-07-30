@@ -3,7 +3,7 @@ import type { AgentMessage } from "@/lib/agent.types";
 
 import type { BlockDisplayMessage } from "./display-message-types";
 
-export type AgentMessageBlockType = "user" | "agent" | "node";
+export type AgentMessageBlockType = "user" | "agent" | "node" | "notice";
 
 export interface AgentMessageBlock {
   id: string;
@@ -28,6 +28,7 @@ export interface AgentMessageRound {
 
 export type AgentConversationItem =
   | { type: "user"; block: AgentMessageBlock }
+  | { type: "notice"; block: AgentMessageBlock }
   | { type: "round"; round: AgentMessageRound };
 
 interface BuildAgentMessageBlocksOptions {
@@ -89,6 +90,24 @@ export function buildAgentMessageBlocks(
   };
 
   for (const message of messages) {
+    if (message.type === "model_changed") {
+      if (activeNodeBlock) {
+        closeNodeSegment(activeNodeBlock, message.timestamp);
+        activeNodeBlock.nodeStatus = activeNodeBlock.nodeStatus === "error" ? "error" : "completed";
+      }
+      currentAgentBlock = null;
+      activeNodeBlock = null;
+      activeNodeId = undefined;
+      activeNodeHasResumeBoundary = false;
+      resumableNodeBlock = null;
+      blocks.push({
+        id: `notice:${message.id}`,
+        type: "notice",
+        messages: [message],
+      });
+      continue;
+    }
+
     if (message.type === "node_start") {
       const activeNodeName = getNodeName(activeNodeBlock?.messages[0]);
       const nextNodeName = getNodeName(message);
@@ -234,6 +253,10 @@ export function buildAgentConversationItems(blocks: AgentMessageBlock[]): AgentC
   };
 
   for (const block of blocks) {
+    if (block.type === "notice") {
+      items.push({ type: "notice", block });
+      continue;
+    }
     if (block.type === "user") {
       items.push({ type: "user", block });
       const message = block.messages[0];

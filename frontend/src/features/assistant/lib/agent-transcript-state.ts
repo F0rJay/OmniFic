@@ -431,6 +431,14 @@ function normalizeTranscriptEvent(event: AgentEvent): AgentMessage | null {
           : i18n.t("assistant.compactionDone")),
     };
   }
+  if (event.type === "model_changed") {
+    return {
+      ...base,
+      type: "model_changed",
+      role: "system",
+      status: "completed",
+    };
+  }
   if (event.type === "reasoning") {
     return {
       ...base,
@@ -540,6 +548,7 @@ export function applyAgentTranscriptEvent(
       "text",
       "retry",
       "compaction",
+      "model_changed",
       "reasoning",
       "tool",
       "approval",
@@ -616,6 +625,16 @@ export function applyAgentTranscriptEvent(
             : isManual
               ? ""
               : state.currentStage,
+        },
+        message,
+      };
+    }
+
+    if (message.type === "model_changed") {
+      return {
+        state: {
+          ...state,
+          messages: upsertTranscriptMessage(baseMessages, message),
         },
         message,
       };

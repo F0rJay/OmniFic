@@ -23,7 +23,7 @@ import {
   MessageExpandButton,
 } from "../../shared/message-shell";
 import { joinClassNames } from "../../shared/message-shell-utils";
-import { getToolDescriptor } from "../../tools/shared/tool-message-registry";
+import { getToolDescriptor, isRegisteredToolName } from "../../tools/shared/tool-message-registry";
 import { UnregisteredToolMessage } from "../../tools/shared/tool-message-status";
 import {
   getChapterPayload,
@@ -96,6 +96,13 @@ function getToolResultDataRecord(message: AgentMessage): Record<string, unknown>
   const resultData = message.toolResult?.data;
   if (isRecord(resultData)) return resultData;
   return isRecord(message.toolResult) ? message.toolResult : null;
+}
+
+function isWritingReadinessBlocked(message: AgentMessage): boolean {
+  const result = message.toolResult;
+  if (result?.code === "writing_readiness_required") return true;
+  const data = result?.data;
+  return isRecord(data) && data.code === "writing_readiness_required";
 }
 
 function getNoteDiffPreview(message: AgentMessage): {
@@ -178,7 +185,9 @@ function getWorldEntryDiffPreview(message: AgentMessage): {
 
 export function ToolMessage({ message }: ToolMessageProps) {
   const descriptor = getToolDescriptor(message.toolName);
-  const errorMessage = getToolErrorMessage(message);
+  const isRegistered = isRegisteredToolName(message.toolName);
+  const readinessBlocked = isWritingReadinessBlocked(message);
+  const errorMessage = readinessBlocked ? undefined : getToolErrorMessage(message);
   const isIncompleteAskUser =
     message.toolName === "ask_user" && message.status !== "completed" && message.status !== "error";
   const isRunning = Boolean(
@@ -262,13 +271,13 @@ export function ToolMessage({ message }: ToolMessageProps) {
     <MessageBlockShell
       expandable={visibilityState.canExpand}
       isStreaming={message.isStreaming}
-      status={message.status ?? "completed"}
+      status={readinessBlocked ? "completed" : (message.status ?? "completed")}
       flush
       data-tool-name={message.toolName ?? "tool"}
       data-tool-group={descriptor?.group ?? "unknown"}
       data-tool-tag={descriptor?.tag ?? "unknown"}
       data-tool-explore={descriptor?.isExplore ? "true" : "false"}
-      data-tool-registered={descriptor ? "true" : "false"}
+      data-tool-registered={isRegistered ? "true" : "false"}
     >
       <MessageBlockHeader
         expandable={visibilityState.canExpand}

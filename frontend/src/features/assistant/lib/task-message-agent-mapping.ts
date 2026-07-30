@@ -264,6 +264,20 @@ export function buildAgentMessagesFromTaskMessages(
         return;
       }
 
+      if (structuredMessageType === "model_changed") {
+        agentMessages.push({
+          id: msg.id || `model-changed-${task.id}-${index}`,
+          type: "model_changed",
+          role: "system",
+          status: "completed",
+          display: "list",
+          payload,
+          correlationId: msg.correlationId,
+          timestamp,
+        });
+        return;
+      }
+
       if (structuredMessageType === "reasoning" || structuredMessageType === "agent_thinking") {
         agentMessages.push({
           id: msg.id || `reasoning-${task.id}-${index}`,

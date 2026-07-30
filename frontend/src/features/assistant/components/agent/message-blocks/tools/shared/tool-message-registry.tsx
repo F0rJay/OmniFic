@@ -23,6 +23,7 @@ import {
   PenLine,
   Sparkles,
   Trash2,
+  Wrench,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 /* oxlint-disable react-refresh/only-export-components */
@@ -93,7 +94,7 @@ import {
 export { REGISTERED_TOOL_NAMES };
 
 export interface ToolDescriptor {
-  toolName: RegisteredToolName;
+  toolName: string;
   group: ToolGroup;
   tag: string;
   isExplore: boolean;
@@ -392,6 +393,36 @@ const TOOL_REGISTRY = {
     icon: Network,
     getTitle: () => i18n.t("assistant.tools.updateIndex"),
   },
+  get_writing_readiness: {
+    toolName: "get_writing_readiness",
+    group: "readiness",
+    tag: "read",
+    isExplore: true,
+    contentMode: "hidden",
+    icon: BookSearch,
+    getTitle: () => i18n.t("assistant.tools.getWritingReadiness"),
+  },
+  authorize_writing_request: {
+    toolName: "authorize_writing_request",
+    group: "readiness",
+    tag: "authorize",
+    isExplore: false,
+    contentMode: "hidden",
+    icon: UserRoundPen,
+    getTitle: () => i18n.t("assistant.tools.authorizeWritingRequest"),
+    getDetail: (message) => asString(getStreamingData(message).request_excerpt),
+  },
+  submit_writing_readiness_review: {
+    toolName: "submit_writing_readiness_review",
+    group: "readiness",
+    tag: "review",
+    isExplore: false,
+    contentMode: "hidden",
+    icon: ListTodo,
+    getTitle: () => i18n.t("assistant.tools.submitWritingReadinessReview"),
+    getDetail: (message) =>
+      asString(getStreamingData(message).summary) ?? asString(getStreamingData(message).status),
+  },
   list_volumes: {
     toolName: "list_volumes",
     group: "volume",
@@ -644,10 +675,28 @@ const TOOL_REGISTRY = {
   },
 } satisfies Record<RegisteredToolName, ToolDescriptor>;
 
+const REGISTERED_TOOL_NAME_SET = new Set<string>(REGISTERED_TOOL_NAMES);
+
+export function isRegisteredToolName(toolName?: string): toolName is RegisteredToolName {
+  return Boolean(toolName && REGISTERED_TOOL_NAME_SET.has(toolName));
+}
+
+function createGenericToolDescriptor(toolName: string): ToolDescriptor {
+  return {
+    toolName,
+    group: "context",
+    tag: "generic",
+    isExplore: isExploreToolName(toolName),
+    contentMode: "hidden",
+    icon: Wrench,
+    getTitle: () => toolName,
+  };
+}
+
 export function getToolDescriptor(toolName?: string): ToolDescriptor | null {
   if (!toolName) return null;
   const descriptor = TOOL_REGISTRY[toolName as RegisteredToolName] ?? null;
-  if (!descriptor) return null;
+  if (!descriptor) return createGenericToolDescriptor(toolName);
   const isExplore = isExploreToolName(toolName);
   return descriptor.isExplore === isExplore ? descriptor : { ...descriptor, isExplore };
 }

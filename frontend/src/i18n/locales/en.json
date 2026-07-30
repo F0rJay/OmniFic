@@ -578,6 +578,18 @@
         "name": "Plan",
         "description": "Write a to-do list for the session to organize the work."
       },
+      "getWritingReadiness": {
+        "name": "Read Writing Readiness",
+        "description": "Read the project's prose-writing gate, missing materials, and review state."
+      },
+      "authorizeWritingRequest": {
+        "name": "Authorize Current Writing Request",
+        "description": "Authorize the first prose draft only when the current user message explicitly requests it."
+      },
+      "submitWritingReadinessReview": {
+        "name": "Submit Readiness Review",
+        "description": "Allow the Auditor to submit a review bound to the current preparation snapshot."
+      },
       "readChapter": {
         "name": "Read Chapter",
         "description": "Read the content of a specified chapter."
@@ -1467,6 +1479,8 @@
     "slashMcpUnavailableDescription": "This version does not yet include MCP connections or tool discovery. Real MCP services will appear here once supported.",
     "slashReasoning": "Reasoning",
     "slashModel": "Model",
+    "modelChanged": "Model changed from {{previousModel}} to {{model}}.",
+    "modelChangedHint": "The new model is used from the next turn; a response already being generated is unchanged.",
     "slashStatus": "Status",
     "slashRuntimeNoTask": "No active task",
     "slashRuntimeRunning": "Running",
@@ -1705,6 +1719,9 @@
       "askUser": "Ask",
       "activateSkill": "Skill",
       "referenceSkill": "Skill Reference",
+      "getWritingReadiness": "Check writing readiness",
+      "authorizeWritingRequest": "Authorize prose writing",
+      "submitWritingReadinessReview": "Submit writing readiness review",
       "skillNotFound": "Unknown skill",
       "questionCount": "{{count}} questions",
       "toolError": "Tool call failed",

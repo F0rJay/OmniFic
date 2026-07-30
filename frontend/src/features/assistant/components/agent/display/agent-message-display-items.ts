@@ -77,6 +77,7 @@ function splitAgentRequests(messages: AgentBlockDisplayMessage[]): RequestSegmen
     if (
       message.type === "retry" ||
       message.type === "compaction" ||
+      message.type === "model_changed" ||
       message.type === "completed" ||
       message.type === "error"
     ) {

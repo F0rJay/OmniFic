@@ -31,6 +31,18 @@ const TOOL_DISPLAY_KEYS: Record<string, { name: string; description: string }> =
     name: "settings.agentTool.writePlan.name",
     description: "settings.agentTool.writePlan.description",
   },
+  get_writing_readiness: {
+    name: "settings.agentTool.getWritingReadiness.name",
+    description: "settings.agentTool.getWritingReadiness.description",
+  },
+  authorize_writing_request: {
+    name: "settings.agentTool.authorizeWritingRequest.name",
+    description: "settings.agentTool.authorizeWritingRequest.description",
+  },
+  submit_writing_readiness_review: {
+    name: "settings.agentTool.submitWritingReadinessReview.name",
+    description: "settings.agentTool.submitWritingReadinessReview.description",
+  },
   read_chapter: {
     name: "settings.agentTool.readChapter.name",
     description: "settings.agentTool.readChapter.description",

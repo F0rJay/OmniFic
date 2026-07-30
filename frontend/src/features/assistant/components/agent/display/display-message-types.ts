@@ -22,6 +22,8 @@ export type RetryDisplayMessage = DisplayMessageOf<"retry">;
 
 export type CompactionDisplayMessage = DisplayMessageOf<"compaction">;
 
+export type ModelChangedDisplayMessage = DisplayMessageOf<"model_changed">;
+
 export type CompletedDisplayMessage = DisplayMessageOf<"completed">;
 
 export type ErrorDisplayMessage = DisplayMessageOf<"error">;
@@ -37,6 +39,7 @@ export type BlockDisplayMessage =
   | ToolDisplayMessage
   | RetryDisplayMessage
   | CompactionDisplayMessage
+  | ModelChangedDisplayMessage
   | CompletedDisplayMessage
   | ErrorDisplayMessage
   | NodeStartDisplayMessage

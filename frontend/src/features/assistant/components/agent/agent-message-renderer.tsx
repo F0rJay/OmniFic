@@ -7,6 +7,7 @@ import { AgentThinkingMessage } from "./message-blocks/blocks/reasoning/agent-th
 import { CompactionMessage } from "./message-blocks/blocks/status/compaction-message";
 import { CompletedMessage } from "./message-blocks/blocks/status/completed-message";
 import { ErrorMessage } from "./message-blocks/blocks/status/error-message";
+import { ModelChangedMessage } from "./message-blocks/blocks/status/model-changed-message";
 import { RetryMessage } from "./message-blocks/blocks/status/retry-message";
 import { AgentOutputMessage } from "./message-blocks/messages/special/agent-output-message";
 import { ToolMessage } from "./message-blocks/messages/tool/tool-message";
@@ -32,6 +33,7 @@ const messageComponentMap: Partial<
   reasoning: AgentThinkingMessage,
   retry: RetryMessage,
   compaction: CompactionMessage,
+  model_changed: ModelChangedMessage,
   completed: CompletedMessage,
   error: ErrorMessage,
   agent_output: AgentOutputMessage,

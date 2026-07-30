@@ -578,6 +578,18 @@
         "name": "计划",
         "description": "为会话写入待办列表以组织完成工作"
       },
+      "getWritingReadiness": {
+        "name": "读取创作准备状态",
+        "description": "读取项目的正文开写准入阶段、缺失资料与审查状态"
+      },
+      "authorizeWritingRequest": {
+        "name": "授权当前正文请求",
+        "description": "仅在用户当前消息明确要求写正文时授权首次正文写作"
+      },
+      "submitWritingReadinessReview": {
+        "name": "提交开写准入审查",
+        "description": "由 Auditor 提交绑定当前资料快照的准入审查结果"
+      },
       "readChapter": {
         "name": "读取章节",
         "description": "读取指定章节内容"
@@ -1530,6 +1542,8 @@
     "slashMcpUnavailableDescription": "当前版本还没有 MCP 连接和工具发现能力，后续接入真实 MCP 服务后会在这里显示。",
     "slashReasoning": "推理",
     "slashModel": "模型",
+    "modelChanged": "模型已从 {{previousModel}} 更改为 {{model}}。",
+    "modelChangedHint": "从下一条对话开始使用新模型；当前正在生成的回复不受影响。",
     "slashStatus": "状态",
     "slashRuntimeNoTask": "没有活动任务",
     "slashRuntimeRunning": "运行中",
@@ -1768,6 +1782,9 @@
       "askUser": "询问",
       "activateSkill": "技能",
       "referenceSkill": "技能参考",
+      "getWritingReadiness": "检查写作准备度",
+      "authorizeWritingRequest": "确认正文写作授权",
+      "submitWritingReadinessReview": "提交写作准备度审查",
       "skillNotFound": "未知技能",
       "questionCount": "{{count}} 个问题",
       "toolError": "工具调用失败",

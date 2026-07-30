@@ -816,6 +816,19 @@ export function AgentMessages({
         className="agent-message-scroll-content"
       >
         {conversationItems.map((item) => {
+          if (item.type === "notice") {
+            const message = item.block.messages[0];
+            if (!message || message.type !== "model_changed") return null;
+            return (
+              <Box
+                key={item.block.id}
+                className="agent-message-block"
+                data-block-type="notice"
+              >
+                <AgentMessageRenderer message={message} />
+              </Box>
+            );
+          }
           if (item.type === "user") {
             const block = item.block;
             const message = block.messages[0];

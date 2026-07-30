@@ -38,6 +38,8 @@ function normalizeBlockMessage(message: AgentMessage): BlockDisplayMessage | nul
       return { ...message, type: "retry" };
     case "compaction":
       return { ...message, type: "compaction" };
+    case "model_changed":
+      return { ...message, type: "model_changed", role: "system" };
     case "completed":
       return { ...message, type: "completed" };
     case "error":
