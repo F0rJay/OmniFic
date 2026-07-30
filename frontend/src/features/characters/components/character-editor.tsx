@@ -1,10 +1,12 @@
 import { Flex, Text } from "@radix-ui/themes";
 import type { Editor } from "@tiptap/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Download } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { MarkdownEditor, Spinner } from "@/components";
 import type { Character } from "@/lib/character.types";
+import { buildCharacterCardExport, exportJsonFile } from "@/lib/file-export";
 import { countTokens } from "@/lib/tiktoken-utils";
 
 const AUTO_SAVE_DELAY = 1500;
@@ -14,6 +16,7 @@ interface CharacterEditorProps {
   isSaving?: boolean;
   isLoading?: boolean;
   onSave: (data: { name: string; description: string }) => Promise<void> | void;
+  toolbarSuffix?: ReactNode;
 }
 
 export function CharacterEditor({
@@ -21,6 +24,7 @@ export function CharacterEditor({
   isSaving = false,
   isLoading = false,
   onSave,
+  toolbarSuffix,
 }: CharacterEditorProps) {
   const { t } = useTranslation();
   const [name, setName] = useState(character?.name ?? "");
@@ -100,6 +104,34 @@ export function CharacterEditor({
     };
   }, [flushSave]);
 
+  const extraToolbarActions = useMemo(() => {
+    if (!character) return [];
+
+    return [
+      {
+        id: "export",
+        icon: <Download size={18} />,
+        label: t("editor.export"),
+        onClick: () => {
+          const current = latestValueRef.current;
+          const currentName = current.name.trim() || character.name;
+          exportJsonFile(
+            currentName,
+            buildCharacterCardExport({
+              id: character.id,
+              name: currentName,
+              description: current.description,
+              imageUrl: character.imageUrl,
+              createdAt: character.createdAt,
+              updatedAt: character.updatedAt,
+            }),
+            "character-card",
+          );
+        },
+      },
+    ];
+  }, [character, t]);
+
   if (isLoading) {
     return (
       <Flex
@@ -150,6 +182,8 @@ export function CharacterEditor({
       wordCount={tokenCount}
       wordCountLabel={t("characters.tokenCount")}
       editorRef={editorRef}
+      extraToolbarActions={extraToolbarActions}
+      toolbarSuffix={toolbarSuffix}
     />
   );
 }

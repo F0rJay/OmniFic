@@ -24,6 +24,7 @@ export interface MarkdownEditorProps {
   titlePlaceholder?: string;
   extraToolbarActions?: EditorToolbarExtraAction[];
   toolbarPrefix?: React.ReactNode;
+  toolbarSuffix?: React.ReactNode;
   wordCount?: number;
   saveStatusText?: { saving: string; saved: string; unsaved: string };
   wordCountLabel?: string;
@@ -46,6 +47,7 @@ export function MarkdownEditor({
   titlePlaceholder,
   extraToolbarActions,
   toolbarPrefix,
+  toolbarSuffix,
   wordCount: externalWordCount,
   saveStatusText,
   wordCountLabel,
@@ -154,6 +156,7 @@ export function MarkdownEditor({
         onLockedAction={onLockedAction}
         extraActions={extraToolbarActions}
         toolbarPrefix={toolbarPrefix}
+        toolbarSuffix={toolbarSuffix}
       />
 
       <Box

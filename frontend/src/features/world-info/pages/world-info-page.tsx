@@ -6,15 +6,25 @@
 
 import { Box, Flex, Text, Dialog, Button, Skeleton, IconButton, Tooltip } from "@radix-ui/themes";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Bot, List } from "lucide-react";
+import {
+  Bot,
+  List,
+  Maximize2,
+  Minimize2,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+} from "lucide-react";
 import { motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Panel, Group, Separator } from "react-resizable-panels";
+import { Panel, Group, Separator, usePanelRef } from "react-resizable-panels";
 import { useSearchParams } from "react-router";
 
 import "./world-info-page.css";
 
+import { PanelToggleButton } from "@/components";
 import { toast } from "@/components/toast";
 import { MobileAppSidebarTrigger } from "@/features/app-shell";
 import { AssistantSidebar } from "@/features/assistant";
@@ -52,6 +62,7 @@ const LAST_PROJECT_KEY = "worldInfo.lastProjectId";
 const LAST_ENTRY_KEY = "worldInfo.lastEntryId";
 const MotionBox = motion.create(Box);
 const MOBILE_SIDEBAR_WIDTH = 320;
+const COLLAPSED_PANEL_SIZE = 36;
 
 function generateUniqueEntryName(baseName: string, entries: WorldInfoEntryBrief[]): string {
   const normalizedName = baseName.trim();
@@ -99,6 +110,12 @@ export function WorldInfoPage() {
   const [isMobile, setIsMobile] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
+  const [isEditorPanelCollapsed, setIsEditorPanelCollapsed] = useState(false);
+  const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
+  const leftPanelRef = usePanelRef();
+  const editorPanelRef = usePanelRef();
+  const rightPanelRef = usePanelRef();
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -543,6 +560,54 @@ export function WorldInfoPage() {
 
   const isAgentLocked = Boolean(currentProjectId && assistantState.isAgentRunning);
 
+  const toggleLeftPanel = useCallback(() => {
+    const panel = leftPanelRef.current;
+    if (!panel) return;
+    if (panel.isCollapsed()) panel.expand();
+    else panel.collapse();
+  }, [leftPanelRef]);
+
+  const toggleEditorPanel = useCallback(() => {
+    const panel = editorPanelRef.current;
+    if (!panel) return;
+    if (panel.isCollapsed()) panel.expand();
+    else panel.collapse();
+  }, [editorPanelRef]);
+
+  const toggleRightPanel = useCallback(() => {
+    const panel = rightPanelRef.current;
+    if (!panel) return;
+    if (panel.isCollapsed()) panel.expand();
+    else panel.collapse();
+  }, [rightPanelRef]);
+
+  const leftPanelAction = isMobile ? undefined : (
+    <PanelToggleButton
+      label={t("worldInfo.collapseEntriesPanel")}
+      onClick={toggleLeftPanel}
+    >
+      <PanelLeftClose size={16} />
+    </PanelToggleButton>
+  );
+
+  const editorPanelAction = isMobile ? undefined : (
+    <PanelToggleButton
+      label={t("worldInfo.collapseEditorPanel")}
+      onClick={toggleEditorPanel}
+    >
+      <Minimize2 size={15} />
+    </PanelToggleButton>
+  );
+
+  const rightPanelAction = isMobile ? undefined : (
+    <PanelToggleButton
+      label={t("worldInfo.collapseAgentPanel")}
+      onClick={toggleRightPanel}
+    >
+      <PanelRightClose size={16} />
+    </PanelToggleButton>
+  );
+
   // 侧边栏内容
   const sidebarContent = currentProjectId ? (
     <EntryList
@@ -565,6 +630,7 @@ export function WorldInfoPage() {
       onBatchDelete={handleBatchDelete}
       onBatchToggle={handleBatchToggle}
       onNavigateToMatch={handleNavigateToMatch}
+      headerAction={leftPanelAction}
     />
   ) : (
     <Flex
@@ -589,6 +655,7 @@ export function WorldInfoPage() {
       onStateChange={setAssistantState}
       onClose={() => setIsAssistantOpen(false)}
       isMobileOverlay={isMobile}
+      paneAction={rightPanelAction}
     />
   ) : (
     <Flex
@@ -651,6 +718,7 @@ export function WorldInfoPage() {
       scrollToLine={scrollToLine}
       onScrollComplete={handleScrollComplete}
       isAgentLocked={isAgentLocked}
+      toolbarSuffix={editorPanelAction}
     />
   ) : currentEntryId && isEntryLoading ? (
     <Box p="4">
@@ -732,13 +800,31 @@ export function WorldInfoPage() {
             >
               <Panel
                 id="left-sidebar"
+                panelRef={leftPanelRef}
                 defaultSize={300}
                 minSize={250}
-                maxSize={400}
-                collapsible={false}
+                maxSize="70%"
+                collapsedSize={COLLAPSED_PANEL_SIZE}
+                collapsible
+                onResize={({ inPixels }) =>
+                  setIsLeftPanelCollapsed(inPixels <= COLLAPSED_PANEL_SIZE + 1)
+                }
               >
-                <Box className="world-info-page-sidebar world-info-page-sidebar--left">
-                  {sidebarContent}
+                <Box
+                  className="world-info-page-panel-frame"
+                  data-collapsed={isLeftPanelCollapsed ? "true" : undefined}
+                >
+                  <Box className="world-info-page-panel-content world-info-page-sidebar world-info-page-sidebar--left">
+                    {sidebarContent}
+                  </Box>
+                  {isLeftPanelCollapsed ? (
+                    <PanelToggleButton
+                      label={t("worldInfo.expandEntriesPanel")}
+                      onClick={toggleLeftPanel}
+                    >
+                      <PanelLeftOpen size={15} />
+                    </PanelToggleButton>
+                  ) : null}
                 </Box>
               </Panel>
 
@@ -746,13 +832,35 @@ export function WorldInfoPage() {
 
               <Panel
                 id="editor"
-                minSize={30}
+                panelRef={editorPanelRef}
+                minSize={240}
+                collapsedSize={COLLAPSED_PANEL_SIZE}
+                collapsible
+                onResize={({ inPixels }) =>
+                  setIsEditorPanelCollapsed(inPixels <= COLLAPSED_PANEL_SIZE + 1)
+                }
               >
                 <Box
-                  data-scroll-container
-                  className="world-info-page-editor-shell"
+                  className="world-info-page-panel-frame"
+                  data-collapsed={isEditorPanelCollapsed ? "true" : undefined}
                 >
-                  {editorContent}
+                  <Box
+                    data-scroll-container
+                    className="world-info-page-panel-content world-info-page-editor-shell"
+                  >
+                    {editorContent}
+                    {isCreatingEntry || !selectedEntry ? (
+                      <Box className="world-info-page-editor-panel-action">{editorPanelAction}</Box>
+                    ) : null}
+                  </Box>
+                  {isEditorPanelCollapsed ? (
+                    <PanelToggleButton
+                      label={t("worldInfo.expandEditorPanel")}
+                      onClick={toggleEditorPanel}
+                    >
+                      <Maximize2 size={15} />
+                    </PanelToggleButton>
+                  ) : null}
                 </Box>
               </Panel>
 
@@ -760,13 +868,31 @@ export function WorldInfoPage() {
 
               <Panel
                 id="right-sidebar"
+                panelRef={rightPanelRef}
                 defaultSize={500}
                 minSize={300}
-                maxSize={600}
-                collapsible={false}
+                maxSize="100%"
+                collapsedSize={COLLAPSED_PANEL_SIZE}
+                collapsible
+                onResize={({ inPixels }) =>
+                  setIsRightPanelCollapsed(inPixels <= COLLAPSED_PANEL_SIZE + 1)
+                }
               >
-                <Box className="world-info-page-sidebar world-info-page-sidebar--right">
-                  {agentSidebarContent}
+                <Box
+                  className="world-info-page-panel-frame"
+                  data-collapsed={isRightPanelCollapsed ? "true" : undefined}
+                >
+                  <Box className="world-info-page-panel-content world-info-page-sidebar world-info-page-sidebar--right">
+                    {agentSidebarContent}
+                  </Box>
+                  {isRightPanelCollapsed ? (
+                    <PanelToggleButton
+                      label={t("worldInfo.expandAgentPanel")}
+                      onClick={toggleRightPanel}
+                    >
+                      <PanelRightOpen size={15} />
+                    </PanelToggleButton>
+                  ) : null}
                 </Box>
               </Panel>
             </Group>

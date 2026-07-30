@@ -94,20 +94,21 @@ export function PageLoadingOverlay({ isLoading }: PageLoadingOverlayProps) {
         }}
       >
         <Flex
-          className="writing-page-loading-editor-tabs"
-          align="end"
+          className="writing-page-loading-editor-toolbar"
+          align="center"
+          justify="end"
+          gap="2"
           px="3"
-          pt="2"
-          style={{
-            height: 40,
-            borderBottom: "1px solid var(--gray-a4)",
-            background: "var(--gray-a2)",
-          }}
+          py="2"
+          style={{ minHeight: 46 }}
         >
-          <Skeleton
-            height="30px"
-            width="148px"
-          />
+          {[1, 2, 3, 4].map((item) => (
+            <Skeleton
+              key={item}
+              height="28px"
+              width="28px"
+            />
+          ))}
         </Flex>
 
         <Box

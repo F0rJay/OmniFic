@@ -33,7 +33,7 @@ import type { AssistantSidebarHandle, AssistantSidebarState } from "@/features/a
 import { getLastChapterId, setLastChapterId } from "@/lib/local-db";
 
 import { ChapterEditor } from "../components/chapter-editor";
-import { EditorTabs, EmptyTabContent } from "../components/editor-tabs";
+import { EmptyTabContent } from "../components/editor-tabs";
 import { NoteEditor } from "../components/note-editor";
 import { PageLoadingOverlay } from "../components/page-loading-overlay";
 import { WritingSidebar } from "../components/writing-sidebar";
@@ -53,7 +53,7 @@ const SummaryPanel = lazy(() =>
 
 interface WritingPanelToggleProps {
   label: string;
-  placement: "panel-header" | "editor-tabs" | "collapsed-rail";
+  placement: "panel-header" | "editor-toolbar" | "collapsed-rail";
   onClick: () => void;
   children: ReactNode;
 }
@@ -63,7 +63,7 @@ function WritingPanelToggle({ label, placement, onClick, children }: WritingPane
     <Tooltip content={label}>
       <IconButton
         type="button"
-        variant="soft"
+        variant="ghost"
         color="gray"
         size="1"
         className={`writing-page-panel-toggle writing-page-panel-toggle--${placement}`}
@@ -87,7 +87,6 @@ export function WritingPage() {
     syncTabsWithChapters,
     syncTabs,
     closeAllTabs,
-    showEmptyTab,
     setCurrentProject,
   } = useTabsStore();
   const activeTabId = useActiveTabId();
@@ -324,10 +323,6 @@ export function WritingPage() {
     [handleSelectItem],
   );
 
-  const handleShowEmptyTab = useCallback(() => {
-    showEmptyTab();
-  }, [showEmptyTab]);
-
   const handleCreateNewChapter = useCallback(async () => {
     try {
       let targetVolumeId = chaptersData?.volumes.at(-1)?.id;
@@ -438,6 +433,16 @@ export function WritingPage() {
     />
   );
 
+  const editorPanelAction = (
+    <WritingPanelToggle
+      label={t("writing.collapseEditorPanel")}
+      placement="editor-toolbar"
+      onClick={toggleEditorPanel}
+    >
+      <Minimize2 size={14} />
+    </WritingPanelToggle>
+  );
+
   return (
     <Box className="writing-page-root">
       <PageLoadingOverlay isLoading={isPageLoading} />
@@ -498,20 +503,6 @@ export function WritingPage() {
                 data-collapsed={isEditorPanelCollapsed ? "true" : undefined}
               >
                 <div className="writing-page-panel-content writing-page-editor-shell">
-                  <EditorTabs
-                    onAddTab={handleShowEmptyTab}
-                    onAddToConversation={isViewingSubagent ? undefined : handleAddToConversation}
-                    endAction={
-                      <WritingPanelToggle
-                        label={t("writing.collapseEditorPanel")}
-                        placement="editor-tabs"
-                        onClick={toggleEditorPanel}
-                      >
-                        <Minimize2 size={14} />
-                      </WritingPanelToggle>
-                    }
-                  />
-
                   <Box className="writing-page-content-fill">
                     {activeTabId && !isEmptyTab(activeTabId) ? (
                       activeType === "note" ? (
@@ -519,6 +510,7 @@ export function WritingPage() {
                           noteId={activeRefId}
                           projectId={projectId}
                           isAgentLocked={isAgentLocked}
+                          toolbarSuffix={editorPanelAction}
                         />
                       ) : (
                         <ChapterEditor
@@ -529,13 +521,17 @@ export function WritingPage() {
                             isViewingSubagent ? undefined : handleAddToConversation
                           }
                           onOpenSummary={handleOpenSummary}
+                          toolbarSuffix={editorPanelAction}
                         />
                       )
                     ) : (
-                      <EmptyTabContent
-                        onCreateNew={handleCreateNewChapter}
-                        onClose={handleCloseAllTabs}
-                      />
+                      <Box className="writing-page-empty-editor">
+                        <div className="writing-page-editor-panel-action">{editorPanelAction}</div>
+                        <EmptyTabContent
+                          onCreateNew={handleCreateNewChapter}
+                          onClose={handleCloseAllTabs}
+                        />
+                      </Box>
                     )}
                   </Box>
                 </div>

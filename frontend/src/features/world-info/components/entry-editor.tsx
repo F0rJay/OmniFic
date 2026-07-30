@@ -7,12 +7,14 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import type { Editor } from "@tiptap/react";
-import { useState, useCallback, useRef, useEffect } from "react";
+import { Download } from "lucide-react";
+import { useState, useCallback, useRef, useEffect, useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { MarkdownEditor } from "@/components";
 import { toast } from "@/components/toast";
 import { updateWorldInfoEntry } from "@/lib/api-client";
+import { buildSillyTavernWorldBookExport, exportJsonFile } from "@/lib/file-export";
 import { countTokens } from "@/lib/tiktoken-utils";
 import type {
   WorldInfoEntry,
@@ -33,6 +35,7 @@ interface EntryEditorProps {
   onScrollComplete?: () => void;
   /** Agent 运行时锁定编辑 */
   isAgentLocked?: boolean;
+  toolbarSuffix?: ReactNode;
 }
 
 /** 自动保存防抖延迟（毫秒） */
@@ -45,6 +48,7 @@ export function EntryEditor({
   scrollToLine,
   onScrollComplete,
   isAgentLocked = false,
+  toolbarSuffix,
 }: EntryEditorProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -203,6 +207,31 @@ export function EntryEditor({
     scrolledRef.current = false;
   }, [entry.id]);
 
+  const extraToolbarActions = useMemo(
+    () => [
+      {
+        id: "export",
+        icon: <Download size={18} />,
+        label: t("editor.export"),
+        onClick: () => {
+          const currentName = savedNameRef.current.trim() || entry.name;
+          exportJsonFile(
+            currentName,
+            buildSillyTavernWorldBookExport({
+              uid: entry.uid,
+              name: currentName,
+              content: savedContentRef.current,
+              order: entry.order,
+              isEnabled: entry.isEnabled,
+            }),
+            "world-book-entry",
+          );
+        },
+      },
+    ],
+    [entry.isEnabled, entry.name, entry.order, entry.uid, t],
+  );
+
   return (
     <MarkdownEditor
       title={name}
@@ -218,6 +247,8 @@ export function EntryEditor({
       wordCountLabel={t("worldInfo.tokenCount")}
       editorRef={editorRef}
       isLocked={isAgentLocked}
+      extraToolbarActions={extraToolbarActions}
+      toolbarSuffix={toolbarSuffix}
     />
   );
 }

@@ -62,15 +62,13 @@
   height: 30px;
   min-width: 30px;
   min-height: 30px;
-  border: 1px solid var(--gray-a7);
-  border-radius: 8px !important;
-  background: var(--color-background);
-  box-shadow: 0 2px 10px rgba(20, 20, 24, 0.12);
-  color: var(--gray-12);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--gray-11);
 }
 
 .rt-IconButton.writing-page-panel-toggle:hover {
-  border-color: var(--gray-a7);
   background: var(--gray-a3);
   color: var(--gray-12);
 }
@@ -85,23 +83,25 @@
 }
 
 .writing-page-panel-toggle--collapsed-rail {
-  border-color: #111 !important;
-  background: #111 !important;
-  color: #fff !important;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.22) !important;
   transform: none;
 }
 
-.writing-page-panel-toggle--editor-tabs {
+.writing-page-panel-toggle--editor-toolbar {
   position: relative;
   flex: 0 0 auto;
-  margin-bottom: 2px;
-  box-shadow: none;
 }
 
-.editor-tabs-end-action {
-  flex: 0 0 auto;
-  margin-left: 6px;
+.writing-page-empty-editor {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.writing-page-editor-panel-action {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  z-index: 20;
 }
 
 .writing-page-sidebar--left {
@@ -257,7 +257,7 @@
     display: none;
   }
 
-  .writing-page-loading-editor-tabs {
+  .writing-page-loading-editor-toolbar {
     height: 44px !important;
     background: var(--color-background) !important;
   }

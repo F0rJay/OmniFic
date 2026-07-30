@@ -14,6 +14,41 @@
   overflow: hidden;
 }
 
+.world-info-page-panel-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
+  background: var(--color-background);
+}
+
+.world-info-page-panel-content {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+}
+
+.world-info-page-panel-frame[data-collapsed="true"] {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12px;
+  box-sizing: border-box;
+}
+
+.world-info-page-panel-frame[data-collapsed="true"] .world-info-page-panel-content {
+  display: none;
+}
+
+.world-info-page-editor-panel-action {
+  position: absolute;
+  z-index: 20;
+  top: 8px;
+  right: 24px;
+}
+
 .world-info-page-sidebar--left,
 .world-info-page-sidebar--right,
 .world-info-page-editor-shell {

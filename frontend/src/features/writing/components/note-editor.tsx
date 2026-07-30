@@ -1,10 +1,11 @@
 import { Flex, Text } from "@radix-ui/themes";
-import { Lock } from "lucide-react";
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { Download, Lock } from "lucide-react";
+import { useState, useCallback, useRef, useEffect, useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { MarkdownEditor, Spinner } from "@/components";
 import { fetchNote } from "@/lib/api-client";
+import { exportMarkdownFile } from "@/lib/file-export";
 import type { Note } from "@/lib/note.types";
 import { createToastThrottler } from "@/lib/ui-utils";
 
@@ -28,6 +29,7 @@ interface NoteEditorProps {
   projectId?: string;
   isAgentLocked?: boolean;
   onAddToConversation?: (markup: string) => void;
+  toolbarSuffix?: ReactNode;
 }
 
 interface NoteEditorContentProps {
@@ -36,6 +38,7 @@ interface NoteEditorContentProps {
   initialDraftUpdatedAt: Date;
   workingCopy: WritingWorkingCopyController;
   isAgentLocked?: boolean;
+  toolbarSuffix?: ReactNode;
 }
 
 function NoteEditorContent({
@@ -44,6 +47,7 @@ function NoteEditorContent({
   initialDraftUpdatedAt,
   workingCopy,
   isAgentLocked = false,
+  toolbarSuffix,
 }: NoteEditorContentProps) {
   const { t } = useTranslation();
   const updateMutation = useUpdateNote(note.projectId);
@@ -207,6 +211,21 @@ function NoteEditorContent({
     [persistDraft, title],
   );
 
+  const extraToolbarActions = useMemo(
+    () => [
+      {
+        id: "export",
+        icon: <Download size={18} />,
+        label: t("editor.export"),
+        onClick: () => {
+          const draft = latestDraftRef.current;
+          exportMarkdownFile(draft.title, draft.content, t("writing.untitledNote"));
+        },
+      },
+    ],
+    [t],
+  );
+
   const lockedBanner = note.isLocked ? (
     <Flex
       px="4"
@@ -244,6 +263,8 @@ function NoteEditorContent({
       onLockedAction={showLockedToast}
       placeholder={t("writing.noteContentPlaceholder")}
       lockedBanner={lockedBanner}
+      extraToolbarActions={extraToolbarActions}
+      toolbarSuffix={toolbarSuffix}
     />
   );
 }
@@ -292,6 +313,7 @@ export function NoteEditor(props: NoteEditorProps) {
       initialDraft={data.draft}
       initialDraftUpdatedAt={data.draftUpdatedAt}
       isAgentLocked={props.isAgentLocked ?? false}
+      toolbarSuffix={props.toolbarSuffix}
     />
   );
 }
@@ -301,6 +323,7 @@ function NoteEditorWorkingCopy({
   initialDraft,
   initialDraftUpdatedAt,
   isAgentLocked,
+  toolbarSuffix,
 }: Omit<NoteEditorContentProps, "workingCopy">) {
   const workingCopy = useWritingWorkingCopy({
     type: "note",
@@ -315,6 +338,7 @@ function NoteEditorWorkingCopy({
       initialDraftUpdatedAt={initialDraftUpdatedAt}
       workingCopy={workingCopy}
       isAgentLocked={isAgentLocked}
+      toolbarSuffix={toolbarSuffix}
     />
   );
 }

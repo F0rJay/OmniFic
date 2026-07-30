@@ -31,6 +31,7 @@ export { MarkdownEditor } from "./markdown-editor";
 export type { MarkdownEditorProps } from "./markdown-editor";
 export { EditorToolbar } from "./editor-toolbar";
 export type { EditorToolbarProps, EditorToolbarExtraAction } from "./editor-toolbar";
+export { PanelToggleButton } from "./panel-toggle-button";
 export { TitleInput } from "./title-input";
 export type { TitleInputProps } from "./title-input";
 export { createMarkdownEditorExtensions } from "./markdown-editor-config";

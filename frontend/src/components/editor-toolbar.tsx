@@ -22,6 +22,7 @@ export interface EditorToolbarProps {
   onLockedAction?: () => void;
   extraActions?: EditorToolbarExtraAction[];
   toolbarPrefix?: React.ReactNode;
+  toolbarSuffix?: React.ReactNode;
 }
 
 interface ToolbarButtonProps {
@@ -56,6 +57,7 @@ export function EditorToolbar({
   onLockedAction,
   extraActions,
   toolbarPrefix,
+  toolbarSuffix,
 }: EditorToolbarProps) {
   const { t } = useTranslation();
 
@@ -93,7 +95,8 @@ export function EditorToolbar({
   return (
     <Box
       py="2"
-      px="6"
+      pl="6"
+      pr="3"
       style={{
         background: "var(--color-background)",
         position: "sticky",
@@ -148,6 +151,16 @@ export function EditorToolbar({
           disabled={isSaving || !hasChanges}
           onClick={() => runEditorAction(() => onSave(true))}
         />
+
+        {toolbarSuffix ? (
+          <>
+            <Separator
+              orientation="vertical"
+              size="1"
+            />
+            {toolbarSuffix}
+          </>
+        ) : null}
       </Flex>
     </Box>
   );

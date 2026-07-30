@@ -47,7 +47,15 @@ import {
   ToggleRight,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import { useTranslation } from "react-i18next";
 
 import { ProjectSelectField } from "@/components";
@@ -102,6 +110,7 @@ interface EntryListProps {
   onBatchToggle: (entryIds: string[], isEnabled: boolean) => void;
   /** 从搜索面板导航到匹配行 */
   onNavigateToMatch: (entryId: string, lineNumber: number) => void;
+  headerAction?: ReactNode;
 }
 
 interface ContextMenuPosition {
@@ -129,6 +138,7 @@ export function EntryList({
   onBatchDelete,
   onBatchToggle,
   onNavigateToMatch,
+  headerAction,
 }: EntryListProps) {
   const { t } = useTranslation();
   const { currentEntryId, searchQuery, setSearchQuery, currentWorldInfoId } = useWorldInfoStore();
@@ -491,13 +501,21 @@ export function EntryList({
             direction="column"
             gap="2"
           >
-            <ProjectSelectField
-              projects={projects}
-              value={currentProjectId}
-              onChange={onSelectProject}
-              showNoneOption={false}
-              placeholder={t("worldInfo.selectProject")}
-            />
+            <Flex
+              align="center"
+              gap="2"
+            >
+              <Box style={{ minWidth: 0, flex: 1 }}>
+                <ProjectSelectField
+                  projects={projects}
+                  value={currentProjectId}
+                  onChange={onSelectProject}
+                  showNoneOption={false}
+                  placeholder={t("worldInfo.selectProject")}
+                />
+              </Box>
+              {headerAction}
+            </Flex>
 
             <Flex
               gap="2"

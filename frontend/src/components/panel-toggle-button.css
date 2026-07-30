@@ -1,0 +1,16 @@
+.rt-IconButton.panel-toggle-button {
+  z-index: 30;
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  min-height: 30px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--gray-11);
+}
+
+.rt-IconButton.panel-toggle-button:hover {
+  background: var(--gray-a3);
+  color: var(--gray-12);
+}

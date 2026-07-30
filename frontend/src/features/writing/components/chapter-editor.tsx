@@ -1,9 +1,9 @@
 // Modified by OmniFic contributors from OpenFic v0.7.5.
 import { Box, Flex, Text, IconButton, Tooltip } from "@radix-ui/themes";
 import { useEditor, EditorContent } from "@tiptap/react";
-import { AtSign, Globe, FileText } from "lucide-react";
+import { AtSign, Download, Globe, FileText } from "lucide-react";
 import { AnimatePresence } from "motion/react";
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo, type ReactNode } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
@@ -19,6 +19,7 @@ import {
 import { useScrollbarAutoHide } from "@/hooks/use-scrollbar-auto-hide";
 import { fetchChapter } from "@/lib/api-client";
 import type { Chapter } from "@/lib/chapter.types";
+import { exportMarkdownFile } from "@/lib/file-export";
 import { htmlToNewlines, newlinesToHtml } from "@/lib/html-utils";
 import { createToastThrottler } from "@/lib/ui-utils";
 
@@ -55,6 +56,7 @@ interface ChapterEditorProps {
   projectId?: string;
   isAgentLocked?: boolean;
   onOpenSummary?: () => void;
+  toolbarSuffix?: ReactNode;
 }
 
 interface ChapterEditorContentProps {
@@ -67,6 +69,7 @@ interface ChapterEditorContentProps {
   projectId?: string;
   isAgentLocked?: boolean;
   onOpenSummary?: () => void;
+  toolbarSuffix?: ReactNode;
 }
 
 function ChapterEditorContent({
@@ -79,6 +82,7 @@ function ChapterEditorContent({
   projectId,
   isAgentLocked = false,
   onOpenSummary,
+  toolbarSuffix,
 }: ChapterEditorContentProps) {
   const { t } = useTranslation();
   const updateMutation = useUpdateChapter();
@@ -126,8 +130,20 @@ function ChapterEditorContent({
     }
   }, [navigate, projectId]);
 
+  const handleExport = useCallback(() => {
+    const draft = latestDraftRef.current;
+    exportMarkdownFile(draft.title, draft.content, t("writing.untitledChapter"));
+  }, [t]);
+
   const extraActions: EditorToolbarExtraAction[] = useMemo(() => {
-    const actions: EditorToolbarExtraAction[] = [];
+    const actions: EditorToolbarExtraAction[] = [
+      {
+        id: "export",
+        icon: <Download size={18} />,
+        label: t("editor.export"),
+        onClick: handleExport,
+      },
+    ];
 
     if (projectId) {
       actions.push({
@@ -139,7 +155,7 @@ function ChapterEditorContent({
     }
 
     return actions;
-  }, [projectId, t, handleWorldInfoClick]);
+  }, [projectId, t, handleExport, handleWorldInfoClick]);
 
   const toolbarPrefix = useMemo(() => {
     if (!projectId || !chapter.id) return null;
@@ -506,6 +522,7 @@ function ChapterEditorContent({
         onLockedAction={showLockedToast}
         extraActions={extraActions}
         toolbarPrefix={toolbarPrefix}
+        toolbarSuffix={toolbarSuffix}
       />
 
       <AnimatePresence>
@@ -609,6 +626,7 @@ export function ChapterEditor({
   projectId,
   isAgentLocked = false,
   onOpenSummary,
+  toolbarSuffix,
 }: ChapterEditorProps) {
   const { t } = useTranslation();
   const { data, isFetching, isLoading } = useWritingEditorEntity({
@@ -657,6 +675,7 @@ export function ChapterEditor({
       projectId={projectId}
       isAgentLocked={isAgentLocked}
       onOpenSummary={onOpenSummary}
+      toolbarSuffix={toolbarSuffix}
     />
   );
 }
@@ -670,6 +689,7 @@ function ChapterEditorWorkingCopy({
   projectId,
   isAgentLocked,
   onOpenSummary,
+  toolbarSuffix,
 }: Omit<ChapterEditorContentProps, "workingCopy">) {
   const workingCopy = useWritingWorkingCopy({
     type: "chapter",
@@ -688,6 +708,7 @@ function ChapterEditorWorkingCopy({
       projectId={projectId}
       isAgentLocked={isAgentLocked}
       onOpenSummary={onOpenSummary}
+      toolbarSuffix={toolbarSuffix}
     />
   );
 }

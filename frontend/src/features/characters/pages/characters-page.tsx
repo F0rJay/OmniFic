@@ -1,16 +1,30 @@
 // Modified by OmniFic contributors from OpenFic v0.7.5.
 import { AlertDialog, Box, Button, Flex, IconButton, Tooltip, Text } from "@radix-ui/themes";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bot, List } from "lucide-react";
+import {
+  Bot,
+  List,
+  Maximize2,
+  Minimize2,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+} from "lucide-react";
 import { motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Group, Panel, Separator } from "react-resizable-panels";
+import { Group, Panel, Separator, usePanelRef } from "react-resizable-panels";
 import { useSearchParams } from "react-router";
 
+import { PanelToggleButton } from "@/components";
 import { toast } from "@/components/toast";
-import { AssistantSidebar, type AssistantSidebarHandle, type AssistantSidebarState } from "@/features/assistant";
 import { MobileAppSidebarTrigger } from "@/features/app-shell";
+import {
+  AssistantSidebar,
+  type AssistantSidebarHandle,
+  type AssistantSidebarState,
+} from "@/features/assistant";
 import {
   batchDeleteCharacters,
   batchFavoriteCharacters,
@@ -36,6 +50,7 @@ const LAST_PROJECT_KEY = "characters.lastProjectId";
 const LAST_CHARACTER_KEY = "characters.lastCharacterId";
 const MotionBox = motion.create(Box);
 const MOBILE_SIDEBAR_WIDTH = 320;
+const COLLAPSED_PANEL_SIZE = 36;
 
 function toCharacterListItem(character: Character): CharacterListItem {
   return {
@@ -82,6 +97,12 @@ export function CharactersPage() {
     isAgentRunning: false,
   });
   const assistantSidebarRef = useRef<AssistantSidebarHandle | null>(null);
+  const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
+  const [isEditorPanelCollapsed, setIsEditorPanelCollapsed] = useState(false);
+  const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
+  const leftPanelRef = usePanelRef();
+  const editorPanelRef = usePanelRef();
+  const rightPanelRef = usePanelRef();
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -303,6 +324,54 @@ export function CharactersPage() {
     setListOpen(false);
   };
 
+  const toggleLeftPanel = useCallback(() => {
+    const panel = leftPanelRef.current;
+    if (!panel) return;
+    if (panel.isCollapsed()) panel.expand();
+    else panel.collapse();
+  }, [leftPanelRef]);
+
+  const toggleEditorPanel = useCallback(() => {
+    const panel = editorPanelRef.current;
+    if (!panel) return;
+    if (panel.isCollapsed()) panel.expand();
+    else panel.collapse();
+  }, [editorPanelRef]);
+
+  const toggleRightPanel = useCallback(() => {
+    const panel = rightPanelRef.current;
+    if (!panel) return;
+    if (panel.isCollapsed()) panel.expand();
+    else panel.collapse();
+  }, [rightPanelRef]);
+
+  const leftPanelAction = isMobile ? undefined : (
+    <PanelToggleButton
+      label={t("characters.collapseListPanel")}
+      onClick={toggleLeftPanel}
+    >
+      <PanelLeftClose size={16} />
+    </PanelToggleButton>
+  );
+
+  const editorPanelAction = isMobile ? undefined : (
+    <PanelToggleButton
+      label={t("characters.collapseEditorPanel")}
+      onClick={toggleEditorPanel}
+    >
+      <Minimize2 size={15} />
+    </PanelToggleButton>
+  );
+
+  const rightPanelAction = isMobile ? undefined : (
+    <PanelToggleButton
+      label={t("characters.collapseAgentPanel")}
+      onClick={toggleRightPanel}
+    >
+      <PanelRightClose size={16} />
+    </PanelToggleButton>
+  );
+
   const list = (
     <CharacterList
       characters={characters}
@@ -323,6 +392,7 @@ export function CharactersPage() {
       onBatchFavorite={(characterIds, isFavorited) => {
         batchFavoriteMutation.mutate({ characterIds, isFavorited });
       }}
+      headerAction={leftPanelAction}
     />
   );
 
@@ -332,6 +402,7 @@ export function CharactersPage() {
       character={selectedCharacter ?? null}
       isSaving={updateMutation.isPending}
       isLoading={isCharacterLoading}
+      toolbarSuffix={editorPanelAction}
       onSave={async (data) => {
         if (!selectedCharacter) return;
         await updateMutation.mutateAsync({ characterId: selectedCharacter.id, data });
@@ -351,38 +422,101 @@ export function CharactersPage() {
         >
           <Panel
             id="characters-list"
+            panelRef={leftPanelRef}
             defaultSize={300}
             minSize={250}
-            maxSize={400}
-            collapsible={false}
+            maxSize="70%"
+            collapsedSize={COLLAPSED_PANEL_SIZE}
+            collapsible
+            onResize={({ inPixels }) =>
+              setIsLeftPanelCollapsed(inPixels <= COLLAPSED_PANEL_SIZE + 1)
+            }
           >
-            <Box className="characters-panel characters-page-list-panel">{list}</Box>
+            <Box
+              className="characters-page-panel-frame"
+              data-collapsed={isLeftPanelCollapsed ? "true" : undefined}
+            >
+              <Box className="characters-page-panel-content characters-panel characters-page-list-panel">
+                {list}
+              </Box>
+              {isLeftPanelCollapsed ? (
+                <PanelToggleButton
+                  label={t("characters.expandListPanel")}
+                  onClick={toggleLeftPanel}
+                >
+                  <PanelLeftOpen size={15} />
+                </PanelToggleButton>
+              ) : null}
+            </Box>
           </Panel>
 
           <Separator className="resize-handle characters-page-separator" />
 
           <Panel
             id="characters-editor"
-            minSize={30}
+            panelRef={editorPanelRef}
+            minSize={240}
+            collapsedSize={COLLAPSED_PANEL_SIZE}
+            collapsible
+            onResize={({ inPixels }) =>
+              setIsEditorPanelCollapsed(inPixels <= COLLAPSED_PANEL_SIZE + 1)
+            }
           >
-            <Box className="characters-panel characters-editor-shell">{editorContent}</Box>
+            <Box
+              className="characters-page-panel-frame"
+              data-collapsed={isEditorPanelCollapsed ? "true" : undefined}
+            >
+              <Box className="characters-page-panel-content characters-panel characters-editor-shell">
+                {editorContent}
+                {!selectedCharacter || isCharacterLoading ? (
+                  <Box className="characters-page-editor-panel-action">{editorPanelAction}</Box>
+                ) : null}
+              </Box>
+              {isEditorPanelCollapsed ? (
+                <PanelToggleButton
+                  label={t("characters.expandEditorPanel")}
+                  onClick={toggleEditorPanel}
+                >
+                  <Maximize2 size={15} />
+                </PanelToggleButton>
+              ) : null}
+            </Box>
           </Panel>
 
           <Separator className="resize-handle characters-page-separator" />
 
           <Panel
             id="characters-right"
+            panelRef={rightPanelRef}
             defaultSize={400}
             minSize={300}
-            maxSize={600}
-            collapsible={false}
+            maxSize="100%"
+            collapsedSize={COLLAPSED_PANEL_SIZE}
+            collapsible
+            onResize={({ inPixels }) =>
+              setIsRightPanelCollapsed(inPixels <= COLLAPSED_PANEL_SIZE + 1)
+            }
           >
-            <Box className="characters-panel characters-page-assistant-panel">
-              <AssistantSidebar
-                ref={assistantSidebarRef}
-                projectId={currentProjectId}
-                onStateChange={setAssistantState}
-              />
+            <Box
+              className="characters-page-panel-frame"
+              data-collapsed={isRightPanelCollapsed ? "true" : undefined}
+            >
+              <Box className="characters-page-panel-content characters-panel characters-page-assistant-panel">
+                <AssistantSidebar
+                  ref={assistantSidebarRef}
+                  projectId={currentProjectId}
+                  onStateChange={setAssistantState}
+                  paneAction={rightPanelAction}
+                />
+              </Box>
+              {isRightPanelCollapsed ? (
+                <PanelToggleButton
+                  label={t("characters.expandAgentPanel")}
+                  onClick={toggleRightPanel}
+                >
+                  <PanelRightOpen size={15} />
+                </PanelToggleButton>
+              ) : null}
             </Box>
           </Panel>
         </Group>
