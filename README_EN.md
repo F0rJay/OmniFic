@@ -23,7 +23,7 @@
 
 OmniFic combines a conventional fiction-writing environment with AI Agents that can carry out project-level tasks. You can organize a long manuscript and its story bible, then allow an Agent—under explicit tool permissions—to read, search, and edit chapters, volumes, notes, characters, and worldbook entries instead of treating every conversation as a context-free chat.
 
-The project uses a Python backend, a React frontend, and an Electron shell. Primary application data is stored locally in SQLite. OmniFic 0.8.1 is distributed as Windows/macOS desktop packages, a PyPI package, multi-architecture Docker images, and source code.
+The project uses a Python backend, a React frontend, and an Electron shell. Primary application data is stored locally in SQLite. OmniFic 0.8.2 is distributed as Windows/macOS desktop packages, a PyPI package, multi-architecture Docker images, and source code.
 
 ---
 
@@ -176,7 +176,7 @@ Download the matching package from [GitHub Releases](https://github.com/F0rJay/O
 | macOS | Apple Silicon | `OmniFic-<version>-mac-arm64.dmg` |
 | macOS | Intel | `OmniFic-<version>-mac-x86_64.dmg` |
 
-Windows supports in-app updates. OmniFic 0.8.1 for macOS is ad-hoc signed but not Developer ID signed or notarized, so updates are downloaded manually. On first launch, Control-click OmniFic in Finder and choose **Open**. Official Linux desktop packages are not published.
+Windows supports in-app updates. OmniFic 0.8.2 for macOS is ad-hoc signed but not Developer ID signed or notarized, so updates are downloaded manually. On first launch, Control-click OmniFic in Finder and choose **Open**. Official Linux desktop packages are not published.
 
 ### PyPI
 

@@ -23,7 +23,7 @@
 
 OmniFic 把传统小说写作工具与可执行任务的 AI Agent 放在同一个工作区中。你可以组织长篇正文和设定资料，也可以让 Agent 在权限控制下读取、检索和修改章节、卷、笔记、角色与世界书，而不是把每次对话都变成一次脱离项目的临时问答。
 
-项目采用 Python 后端、React 前端与 Electron 桌面壳，应用数据默认存储在本地 SQLite 中。OmniFic 0.8.1 提供 Windows/macOS 桌面包、PyPI 包、Docker 镜像和源码运行方式。
+项目采用 Python 后端、React 前端与 Electron 桌面壳，应用数据默认存储在本地 SQLite 中。OmniFic 0.8.2 提供 Windows/macOS 桌面包、PyPI 包、Docker 镜像和源码运行方式。
 
 ---
 
@@ -176,7 +176,7 @@ OmniFic 更适合：
 | macOS | Apple Silicon | `OmniFic-<version>-mac-arm64.dmg` |
 | macOS | Intel | `OmniFic-<version>-mac-x86_64.dmg` |
 
-Windows 支持应用内更新。macOS 0.8.1 尚未使用 Developer ID 签名和 Apple 公证，需要手动下载更新；首次启动请在 Finder 中按住 Control 点击 OmniFic 并选择“打开”。官方不发布 Linux 桌面安装包。
+Windows 支持应用内更新。macOS 0.8.2 尚未使用 Developer ID 签名和 Apple 公证，需要手动下载更新；首次启动请在 Finder 中按住 Control 点击 OmniFic 并选择“打开”。官方不发布 Linux 桌面安装包。
 
 ### PyPI
 

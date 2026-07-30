@@ -1,6 +1,6 @@
 # OmniFic user guide
 
-> Last updated: 2026-07-29 · Applies to OmniFic 0.8.1
+> Last updated: 2026-07-31 · Applies to OmniFic 0.8.2
 
 This guide is for writers using OmniFic for the first time. It covers starting a manuscript, importing existing work, organizing characters and worldbuilding material, and collaborating with Agents under explicit permissions.
 
@@ -298,7 +298,7 @@ Detailed call recording under **Settings → Advanced** increases database size 
 - Context used with cloud LLM, relay, Embedding, or Rerank services is sent to the service you configured.
 - API-key and manuscript security depends on local device security and the selected provider.
 - Back up before deleting projects, volumes, chapters, characters, worldbook entries, or data directories.
-- OmniFic 0.8.1 remains Alpha software and does not guarantee lossless direct reuse of OpenFic or 0.8.0 data directories.
+- OmniFic 0.8.2 remains Alpha software and does not guarantee lossless direct reuse of OpenFic or 0.8.0 data directories.
 
 See the [installation and removal guide](./installation_EN.md) for backup paths and residual files.
 
@@ -326,9 +326,8 @@ Inspect the editor save state and retry before closing the application. Check di
 
 ### macOS blocks the application or requires manual updates
 
-OmniFic 0.8.1 is not Developer ID signed or notarized. See the [installation guide](./installation_EN.md) for first launch and manual updates.
+OmniFic 0.8.2 is not Developer ID signed or notarized. See the [installation guide](./installation_EN.md) for first launch and manual updates.
 
 ### Can I use OmniFic without AI?
 
 Yes. Projects, volumes, chapters, notes, characters, and worldbooks can be used without configuring a model, which prevents model requests from being made.
-

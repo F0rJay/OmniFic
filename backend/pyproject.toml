@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "omnific"
-version = "0.8.1"
+version = "0.8.2"
 description = "A local-first AI workspace for long-form fiction writing."
 readme = "README.md"
 license = "Apache-2.0"

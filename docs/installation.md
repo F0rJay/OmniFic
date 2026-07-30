@@ -1,6 +1,6 @@
 # OmniFic 安装、更新与卸载
 
-> 最后更新：2026-07-29 · 适用于 OmniFic 0.8.1
+> 最后更新：2026-07-31 · 适用于 OmniFic 0.8.2
 
 OmniFic 提供桌面应用、PyPI、Docker 和源码运行四种使用方式。Windows 与 macOS 是官方桌面发行平台；Linux 不发布桌面安装包，但可以使用 PyPI、Docker 或源码运行。
 
@@ -37,13 +37,13 @@ Windows 安装版支持应用内检查、下载和安装更新。首次安装需
 
 DMG 是推荐的手动安装包；ZIP 是同架构的归档与后续更新载体。不要在 Apple Silicon 设备上下载 `x86_64` 包。
 
-0.8.1 使用 ad-hoc 签名，但尚未使用 Apple Developer ID 签名和 Apple 公证，因此 macOS 可能显示无法验证开发者或安全警告。首次启动时：
+0.8.2 使用 ad-hoc 签名，但尚未使用 Apple Developer ID 签名和 Apple 公证，因此 macOS 可能显示无法验证开发者或安全警告。首次启动时：
 
 1. 打开 DMG，将 `OmniFic.app` 拖入“应用程序”。
 2. 在 Finder 的“应用程序”中按住 Control 点击 OmniFic。
 3. 选择“打开”，并在系统确认框中再次选择“打开”。
 
-0.8.1 的 macOS 应用内更新保持禁用。新版本需要从 GitHub Releases 手动下载；正式应用内更新将在 Developer ID 签名和公证启用后开放。
+0.8.2 的 macOS 应用内更新保持禁用。新版本需要从 GitHub Releases 手动下载；正式应用内更新将在 Developer ID 签名和公证启用后开放。
 
 ## 通过 PyPI 安装
 

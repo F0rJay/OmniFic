@@ -1,6 +1,6 @@
 # OmniFic installation, updates, and removal
 
-> Last updated: 2026-07-29 · Applies to OmniFic 0.8.1
+> Last updated: 2026-07-31 · Applies to OmniFic 0.8.2
 
 OmniFic is available as a Windows/macOS desktop application, a PyPI package, a Docker image, and source code. Official Linux desktop packages are not published; Linux users can run the PyPI package, Docker image, or source tree.
 
@@ -37,13 +37,13 @@ The installed Windows application supports in-app updates. First-time setup prep
 
 DMG is the recommended manual installer. ZIP is the matching archive and future update carrier. Do not use the `x86_64` package on Apple Silicon unless you intentionally need Rosetta compatibility.
 
-OmniFic 0.8.1 is ad-hoc signed but not Developer ID signed or Apple-notarized. macOS may show an unidentified-developer or security warning. For the first launch:
+OmniFic 0.8.2 is ad-hoc signed but not Developer ID signed or Apple-notarized. macOS may show an unidentified-developer or security warning. For the first launch:
 
 1. Open the DMG and drag `OmniFic.app` into Applications.
 2. In Finder, Control-click OmniFic in Applications.
 3. Choose **Open**, then confirm **Open** again.
 
-In-app updates remain disabled on macOS 0.8.1. Download new versions manually until Developer ID signing and notarization are enabled.
+In-app updates remain disabled on macOS 0.8.2. Download new versions manually until Developer ID signing and notarization are enabled.
 
 ## Install from PyPI
 
