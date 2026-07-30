@@ -70,8 +70,12 @@
 .active-subagent-panel-list {
   margin: 0;
   padding: 0;
+  max-height: min(360px, 40dvh);
   list-style: none;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
 
 .active-subagent-panel-list-item + .active-subagent-panel-list-item {
