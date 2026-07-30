@@ -25,6 +25,26 @@
 - **代码位置**：`backend/app/storage/models/task.py`, `backend/app/agent_runtime/context/parts/task_goal.py`
 - **延伸阅读**：`docs/features/task-goal.md`
 
+### 写作准备状态（Writing Readiness）
+
+- **定义**：尚无章节项目在 Agent 首次写正文前的项目级状态，包含核心资料准备项、Auditor 审查快照和当前回合授权。
+- **代码位置**：`backend/app/storage/models/writing_readiness.py`, `backend/app/storage/services/writing_readiness_service.py`
+- **延伸阅读**：`docs/features/writing-readiness.md`
+- **常见混淆**：写作准备状态 != 工具权限。前者判断新项目是否可以首次开写，后者决定具体工具调用是否允许、询问或拒绝，两者同时生效。
+
+### 准入审查（Readiness Review）
+
+- **定义**：由 Auditor 对核心世界书、主要角色、全书总纲和开篇细纲执行的结构化审查。结果绑定资料快照，资料变化后会过期。
+- **代码位置**：`backend/app/agent_runtime/tools/impls/writing_readiness/submit_review.py`
+- **延伸阅读**：`docs/features/writing-readiness.md`
+
+### 当前回合正文授权（Current-turn Writing Authorization）
+
+- **定义**：用户在当前消息中明确要求写正文后，绑定该消息修订和当前资料快照的一次性首次正文授权。
+- **代码位置**：`backend/app/agent_runtime/tools/impls/writing_readiness/authorize.py`
+- **延伸阅读**：`docs/features/writing-readiness.md`
+- **常见混淆**：泛化的策划或“从零设计小说”请求不会自动授权正文写入。
+
 ### 推理强度（Reasoning Effort）
 
 - **定义**：控制模型推理深度的参数 `low | medium | high | xhigh | max`。需要模型支持。

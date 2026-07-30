@@ -1,7 +1,7 @@
 <!-- Modified by OmniFic contributors from OpenFic v0.7.5. -->
 # OmniFic Frontend
 
-React + Vite 前端，提供写作编辑器、世界书管理、Agent 对话界面。
+React + Vite 前端，提供三栏写作工作区、世界书与角色管理、单项内容导出和 Agent 对话界面。
 
 ## 技术栈
 
@@ -24,7 +24,7 @@ frontend/src/
 ├── features/
 │   ├── app-shell/         # 应用壳（侧栏、状态栏、布局）
 │   ├── assistant/         # Agent 对话界面 + / 命令中心
-│   ├── writing/           # 写作编辑器
+│   ├── writing/           # 卷章/笔记编辑、三栏布局与导出入口
 │   ├── projects/          # 项目管理 + TXT 导入
 │   ├── characters/        # 角色管理
 │   ├── world-info/        # 世界书
@@ -32,7 +32,7 @@ frontend/src/
 │   ├── prompt-chains/     # 提示词链
 │   └── dashboard/         # 数据面板
 ├── components/            # 共享组件
-├── lib/                   # 工具库、API 客户端、类型
+├── lib/                   # 工具库、API 客户端、类型与导出格式
 ├── i18n/                  # 国际化
 └── styles/                # 全局样式
 ```

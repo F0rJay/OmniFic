@@ -8,7 +8,7 @@ Codex 风格的 Agent 会话控制面板。在输入框输入 `/` 打开。
 |---|---|---|
 | MCP | 信息 | 展示 MCP 连接状态（即将支持） |
 | 推理 | 配置 | 设置 Low/Medium/High/Xhigh/Max 推理强度 |
-| 模型 | 配置 | 切换当前 Agent 使用的 LLM 模型 |
+| 模型 | 配置 | 切换当前 Agent 使用的 LLM 模型，并在会话记录中保留切换提示 |
 | 状态 | 信息 | 展示任务 ID、上下文用量、推理用时、令牌统计 |
 | 目标 | 配置 | 编辑当前任务的持久化目标 |
 | 技能 | 插入 | 选择 Skill 并以蓝色 Token 插入输入框 |
@@ -35,4 +35,4 @@ Enter  选择/打开
 
 ---
 
-> **状态**：Active · **代码范围**：`frontend/src/features/assistant/components/agent/` · **审查日期**：2026-07-27 · **触发条件**：Skill 系统变更、输入框重构
+> **状态**：Active · **代码范围**：`frontend/src/features/assistant/components/agent/` · **审查日期**：2026-07-31 · **触发条件**：Skill 系统变更、输入框重构、模型切换事件展示

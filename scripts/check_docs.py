@@ -25,6 +25,9 @@ KEY_ENTRIES = [
     "docs/README.md",
     "docs/architecture.md",
     "docs/glossary.md",
+    "docs/features/content-export.md",
+    "docs/features/writing-readiness.md",
+    "docs/runbooks/release.md",
 ]
 
 FORBIDDEN_TERMS = []  # 未来可添加：已废除术语不应出现在活跃文档中
