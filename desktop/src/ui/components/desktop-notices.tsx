@@ -1,6 +1,6 @@
 // Modified by OmniFic contributors from OpenFic v0.7.5.
 import { useEffect, useState } from "react";
-import { AlertTriangle, ChevronRight, Download, ExternalLink, PackageSearch, RefreshCw, RotateCcw, X } from "lucide-react";
+import { AlertTriangle, Download, ExternalLink, RefreshCw, RotateCcw, Sparkles, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
@@ -59,9 +59,13 @@ export function DesktopNotices({
   onCloseUpdateDialog,
 }: DesktopNoticesProps) {
   const [updatePanelVisible, setUpdatePanelVisible] = useState(false);
-  const [releaseNotesOpen, setReleaseNotesOpen] = useState(true);
   const releaseNotes = getReleaseNotesText(updateState.releaseNotes, "本次更新包含稳定性改进与体验优化。");
   const hasVersionDetails = ["available", "downloading", "downloaded"].includes(updateState.status);
+  const updateSummary = updateState.status === "downloaded"
+    ? "更新已下载，重启后即可使用新版本。"
+    : updateState.status === "downloading"
+      ? "正在准备新版本，你可以继续浏览更新内容。"
+      : "新版本已准备好，看看这次有哪些变化。";
 
   useEffect(() => {
     if (updateDialogOpen) {
@@ -103,7 +107,13 @@ export function DesktopNotices({
             aria-label="关闭更新面板"
             onClick={onCloseUpdateDialog}
           />
-          <aside className="desktop-notice desktop-notice-update desktop-update-panel" data-state={updateDialogOpen ? "open" : "closed"} role="status" aria-live="polite">
+          <aside
+            className="desktop-notice desktop-notice-update desktop-update-panel"
+            data-state={updateDialogOpen ? "open" : "closed"}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={hasVersionDetails ? "desktop-update-title" : undefined}
+          >
             {!hasVersionDetails ? (
               <button className="desktop-notice-dismiss" type="button" aria-label="关闭更新提示" onClick={onCloseUpdateDialog}>
                 <X size={16} strokeWidth={2} />
@@ -130,37 +140,38 @@ export function DesktopNotices({
             {hasVersionDetails ? (
               <>
                 <div className="desktop-update-heading">
-                  <p className="desktop-notice-title">
-                    <PackageSearch size={16} strokeWidth={2} aria-hidden="true" />
-                    发现新版本 <span>v{updateState.version}</span>
-                  </p>
+                  <div className="desktop-update-app-mark" aria-hidden="true">
+                    <Sparkles size={19} strokeWidth={1.9} />
+                  </div>
+                  <div className="desktop-update-heading-copy">
+                    <p className="desktop-notice-title" id="desktop-update-title">
+                      OmniFic <span>v{updateState.version}</span>
+                    </p>
+                    <p className="desktop-update-summary">{updateSummary}</p>
+                  </div>
                   <button className="desktop-notice-dismiss" type="button" aria-label="关闭更新提示" onClick={onCloseUpdateDialog}>
                     <X size={16} strokeWidth={2} />
                   </button>
                 </div>
                 <section className="desktop-update-release-section">
                   <div className="desktop-release-notes-header">
-                    <button
-                      className="desktop-release-notes-toggle"
-                      type="button"
-                      aria-expanded={releaseNotesOpen}
-                      onClick={() => setReleaseNotesOpen((open) => !open)}
-                    >
-                      <span>更新日志</span>
-                      <ChevronRight size={16} strokeWidth={2} />
-                    </button>
+                    <div className="desktop-release-notes-label">
+                      <Sparkles size={13} strokeWidth={2} aria-hidden="true" />
+                      <span>本次更新</span>
+                    </div>
                     <button className="desktop-release-details" type="button" onClick={onOpenRelease}>
-                      查看详情
+                      完整说明
                       <ExternalLink size={12} strokeWidth={2} aria-hidden="true" />
                     </button>
                   </div>
-                  {releaseNotesOpen ? <ReleaseNotes releaseNotes={releaseNotes} /> : null}
+                  <ReleaseNotes releaseNotes={releaseNotes} />
                 </section>
               </>
             ) : null}
             {updateState.status === "available" ? (
               <>
                 <footer className="desktop-update-footer">
+                  <span>下载完成后由你决定何时安装</span>
                   <button className="desktop-notice-primary" type="button" onClick={onDownloadUpdate}>
                     <Download size={15} strokeWidth={2} />
                     开始下载
@@ -186,6 +197,7 @@ export function DesktopNotices({
             ) : null}
             {updateState.status === "downloaded" ? (
               <footer className="desktop-update-footer">
+                <span>重启前请先保存正在进行的工作</span>
                 <button className="desktop-notice-primary" type="button" onClick={onInstallUpdate}>
                   <RotateCcw size={15} strokeWidth={2} />
                   重启并安装

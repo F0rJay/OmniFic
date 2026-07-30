@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import electronUpdater, { CancellationToken, NsisUpdater, type ProgressInfo, type UpdateInfo } from "electron-updater";
 import { IpcChannels, type UpdateState } from "../shared/ipc.js";
+import { cleanReleaseNotes, extractChangelogReleaseNotes } from "../shared/release-notes.js";
 import { getUpdateArchitectureName, isAutoUpdateSupported } from "./update-support.js";
 import { configureSystemProxy } from "./proxy.js";
 
@@ -45,12 +46,20 @@ function describeError(error: Error): string {
 }
 
 function getUpdaterReleaseNotes(info: UpdateInfo): string | undefined {
-  if (typeof info.releaseNotes === "string") return info.releaseNotes.trim() || undefined;
+  if (typeof info.releaseNotes === "string") return cleanReleaseNotes(info.releaseNotes);
   if (!Array.isArray(info.releaseNotes)) return undefined;
   const notes = info.releaseNotes
     .map((item) => item.note?.trim())
     .filter((item): item is string => Boolean(item));
-  return notes.length ? notes.join("\n\n") : undefined;
+  return cleanReleaseNotes(notes.length ? notes.join("\n\n") : undefined);
+}
+
+async function getChangelogReleaseNotes(version: string): Promise<string | undefined> {
+  const response = await autoUpdater.netSession.fetch(
+    `https://raw.githubusercontent.com/F0rJay/OmniFic/v${encodeURIComponent(version)}/CHANGELOG.md`,
+  );
+  if (!response.ok) return undefined;
+  return extractChangelogReleaseNotes(await response.text(), version);
 }
 
 async function getReleaseNotes(info: UpdateInfo): Promise<string | undefined> {
@@ -65,7 +74,8 @@ async function getReleaseNotes(info: UpdateInfo): Promise<string | undefined> {
     if (!response.ok) return getUpdaterReleaseNotes(info);
 
     const release = (await response.json()) as { body?: unknown };
-    const releaseNotes = typeof release.body === "string" && release.body.trim() ? release.body.trim() : getUpdaterReleaseNotes(info);
+    const publishedReleaseNotes = typeof release.body === "string" ? cleanReleaseNotes(release.body) : undefined;
+    const releaseNotes = publishedReleaseNotes ?? await getChangelogReleaseNotes(info.version) ?? getUpdaterReleaseNotes(info);
     if (releaseNotes) releaseNotesByVersion.set(info.version, releaseNotes);
     return releaseNotes;
   } catch {

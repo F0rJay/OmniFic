@@ -53,15 +53,20 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_REPO: ${{ github.repository }}
     steps:
+      - uses: actions/checkout@v7
       - name: 创建或复用 GitHub Release
         run: |
           if gh release view "${{ needs.context.outputs.release_tag }}" >/dev/null 2>&1; then
             echo "GitHub Release 已存在"
             exit 0
           fi
+          release_notes="${RUNNER_TEMP}/release-notes.md"
+          python3 scripts/extract_release_notes.py \
+            CHANGELOG.md \
+            "${{ needs.context.outputs.version }}" > "$release_notes"
           gh release create "${{ needs.context.outputs.release_tag }}" \
             --title "${{ needs.context.outputs.release_tag }}" \
-            --generate-notes
+            --notes-file "$release_notes"
 
   # ---------------------------------------------------------------- frontend
   build-frontend:

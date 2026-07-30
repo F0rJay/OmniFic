@@ -39,7 +39,17 @@ ARM 桌面产物统一使用 `arm64` 命名；Docker 的 Linux 架构标签独�
 
 Windows 安装包支持应用内更新。macOS 包使用 ad-hoc 签名以保证 App 包完整性，但尚未使用 Developer ID 签名或 Apple 公证，仅支持手动下载安装更新：Apple Silicon 下载 `mac-arm64`，Intel 下载 `mac-x86_64`；首次打开时请在 Finder 中按住 Control 点击 App 并选择“打开”。
 
+更新面板会直接展示本次更新列表，并提供 GitHub Release 的完整说明入口。Windows 客户端按以下顺序获取发行说明：
+
+1. 对应 tag 的 GitHub Release 正文；
+2. 对应 tag 中 `CHANGELOG.md` 的版本段落；
+3. `electron-updater` 元数据携带的说明。
+
+只有自动比较链接的 `Full Changelog` 行会被过滤，避免把链接本身当成更新内容。正式 tag 的打包流程会在 Release 尚不存在时从 `CHANGELOG.md` 提取当前版本段落作为正文，因此发布前必须先写好对应版本的变更日志。
+
 后续启用 macOS 应用内更新时，需要将 `package.json` 中的 `omnificMacAutoUpdate` 设为 `true`，并在发布 CI 配置 Developer ID Application 证书、Hardened Runtime、entitlements 以及 Apple API Key 公证凭据。
+
+完整发布步骤见[正式发布操作手册](../docs/runbooks/release.md)。
 
 ## 候选包验证
 

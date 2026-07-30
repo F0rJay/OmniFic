@@ -111,20 +111,23 @@ body {
 }
 
 .desktop-update-heading {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 11px;
   min-width: 0;
-  padding: 1px 0 2px;
+  padding: 1px 0 4px;
+}
+
+.desktop-update-heading-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
 }
 
 .desktop-update-heading .desktop-notice-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
   margin-bottom: 0 !important;
+  font-size: 14px !important;
 }
 
 .desktop-update-heading .desktop-notice-dismiss {
@@ -135,45 +138,54 @@ body {
 
 .desktop-update-heading .desktop-notice-title span {
   color: var(--accent-11);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: inherit;
+}
+
+.desktop-update-app-mark {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--accent-a5);
+  border-radius: 11px;
+  background: linear-gradient(145deg, var(--accent-a3), var(--accent-a1));
+  color: var(--accent-11);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 45%, transparent);
+}
+
+.desktop-update-summary {
+  overflow: hidden;
+  color: var(--gray-10);
+  font-size: 11px !important;
+  line-height: 1.4 !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .desktop-update-release-section {
   min-width: 0;
   border-top: 1px solid var(--gray-a4);
-  border-bottom: 1px solid var(--gray-a4);
-}
-
-.desktop-release-notes-toggle {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 34px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--gray-12);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 650;
-  cursor: pointer;
-}
-
-.desktop-release-notes-toggle svg {
-  color: var(--gray-9);
-  transition: transform 150ms ease;
-}
-
-.desktop-release-notes-toggle[aria-expanded="true"] svg {
-  transform: rotate(90deg);
 }
 
 .desktop-release-notes-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 34px;
+  min-height: 38px;
+}
+
+.desktop-release-notes-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--gray-12);
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.desktop-release-notes-label svg {
+  color: var(--accent-10);
 }
 
 .desktop-release-details {
@@ -183,12 +195,10 @@ body {
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--accent-11);
+  color: var(--gray-10);
   font: inherit;
   font-size: 11px;
   font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 2px;
   cursor: pointer;
 }
 
@@ -197,20 +207,18 @@ body {
 }
 
 .desktop-release-notes-content {
-  max-height: 158px;
-  margin: 0 0 10px;
-  padding: 10px 11px;
+  max-height: 210px;
+  margin: 0 0 2px;
+  padding: 2px 3px 8px;
   overflow-y: auto;
-  border: 1px solid var(--gray-a4);
-  border-radius: 8px;
-  background: var(--gray-a2);
+  scrollbar-width: thin;
 }
 
 .desktop-release-notes-content p {
-  margin: 0 0 6px;
+  margin: 2px 0 7px;
   color: var(--gray-11);
-  font-size: 11px;
-  line-height: 1.5;
+  font-size: 11.5px;
+  line-height: 1.6;
 }
 
 .desktop-release-notes-content h2 {
@@ -230,15 +238,29 @@ body {
 .desktop-release-notes-content ul,
 .desktop-release-notes-content ol {
   display: grid;
-  gap: 5px;
-  margin: 0;
-  padding-left: 17px;
+  gap: 8px;
+  margin: 1px 0 2px;
+  padding: 0;
+  list-style: none;
 }
 
 .desktop-release-notes-content li {
+  position: relative;
+  padding-left: 15px;
   color: var(--gray-11);
-  font-size: 11px;
-  line-height: 1.5;
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+
+.desktop-release-notes-content li::before {
+  position: absolute;
+  top: 0.62em;
+  left: 2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--accent-9);
+  content: "";
 }
 
 .desktop-release-notes-content strong {
@@ -324,8 +346,17 @@ body {
 
 .desktop-update-footer {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: 12px;
   min-height: 30px;
+  padding-top: 1px;
+}
+
+.desktop-update-footer > span {
+  margin-right: auto;
+  color: var(--gray-9);
+  font-size: 10.5px;
 }
 
 .desktop-download-state {
@@ -450,7 +481,7 @@ body {
   top: 52px;
   right: 18px;
   z-index: 20;
-  width: min(370px, calc(100vw - 36px));
+  width: min(410px, calc(100vw - 36px));
   box-sizing: border-box;
   opacity: 0;
   transform: translateY(-6px) scale(0.98);
