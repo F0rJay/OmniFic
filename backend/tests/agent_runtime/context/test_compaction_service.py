@@ -222,6 +222,12 @@ async def test_compact_window_persists_raw_summary_and_emits_events_and_usage(
     events: list[tuple[str, dict[str, Any]]] = []
     usage_events: list[dict[str, Any]] = []
     lifecycle: list[tuple[str, CompactionLifecycleContext]] = []
+    budget_metrics = {
+        "counter_source": "model_tokenizer",
+        "encoding_name": "o200k_base",
+        "tool_schema_tokens": 120,
+        "output_reserve_tokens": 2_048,
+    }
 
     async def pre_compact(context: CompactionLifecycleContext) -> bool:
         lifecycle.append(("pre", context))
@@ -257,6 +263,7 @@ async def test_compact_window_persists_raw_summary_and_emits_events_and_usage(
         ),
         pre_compact_hook=pre_compact,
         post_compact_hook=post_compact,
+        budget_metrics=budget_metrics,
     )
 
     assert result.summary == "摘要正文"
@@ -268,6 +275,7 @@ async def test_compact_window_persists_raw_summary_and_emits_events_and_usage(
     assert fake_model.messages[-1].content == "old"
     assert events[0][0] == "agent:compaction_start"
     assert events[0][1]["generation"] == 3
+    assert events[0][1]["context_budget"] == budget_metrics
     assert events[-1][0] == "agent:compaction_success"
     assert "summary" not in events[-1][1]
     assert usage_events[0]["usage_kind"] == "compaction"
@@ -312,6 +320,7 @@ async def test_compact_window_persists_raw_summary_and_emits_events_and_usage(
         "dropped_message_count": 0,
         "strategy": "llm_summary",
         "fallback_reason": None,
+        "context_budget": budget_metrics,
     }
 
     display_rows = await message_repo.list_by_session(
@@ -341,6 +350,7 @@ async def test_compact_window_persists_raw_summary_and_emits_events_and_usage(
         "retained_user_tokens": 11,
         "dropped_turn_count": 0,
         "dropped_message_count": 0,
+        "context_budget": budget_metrics,
     }
 
 

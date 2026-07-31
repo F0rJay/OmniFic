@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
+from typing import Any
+
 from loguru import logger
 
 from app.agent_runtime.context.compaction.budget import (
@@ -37,6 +40,8 @@ def validate_post_compaction_context(
     max_context_tokens: int,
     retained_user_max_tokens: int = COMPACT_USER_MESSAGE_MAX_TOKENS,
     log_unsafe: bool = True,
+    model_config: Mapping[str, Any] | None = None,
+    tools: Sequence[Any] | None = None,
 ) -> PostCompactionBudget:
     reserved = [message for message in parts if not _is_history(message)]
     history = [message for message in parts if _is_history(message)]
@@ -59,17 +64,27 @@ def validate_post_compaction_context(
         rebuilt_parts,
         max_context_tokens=max_context_tokens,
         retained_user_tokens=retained_user_tokens,
+        model_config=model_config,
+        tools=tools,
     )
     if not budget.within_safe_zone and log_unsafe:
         logger.warning(
             "Post-compaction context remains outside safe zone: "
             "total_tokens={} max_context_tokens={} history_tokens={} "
-            "safe_history_tokens={} reserved_tokens={}",
+            "safe_history_tokens={} reserved_tokens={} tool_schema_tokens={} "
+            "output_reserve_tokens={} safety_margin_tokens={} "
+            "effective_input_limit={} counter_source={} encoding_name={}",
             budget.total_tokens,
             budget.max_context_tokens,
             budget.history_tokens,
             budget.safe_history_tokens,
             budget.reserved_tokens,
+            budget.tool_schema_tokens,
+            budget.output_reserve_tokens,
+            budget.safety_margin_tokens,
+            budget.effective_input_limit,
+            budget.counter_source,
+            budget.encoding_name,
         )
     if not budget.within_safe_zone:
         raise CompactionError(

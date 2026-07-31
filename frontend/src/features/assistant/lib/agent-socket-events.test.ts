@@ -23,6 +23,12 @@ describe("compaction socket events", () => {
       dropped_message_count: 2,
       strategy: "token_budget",
       fallback_reason: "llm_error",
+      context_budget: {
+        counter_source: "model_tokenizer",
+        encoding_name: "o200k_base",
+        tool_schema_tokens: 120,
+        output_reserve_tokens: 4096,
+      },
     });
 
     expect(event.payload).toMatchObject({
@@ -34,6 +40,10 @@ describe("compaction socket events", () => {
       dropped_message_count: 2,
       strategy: "token_budget",
       fallback_reason: "llm_error",
+      context_budget: {
+        counter_source: "model_tokenizer",
+        tool_schema_tokens: 120,
+      },
     });
   });
 

@@ -373,6 +373,7 @@ export function toAgentEvent(
         end_seq: endSeq,
         source_input_tokens: Number(data.source_input_tokens ?? 0),
         generation: Number(data.generation ?? 1),
+        context_budget: isRecord(data.context_budget) ? data.context_budget : undefined,
       },
     };
   }
@@ -402,6 +403,7 @@ export function toAgentEvent(
         generation: Number(data.generation ?? 1),
         post_compaction_tokens: Number(data.post_compaction_tokens ?? 0),
         retained_user_tokens: Number(data.retained_user_tokens ?? 0),
+        context_budget: isRecord(data.context_budget) ? data.context_budget : undefined,
       },
     };
   }
@@ -436,6 +438,7 @@ export function toAgentEvent(
         dropped_message_count: Number(data.dropped_message_count ?? 0),
         strategy: data.strategy === "token_budget" ? "token_budget" : "llm_summary",
         fallback_reason: getString(data.fallback_reason),
+        context_budget: isRecord(data.context_budget) ? data.context_budget : undefined,
       },
     };
   }
@@ -472,6 +475,7 @@ export function toAgentEvent(
         retained_user_tokens: Number(data.retained_user_tokens ?? 0),
         dropped_turn_count: Number(data.dropped_turn_count ?? 0),
         dropped_message_count: Number(data.dropped_message_count ?? 0),
+        context_budget: isRecord(data.context_budget) ? data.context_budget : undefined,
         phase: getString(data.phase),
         persisted: data.persisted === true,
         cancelled: true,

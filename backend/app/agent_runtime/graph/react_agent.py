@@ -291,6 +291,7 @@ async def maybe_auto_compact(
     usage_sink: Callable[[dict[str, Any]], Awaitable[None] | None] | None,
     model_config: Mapping[str, Any] | None = None,
     cancel_event: asyncio.Event | None = None,
+    tools: Sequence[Any] | None = None,
 ) -> bool:
     del agent_name
     persisted_model_config = state.get("model_config")
@@ -302,9 +303,14 @@ async def maybe_auto_compact(
     if max_context_tokens <= 0:
         return False
 
+    budget_model_config = (
+        model_config if model_config is not None else persisted_model_config
+    )
     budget = calculate_auto_compaction_budget(
         parts,
         max_context_tokens=max_context_tokens,
+        model_config=budget_model_config,
+        tools=tools,
     )
     if not budget.trigger_reached:
         return False
@@ -364,6 +370,8 @@ async def maybe_auto_compact(
             end_seq=window.end_seq,
             summary=summary,
             max_context_tokens=max_context_tokens,
+            model_config=budget_model_config,
+            tools=tools,
         )
 
     def build_fallback(_error: CompactionError):
@@ -371,6 +379,8 @@ async def maybe_auto_compact(
             parts,
             end_seq=window.end_seq,
             max_context_tokens=max_context_tokens,
+            model_config=budget_model_config,
+            tools=tools,
         )
 
     try:
@@ -385,6 +395,7 @@ async def maybe_auto_compact(
             result_validator=validate_result,
             cancel_event=cancel_event,
             token_budget_fallback=build_fallback,
+            budget_metrics=budget.metrics(),
         )
     except CompactionError as exc:
         await emit_error_once(exc)
@@ -782,6 +793,7 @@ def create_react_agent(
                 usage_sink=compaction_usage_sink,
                 model_config=runtime_model_config,
                 cancel_event=compaction_cancel_event,
+                tools=tools,
             ):
                 context_parts = await build_context_parts(
                     state=cast("AgentRuntimeState", effective_runtime_state),

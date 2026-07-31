@@ -322,8 +322,16 @@ def test_auto_compaction_runs_before_main_model_and_rebuilds_context() -> None:
     async def fake_build_context_parts(**_kwargs):
         return build_calls.popleft()
 
-    def fake_calculate_auto_compaction_budget(parts, *, max_context_tokens):
+    def fake_calculate_auto_compaction_budget(
+        parts,
+        *,
+        max_context_tokens,
+        model_config,
+        tools,
+    ):
         assert max_context_tokens == 10
+        assert model_config == {"max_context_tokens": 10}
+        assert tools == config.tools
         contents = [part.content for part in parts]
         counted_candidates.append(contents)
         assert (

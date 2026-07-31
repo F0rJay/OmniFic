@@ -36,6 +36,7 @@ from app.storage.services import prompt_chain_service
 
 EventSink = Callable[[str, dict[str, Any]], Awaitable[None] | None]
 UsageSink = Callable[[dict[str, Any]], Awaitable[None] | None]
+BudgetMetrics = Mapping[str, int | str]
 ResultValidator = Callable[
     [str],
     Awaitable[PostCompactionBudget | None] | PostCompactionBudget | None,
@@ -139,6 +140,7 @@ async def compact_window(
     post_compact_hook: CompactionHook | None = None,
     cancel_event: asyncio.Event | None = None,
     token_budget_fallback: TokenBudgetFallback | None = None,
+    budget_metrics: BudgetMetrics | None = None,
 ) -> PersistedCompaction:
     session_id = str(state.get("session_id") or "")
     task_id = str(state.get("task_id") or "")
@@ -158,6 +160,7 @@ async def compact_window(
             post_compact_hook=post_compact_hook,
             cancel_event=cancel_event,
             token_budget_fallback=token_budget_fallback,
+            budget_metrics=budget_metrics,
             lifecycle=lifecycle,
         )
     except asyncio.CancelledError:
@@ -195,6 +198,11 @@ async def compact_window(
                 "dropped_message_count": (
                     compaction.dropped_message_count if compaction is not None else 0
                 ),
+                **(
+                    {"context_budget": dict(budget_metrics)}
+                    if budget_metrics is not None
+                    else {}
+                ),
             },
         )
         raise
@@ -214,6 +222,7 @@ async def _compact_window_impl(
     post_compact_hook: CompactionHook | None,
     cancel_event: asyncio.Event | None,
     token_budget_fallback: TokenBudgetFallback | None,
+    budget_metrics: BudgetMetrics | None,
     lifecycle: _CompactionLifecycleState,
 ) -> PersistedCompaction:
     session_id = str(state.get("session_id") or "")
@@ -231,6 +240,11 @@ async def _compact_window_impl(
             "end_seq": window.end_seq,
             "source_input_tokens": window.source_input_tokens,
             "generation": window.generation,
+            **(
+                {"context_budget": dict(budget_metrics)}
+                if budget_metrics is not None
+                else {}
+            ),
         },
     )
 
@@ -317,6 +331,11 @@ async def _compact_window_impl(
                     if candidate.validation_budget is not None
                     else 0
                 ),
+                **(
+                    {"context_budget": dict(budget_metrics)}
+                    if budget_metrics is not None
+                    else {}
+                ),
             },
         )
 
@@ -387,6 +406,7 @@ async def _compact_window_impl(
             db_session,
             compaction=result,
             trigger=trigger,
+            budget_metrics=budget_metrics,
         )
     except PersistenceWriteError as exc:
         logger.opt(exception=True).error("Failed to persist compaction display marker")
@@ -461,6 +481,11 @@ async def _compact_window_impl(
             "dropped_message_count": result.dropped_message_count,
             "strategy": result.strategy,
             "fallback_reason": candidate.fallback_reason,
+            **(
+                {"context_budget": dict(budget_metrics)}
+                if budget_metrics is not None
+                else {}
+            ),
         },
     )
     lifecycle.phase = "completed"
@@ -728,6 +753,7 @@ async def _persist_display_marker(
     *,
     compaction: PersistedCompaction,
     trigger: CompactionTrigger,
+    budget_metrics: BudgetMetrics | None,
 ) -> None:
     await message_repo.insert_message(
         db_session,
@@ -755,6 +781,11 @@ async def _persist_display_marker(
             "retained_user_tokens": compaction.retained_user_tokens,
             "dropped_turn_count": compaction.dropped_turn_count,
             "dropped_message_count": compaction.dropped_message_count,
+            **(
+                {"context_budget": dict(budget_metrics)}
+                if budget_metrics is not None
+                else {}
+            ),
         },
         message_id=f"compaction:{compaction.id}",
         created_at=compaction.created_at,

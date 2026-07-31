@@ -11,6 +11,9 @@ from langgraph.types import Command
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent_runtime.context import ContextBuildError, build_context_parts
+from app.agent_runtime.context.compaction.budget import (
+    calculate_auto_compaction_budget,
+)
 from app.agent_runtime.context.compaction.service import CompactionError, compact_window
 from app.agent_runtime.context.compaction.token_budget import (
     build_token_budget_compaction,
@@ -752,11 +755,17 @@ class SessionRunner:
                 session,
                 self.session_id,
             )
+            max_context_tokens = int(self.model_config["max_context_tokens"])
+            budget = calculate_auto_compaction_budget(
+                parts,
+                max_context_tokens=max_context_tokens,
+                model_config=self.model_config,
+            )
             try:
                 window = select_compaction_window(
                     history,
                     existing_compactions,
-                    int(self.model_config["max_context_tokens"]),
+                    max_context_tokens,
                 )
             except CompactionNoWindowError as exc:
                 raise CompactionError(
@@ -769,14 +778,16 @@ class SessionRunner:
                     parts,
                     end_seq=window.end_seq,
                     summary=summary,
-                    max_context_tokens=int(self.model_config["max_context_tokens"]),
+                    max_context_tokens=max_context_tokens,
+                    model_config=self.model_config,
                 )
 
             def build_fallback(_error: CompactionError):
                 return build_token_budget_compaction(
                     parts,
                     end_seq=window.end_seq,
-                    max_context_tokens=int(self.model_config["max_context_tokens"]),
+                    max_context_tokens=max_context_tokens,
+                    model_config=self.model_config,
                 )
 
             result = await compact_window(
@@ -790,6 +801,7 @@ class SessionRunner:
                 result_validator=validate_result,
                 cancel_event=self._cancel_event,
                 token_budget_fallback=build_fallback,
+                budget_metrics=budget.metrics(),
             )
             return {
                 "compaction_id": result.id,

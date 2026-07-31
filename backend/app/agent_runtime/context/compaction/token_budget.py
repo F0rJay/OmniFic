@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
+from typing import Any
+
 from app.agent_runtime.context.compaction.config import (
     COMPACT_USER_MESSAGE_MAX_TOKENS,
 )
@@ -42,6 +45,8 @@ def _budget_for_retention(
     end_seq: int,
     max_context_tokens: int,
     retained_user_max_tokens: int,
+    model_config: Mapping[str, Any] | None,
+    tools: Sequence[Any] | None,
 ) -> PostCompactionBudget:
     return validate_post_compaction_context(
         parts,
@@ -50,6 +55,8 @@ def _budget_for_retention(
         max_context_tokens=max_context_tokens,
         retained_user_max_tokens=retained_user_max_tokens,
         log_unsafe=False,
+        model_config=model_config,
+        tools=tools,
     )
 
 
@@ -58,6 +65,8 @@ def build_token_budget_compaction(
     *,
     end_seq: int,
     max_context_tokens: int,
+    model_config: Mapping[str, Any] | None = None,
+    tools: Sequence[Any] | None = None,
 ) -> TokenBudgetCompactionResult:
     """Build a deterministic fresh window without calling a summary model."""
     if max_context_tokens <= 0:
@@ -72,6 +81,8 @@ def build_token_budget_compaction(
             end_seq=end_seq,
             max_context_tokens=max_context_tokens,
             retained_user_max_tokens=0,
+            model_config=model_config,
+            tools=tools,
         )
     except CompactionError as exc:
         if exc.code != "compaction_context_unsafe":
@@ -91,6 +102,8 @@ def build_token_budget_compaction(
                 end_seq=end_seq,
                 max_context_tokens=max_context_tokens,
                 retained_user_max_tokens=candidate_retention,
+                model_config=model_config,
+                tools=tools,
             )
         except CompactionError as exc:
             if exc.code != "compaction_context_unsafe":
