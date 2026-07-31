@@ -46,6 +46,37 @@ def test_assistant_message_without_tool_calls() -> None:
     assert out[0].tool_calls == []
 
 
+def test_assistant_message_normalizes_openai_tool_call_shape() -> None:
+    parts = [
+        ContextMessage(
+            role="assistant",
+            content="calling",
+            tool_calls=[
+                {
+                    "id": "call_1",
+                    "function": {
+                        "name": "read_chapter",
+                        "arguments": '{"order":1}',
+                    },
+                    "type": "function",
+                }
+            ],
+        )
+    ]
+
+    out = to_langchain_messages(parts)
+
+    assert isinstance(out[0], AIMessage)
+    assert out[0].tool_calls == [
+        {
+            "id": "call_1",
+            "name": "read_chapter",
+            "args": {"order": 1},
+            "type": "tool_call",
+        }
+    ]
+
+
 def test_assistant_message_preserves_reasoning_content() -> None:
     parts = [
         ContextMessage(
@@ -62,12 +93,16 @@ def test_assistant_message_preserves_reasoning_content() -> None:
 def test_tool_message_mapped_with_tool_call_id() -> None:
     parts = [
         ContextMessage(
-            role="tool", content="ok", tool_call_id="call_1"
+            role="tool",
+            content="ok",
+            name="read_chapter",
+            tool_call_id="call_1",
         )
     ]
     out = to_langchain_messages(parts)
     assert isinstance(out[0], ToolMessage)
     assert out[0].tool_call_id == "call_1"
+    assert out[0].name == "read_chapter"
     assert out[0].content == "ok"
 
 

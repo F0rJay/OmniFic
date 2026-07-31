@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from typing import NoReturn
 
 from app.agent_runtime.context.compaction.tokens import count_context_tokens
-from app.agent_runtime.context.compaction.transcript import to_transcript
 from app.agent_runtime.context.types import ContextMessage
 from app.agent_runtime.persistence.compaction_types import PersistedCompaction
 
@@ -19,7 +18,6 @@ class CompactionWindow:
     end_seq: int
     messages: list[ContextMessage]
     source_input_tokens: int
-    transcript: str
 
 
 def _seq(message: ContextMessage) -> int | None:
@@ -77,5 +75,4 @@ def select_compaction_window(
         end_seq=max(checkpoint_seqs),
         messages=window_messages,
         source_input_tokens=source_input_tokens,
-        transcript=to_transcript(window_messages),
     )

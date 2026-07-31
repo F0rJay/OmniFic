@@ -11,7 +11,9 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent_runtime.context.compaction.window import CompactionWindow
-from app.agent_runtime.context.compaction.transcript import to_transcript
+from app.agent_runtime.context.compaction.turns import LLMTurn, group_llm_turns
+from app.agent_runtime.context.processors.to_langchain import to_langchain_messages
+from app.agent_runtime.context.types import ContextMessage
 from app.agent_runtime.graph.state import AgentRuntimeState
 from app.agent_runtime.model_config import to_client_model_config
 from app.agent_runtime.persistence import compaction_repo
@@ -77,7 +79,9 @@ async def compact_window(
     )
 
     try:
-        messages = await _build_messages(db_session, window=window)
+        prompt_messages = await _build_prompt_messages(db_session)
+        source_turns = group_llm_turns(window.messages)
+        messages = _build_compaction_messages(prompt_messages, source_turns)
     except CompactionError as exc:
         await _emit_error(
             event_sink,
@@ -118,20 +122,20 @@ async def compact_window(
         )
         raise error from exc
 
-    source_messages = list(window.messages)
     while True:
         try:
             response = await model.ainvoke(messages)
             break
         except Exception as exc:
-            if _is_context_window_exceeded(exc) and source_messages:
+            if _is_context_window_exceeded(exc) and source_turns:
                 # Match Codex's local fallback: preserve the prompt and recent
-                # history, remove one oldest source item, then retry immediately.
-                source_messages.pop(0)
-                messages[-1] = HumanMessage(content=to_transcript(source_messages))
+                # history, remove one oldest source unit, then retry immediately.
+                # A tool call and all of its results form one indivisible unit.
+                source_turns.pop(0)
+                messages = _build_compaction_messages(prompt_messages, source_turns)
                 logger.warning(
                     "Context window exceeded while compacting; "
-                    "removed oldest history item and retrying"
+                    "removed oldest history unit and retrying"
                 )
                 continue
 
@@ -274,11 +278,7 @@ async def _persist_display_marker(
     )
 
 
-async def _build_messages(
-    db_session: AsyncSession,
-    *,
-    window: CompactionWindow,
-) -> list[BaseMessage]:
+async def _build_prompt_messages(db_session: AsyncSession) -> list[BaseMessage]:
     version = await prompt_chain_service.get_latest_version_with_entries_or_default(
         db_session,
         prompt_id="session-compaction",
@@ -298,8 +298,17 @@ async def _build_messages(
             raise CompactionError("prompt_error", "压缩提示词配置无效")
         messages.append(_to_langchain_message(cast(PromptRole, role), content))
 
-    messages.append(HumanMessage(content=window.transcript))
     return messages
+
+
+def _build_compaction_messages(
+    prompt_messages: list[BaseMessage],
+    source_turns: list[LLMTurn],
+) -> list[BaseMessage]:
+    source_messages: list[ContextMessage] = [
+        message for turn in source_turns for message in turn.messages
+    ]
+    return [*prompt_messages, *to_langchain_messages(source_messages)]
 
 
 def _to_langchain_message(role: PromptRole, content: str) -> BaseMessage:

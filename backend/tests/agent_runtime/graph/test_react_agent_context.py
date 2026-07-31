@@ -185,7 +185,6 @@ async def test_auto_compaction_wraps_unhandled_compact_window_error() -> None:
         end_seq=2,
         messages=_compaction_parts()[1:],
         source_input_tokens=9,
-        transcript="history transcript",
     )
 
     async def event_sink(name: str, payload: dict) -> None:
@@ -280,7 +279,6 @@ def test_auto_compaction_runs_before_main_model_and_rebuilds_context() -> None:
             end_seq=2,
             messages=list(history),
             source_input_tokens=9,
-            transcript="history transcript",
         )
 
     async def fake_compact_window(*_args, **kwargs):

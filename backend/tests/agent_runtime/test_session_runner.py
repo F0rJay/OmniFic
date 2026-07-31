@@ -1055,7 +1055,6 @@ async def test_manual_compact_builds_window_and_returns_metrics_without_revision
         start_seq=1,
         end_seq=4,
         source_input_tokens=456,
-        transcript="transcript",
     )
     compaction = SimpleNamespace(
         id="cmp_manual_1",
