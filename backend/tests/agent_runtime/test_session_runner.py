@@ -1062,6 +1062,12 @@ async def test_manual_compact_builds_window_and_returns_metrics_without_revision
         end_seq=4,
         source_input_tokens=456,
         summary_tokens=37,
+        generation=2,
+        model_input_tokens=400,
+        post_compaction_tokens=180,
+        retained_user_tokens=24,
+        dropped_turn_count=1,
+        dropped_message_count=3,
     )
     list_by_session = AsyncMock(return_value=[])
 
@@ -1103,6 +1109,12 @@ async def test_manual_compact_builds_window_and_returns_metrics_without_revision
         "end_seq": 4,
         "source_input_tokens": 456,
         "summary_tokens": 37,
+        "generation": 2,
+        "model_input_tokens": 400,
+        "post_compaction_tokens": 180,
+        "retained_user_tokens": 24,
+        "dropped_turn_count": 1,
+        "dropped_message_count": 3,
     }
     load_history_mock.assert_awaited_once_with(fake_session, "sess_manual_compact_001")
     to_history_dict.assert_called_once_with(history_message)

@@ -109,6 +109,32 @@ class AgentCompactionResponse(BaseModel):
     end_seq: int = Field(..., description="压缩窗口结束消息序号")
     source_input_tokens: int = Field(default=0, description="源窗口输入 token 数")
     summary_tokens: int = Field(default=0, description="摘要 token 数")
+    generation: int = Field(default=1, ge=1, description="压缩代数")
+    model_input_tokens: int = Field(
+        default=0,
+        ge=0,
+        description="压缩模型实际输入 token 数",
+    )
+    post_compaction_tokens: int = Field(
+        default=0,
+        ge=0,
+        description="压缩后上下文 token 数",
+    )
+    retained_user_tokens: int = Field(
+        default=0,
+        ge=0,
+        description="保留用户消息 token 数",
+    )
+    dropped_turn_count: int = Field(
+        default=0,
+        ge=0,
+        description="模型超限时裁剪的历史单元数",
+    )
+    dropped_message_count: int = Field(
+        default=0,
+        ge=0,
+        description="模型超限时裁剪的消息数",
+    )
 
 
 class AgentQuestionAnswerRequest(BaseModel):

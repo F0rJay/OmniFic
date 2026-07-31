@@ -355,8 +355,8 @@ async def maybe_auto_compact(
         await emit_error_once(error)
         raise error from exc
 
-    def validate_result(summary: str) -> None:
-        validate_post_compaction_context(
+    def validate_result(summary: str):
+        return validate_post_compaction_context(
             parts,
             end_seq=window.end_seq,
             summary=summary,

@@ -29,7 +29,13 @@ def history(role: ContextRole, content: str, seq: int, **kwargs) -> ContextMessa
     )  # type: ignore[arg-type]
 
 
-def compaction(start: int, end: int, summary: str = "摘要") -> PersistedCompaction:
+def compaction(
+    start: int,
+    end: int,
+    summary: str = "摘要",
+    *,
+    generation: int = 1,
+) -> PersistedCompaction:
     return PersistedCompaction(
         id=f"c-{start}-{end}",
         session_id="s1",
@@ -42,6 +48,7 @@ def compaction(start: int, end: int, summary: str = "摘要") -> PersistedCompac
         source_input_tokens=3000,
         summary_tokens=20,
         created_at=datetime.now(UTC),
+        generation=generation,
     )
 
 
@@ -229,13 +236,14 @@ def test_window_starts_after_latest_existing_compaction() -> None:
 
     window = select_compaction_window(
         messages,
-        [compaction(2, 3)],
+        [compaction(2, 3, generation=4)],
         max_context_tokens=3_000,
     )
 
     assert window.start_seq == 4
     assert window.end_seq == 6
     assert window.messages == messages
+    assert window.generation == 5
 
 
 def test_window_requires_new_messages_after_latest_checkpoint() -> None:

@@ -15,6 +15,7 @@ from app.agent_runtime.context.compaction.service import (
     CompactionError,
     compact_window,
 )
+from app.agent_runtime.context.compaction.budget import PostCompactionBudget
 from app.agent_runtime.context.compaction.window import CompactionWindow
 from app.agent_runtime.context.types import ContextMessage
 from app.agent_runtime.graph.state import AgentRuntimeState
@@ -127,6 +128,7 @@ def window() -> CompactionWindow:
         end_seq=5,
         messages=[ContextMessage(role="assistant", content="old")],
         source_input_tokens=321,
+        generation=3,
     )
 
 
@@ -244,6 +246,14 @@ async def test_compact_window_persists_raw_summary_and_emits_events_and_usage(
         trigger="manual",
         event_sink=lambda name, payload: _record_event(events, name, payload),
         usage_sink=usage_events.append,
+        result_validator=lambda _summary: PostCompactionBudget(
+            total_tokens=222,
+            history_tokens=72,
+            reserved_tokens=150,
+            max_context_tokens=1_000,
+            safe_history_tokens=680,
+            retained_user_tokens=11,
+        ),
         pre_compact_hook=pre_compact,
         post_compact_hook=post_compact,
     )
@@ -256,6 +266,7 @@ async def test_compact_window_persists_raw_summary_and_emits_events_and_usage(
     assert isinstance(fake_model.messages[-1], AIMessage)
     assert fake_model.messages[-1].content == "old"
     assert events[0][0] == "agent:compaction_start"
+    assert events[0][1]["generation"] == 3
     assert events[-1][0] == "agent:compaction_success"
     assert "summary" not in events[-1][1]
     assert usage_events[0]["usage_kind"] == "compaction"
@@ -263,6 +274,7 @@ async def test_compact_window_persists_raw_summary_and_emits_events_and_usage(
     assert usage_events[0]["usage"]["output_tokens"] == 20
     assert [phase for phase, _context in lifecycle] == ["pre", "post"]
     assert lifecycle[0][1].compaction is None
+    assert lifecycle[0][1].generation == 3
     assert lifecycle[1][1].compaction == result
     normalized_usage = SessionRunner(
         session_id=state["session_id"],
@@ -276,6 +288,28 @@ async def test_compact_window_persists_raw_summary_and_emits_events_and_usage(
     rows = await compaction_repo.list_by_session(db_session, state["session_id"])
     assert [row.summary for row in rows] == ["摘要正文"]
     assert "<compaction-summary>" not in rows[0].summary
+    assert rows[0].generation == 3
+    assert rows[0].model_input_tokens == 100
+    assert rows[0].post_compaction_tokens == 222
+    assert rows[0].retained_user_tokens == 11
+    assert rows[0].dropped_turn_count == 0
+    assert rows[0].dropped_message_count == 0
+    assert events[-1][1] == {
+        "session_id": state["session_id"],
+        "task_id": state["task_id"],
+        "compaction_id": result.id,
+        "trigger": "manual",
+        "start_seq": window.start_seq,
+        "end_seq": window.end_seq,
+        "source_input_tokens": 321,
+        "summary_tokens": 20,
+        "generation": 3,
+        "model_input_tokens": 100,
+        "post_compaction_tokens": 222,
+        "retained_user_tokens": 11,
+        "dropped_turn_count": 0,
+        "dropped_message_count": 0,
+    }
 
     display_rows = await message_repo.list_by_session(
         db_session,
@@ -293,6 +327,16 @@ async def test_compact_window_persists_raw_summary_and_emits_events_and_usage(
         "kind": "compaction",
         "compaction_id": result.id,
         "trigger": "manual",
+        "start_seq": window.start_seq,
+        "end_seq": window.end_seq,
+        "generation": 3,
+        "source_input_tokens": 321,
+        "summary_tokens": 20,
+        "model_input_tokens": 100,
+        "post_compaction_tokens": 222,
+        "retained_user_tokens": 11,
+        "dropped_turn_count": 0,
+        "dropped_message_count": 0,
     }
 
 
@@ -875,6 +919,8 @@ async def test_compact_window_retries_transient_errors_with_exponential_backoff(
     )
 
     assert result.summary == "retry summary"
+    assert result.dropped_turn_count == 0
+    assert result.dropped_message_count == 0
     assert len(fake_model.invocations) == 3
     assert fake_model.invocations[0] == fake_model.invocations[1]
     assert fake_model.invocations[1] == fake_model.invocations[2]
@@ -973,6 +1019,8 @@ async def test_context_trimming_resets_the_transient_retry_budget(
     )
 
     assert result.summary == "retry summary"
+    assert result.dropped_turn_count == 1
+    assert result.dropped_message_count == 1
     assert len(fake_model.invocations) == 6
     assert [call.args[0] for call in sleep.await_args_list] == [0.2, 0.4, 0.8, 0.2]
     assert [message.content for message in fake_model.invocations[-1][1:]] == [
@@ -1036,6 +1084,9 @@ async def test_compact_window_drops_oldest_history_and_retries_on_context_limit(
     )
 
     assert result.summary == "retry summary"
+    assert result.model_input_tokens == 8
+    assert result.dropped_turn_count == 1
+    assert result.dropped_message_count == 2
     assert len(fake_model.invocations) == 2
     first_history = fake_model.invocations[0][1:]
     retry_history = fake_model.invocations[1][1:]

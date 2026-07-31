@@ -761,8 +761,8 @@ class SessionRunner:
                     "没有可压缩的上下文窗口",
                 ) from exc
 
-            def validate_result(summary: str) -> None:
-                validate_post_compaction_context(
+            def validate_result(summary: str):
+                return validate_post_compaction_context(
                     parts,
                     end_seq=window.end_seq,
                     summary=summary,
@@ -786,6 +786,12 @@ class SessionRunner:
                 "end_seq": result.end_seq,
                 "source_input_tokens": result.source_input_tokens,
                 "summary_tokens": result.summary_tokens,
+                "generation": result.generation,
+                "model_input_tokens": result.model_input_tokens,
+                "post_compaction_tokens": result.post_compaction_tokens,
+                "retained_user_tokens": result.retained_user_tokens,
+                "dropped_turn_count": result.dropped_turn_count,
+                "dropped_message_count": result.dropped_message_count,
             }
         finally:
             await session.close()

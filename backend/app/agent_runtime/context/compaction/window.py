@@ -18,6 +18,7 @@ class CompactionWindow:
     end_seq: int
     messages: list[ContextMessage]
     source_input_tokens: int
+    generation: int = 1
 
 
 def _seq(message: ContextMessage) -> int | None:
@@ -75,4 +76,9 @@ def select_compaction_window(
         end_seq=max(checkpoint_seqs),
         messages=window_messages,
         source_input_tokens=source_input_tokens,
+        generation=max(
+            (compaction.generation for compaction in existing_compactions),
+            default=0,
+        )
+        + 1,
     )

@@ -192,6 +192,12 @@ async def test_projects_compaction_marker_as_display_only_task_message(
             "end_seq": 4,
             "source_input_tokens": 100,
             "summary_tokens": 10,
+            "generation": 2,
+            "model_input_tokens": 90,
+            "post_compaction_tokens": 35,
+            "retained_user_tokens": 12,
+            "dropped_turn_count": 1,
+            "dropped_message_count": 2,
         },
         message_id="compaction:cmp_projection",
     )
@@ -208,7 +214,21 @@ async def test_projects_compaction_marker_as_display_only_task_message(
     assert compaction_message.content == "已进行压缩"
     assert compaction_message.display_channel == "list"
     assert compaction_message.message_status == "completed"
-    assert compaction_message.payload == {"kind": "compaction"}
+    assert compaction_message.payload == {
+        "kind": "compaction",
+        "compaction_id": "cmp_projection",
+        "trigger": "manual",
+        "start_seq": 1,
+        "end_seq": 4,
+        "source_input_tokens": 100,
+        "summary_tokens": 10,
+        "generation": 2,
+        "model_input_tokens": 90,
+        "post_compaction_tokens": 35,
+        "retained_user_tokens": 12,
+        "dropped_turn_count": 1,
+        "dropped_message_count": 2,
+    }
     assert compaction_message.correlation_id == "compaction:cmp_projection"
 
 

@@ -30,6 +30,7 @@ class PostCompactionBudget:
     reserved_tokens: int
     max_context_tokens: int
     safe_history_tokens: int
+    retained_user_tokens: int = 0
 
     @property
     def within_safe_zone(self) -> bool:
@@ -63,6 +64,7 @@ def calculate_post_compaction_budget(
     parts: list[ContextMessage],
     *,
     max_context_tokens: int,
+    retained_user_tokens: int = 0,
 ) -> PostCompactionBudget:
     budget = calculate_auto_compaction_budget(
         parts,
@@ -74,4 +76,5 @@ def calculate_post_compaction_budget(
         reserved_tokens=budget.reserved_tokens,
         max_context_tokens=max_context_tokens,
         safe_history_tokens=budget.trigger_tokens,
+        retained_user_tokens=retained_user_tokens,
     )

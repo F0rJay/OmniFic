@@ -999,6 +999,12 @@ async def compact_agent_session(
         end_seq=int(result["end_seq"]),
         source_input_tokens=int(result.get("source_input_tokens", 0)),
         summary_tokens=int(result.get("summary_tokens", 0)),
+        generation=int(result.get("generation", 1)),
+        model_input_tokens=int(result.get("model_input_tokens", 0)),
+        post_compaction_tokens=int(result.get("post_compaction_tokens", 0)),
+        retained_user_tokens=int(result.get("retained_user_tokens", 0)),
+        dropped_turn_count=int(result.get("dropped_turn_count", 0)),
+        dropped_message_count=int(result.get("dropped_message_count", 0)),
     )
 
 

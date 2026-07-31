@@ -14,8 +14,9 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agent_runtime.context.compaction.window import CompactionWindow
+from app.agent_runtime.context.compaction.budget import PostCompactionBudget
 from app.agent_runtime.context.compaction.turns import LLMTurn, group_llm_turns
+from app.agent_runtime.context.compaction.window import CompactionWindow
 from app.agent_runtime.context.processors.to_langchain import to_langchain_messages
 from app.agent_runtime.context.types import ContextMessage
 from app.agent_runtime.graph.state import AgentRuntimeState
@@ -33,7 +34,10 @@ from app.storage.services import prompt_chain_service
 
 EventSink = Callable[[str, dict[str, Any]], Awaitable[None] | None]
 UsageSink = Callable[[dict[str, Any]], Awaitable[None] | None]
-ResultValidator = Callable[[str], Awaitable[None] | None]
+ResultValidator = Callable[
+    [str],
+    Awaitable[PostCompactionBudget | None] | PostCompactionBudget | None,
+]
 PromptRole = Literal["system", "user", "assistant"]
 
 _SURROGATE_RE = re.compile(r"[\ud800-\udfff]")
@@ -69,6 +73,7 @@ class CompactionLifecycleContext:
     start_seq: int
     end_seq: int
     source_input_tokens: int
+    generation: int
     compaction: PersistedCompaction | None = None
 
 
@@ -129,9 +134,28 @@ async def compact_window(
                 "start_seq": window.start_seq,
                 "end_seq": window.end_seq,
                 "source_input_tokens": window.source_input_tokens,
+                "generation": window.generation,
                 "phase": lifecycle.phase,
                 "persisted": compaction is not None,
                 "compaction_id": compaction.id if compaction is not None else None,
+                "model_input_tokens": (
+                    compaction.model_input_tokens if compaction is not None else 0
+                ),
+                "summary_tokens": (
+                    compaction.summary_tokens if compaction is not None else 0
+                ),
+                "post_compaction_tokens": (
+                    compaction.post_compaction_tokens if compaction is not None else 0
+                ),
+                "retained_user_tokens": (
+                    compaction.retained_user_tokens if compaction is not None else 0
+                ),
+                "dropped_turn_count": (
+                    compaction.dropped_turn_count if compaction is not None else 0
+                ),
+                "dropped_message_count": (
+                    compaction.dropped_message_count if compaction is not None else 0
+                ),
             },
         )
         raise
@@ -166,6 +190,7 @@ async def _compact_window_impl(
             "start_seq": window.start_seq,
             "end_seq": window.end_seq,
             "source_input_tokens": window.source_input_tokens,
+            "generation": window.generation,
         },
     )
 
@@ -241,6 +266,8 @@ async def _compact_window_impl(
         raise error from exc
 
     transient_retries = 0
+    dropped_turn_count = 0
+    dropped_message_count = 0
     while True:
         lifecycle.phase = "model_request"
         try:
@@ -254,7 +281,9 @@ async def _compact_window_impl(
                 # Match Codex's local fallback: preserve the prompt and recent
                 # history, remove one oldest source unit, then retry immediately.
                 # A tool call and all of its results form one indivisible unit.
-                source_turns.pop(0)
+                dropped_turn = source_turns.pop(0)
+                dropped_turn_count += 1
+                dropped_message_count += len(dropped_turn.messages)
                 messages = _build_compaction_messages(prompt_messages, source_turns)
                 transient_retries = 0
                 logger.warning(
@@ -305,13 +334,16 @@ async def _compact_window_impl(
         )
         raise
 
+    validation_budget: PostCompactionBudget | None = None
     if result_validator is not None:
         lifecycle.phase = "result_validation"
         _raise_if_cancelled(cancel_event)
         try:
             validation = result_validator(summary)
             if inspect.isawaitable(validation):
-                await _await_with_cancellation(validation, cancel_event)
+                validation = await _await_with_cancellation(validation, cancel_event)
+            if isinstance(validation, PostCompactionBudget):
+                validation_budget = validation
         except CompactionError as exc:
             await _emit_error(
                 event_sink,
@@ -354,6 +386,18 @@ async def _compact_window_impl(
             trigger=trigger,
             source_input_tokens=window.source_input_tokens,
             summary_tokens=summary_tokens,
+            generation=window.generation,
+            model_input_tokens=token_input,
+            post_compaction_tokens=(
+                validation_budget.total_tokens if validation_budget is not None else 0
+            ),
+            retained_user_tokens=(
+                validation_budget.retained_user_tokens
+                if validation_budget is not None
+                else 0
+            ),
+            dropped_turn_count=dropped_turn_count,
+            dropped_message_count=dropped_message_count,
         )
     except PersistenceWriteError as exc:
         logger.opt(exception=True).error("Failed to persist compaction")
@@ -450,6 +494,12 @@ async def _compact_window_impl(
             "end_seq": result.end_seq,
             "source_input_tokens": result.source_input_tokens,
             "summary_tokens": result.summary_tokens,
+            "generation": result.generation,
+            "model_input_tokens": result.model_input_tokens,
+            "post_compaction_tokens": result.post_compaction_tokens,
+            "retained_user_tokens": result.retained_user_tokens,
+            "dropped_turn_count": result.dropped_turn_count,
+            "dropped_message_count": result.dropped_message_count,
         },
     )
     lifecycle.phase = "completed"
@@ -471,6 +521,7 @@ def _lifecycle_context(
         start_seq=window.start_seq,
         end_seq=window.end_seq,
         source_input_tokens=window.source_input_tokens,
+        generation=window.generation,
         compaction=compaction,
     )
 
@@ -561,6 +612,16 @@ async def _persist_display_marker(
             "kind": "compaction",
             "compaction_id": compaction.id,
             "trigger": trigger,
+            "start_seq": compaction.start_seq,
+            "end_seq": compaction.end_seq,
+            "generation": compaction.generation,
+            "source_input_tokens": compaction.source_input_tokens,
+            "summary_tokens": compaction.summary_tokens,
+            "model_input_tokens": compaction.model_input_tokens,
+            "post_compaction_tokens": compaction.post_compaction_tokens,
+            "retained_user_tokens": compaction.retained_user_tokens,
+            "dropped_turn_count": compaction.dropped_turn_count,
+            "dropped_message_count": compaction.dropped_message_count,
         },
         message_id=f"compaction:{compaction.id}",
         created_at=compaction.created_at,

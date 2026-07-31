@@ -28,6 +28,12 @@ def _validate_new_compaction(
     end_seq: int,
     source_input_tokens: int,
     summary_tokens: int,
+    generation: int,
+    model_input_tokens: int,
+    post_compaction_tokens: int,
+    retained_user_tokens: int,
+    dropped_turn_count: int,
+    dropped_message_count: int,
 ) -> None:
     if start_seq < 0:
         raise PersistenceWriteError(f"invalid compaction start_seq: {start_seq}")
@@ -41,6 +47,17 @@ def _validate_new_compaction(
         raise PersistenceWriteError(
             f"invalid compaction summary_tokens: {summary_tokens}"
         )
+    if generation < 1:
+        raise PersistenceWriteError(f"invalid compaction generation: {generation}")
+    for name, value in (
+        ("model_input_tokens", model_input_tokens),
+        ("post_compaction_tokens", post_compaction_tokens),
+        ("retained_user_tokens", retained_user_tokens),
+        ("dropped_turn_count", dropped_turn_count),
+        ("dropped_message_count", dropped_message_count),
+    ):
+        if value < 0:
+            raise PersistenceWriteError(f"invalid compaction {name}: {value}")
     if start_seq > end_seq:
         raise PersistenceWriteError(
             f"invalid compaction range: start_seq={start_seq} end_seq={end_seq}"
@@ -78,6 +95,12 @@ def _row_to_dto(row: AgentContextCompaction) -> PersistedCompaction:
         source_input_tokens=row.source_input_tokens,
         summary_tokens=row.summary_tokens,
         created_at=row.created_at,
+        generation=row.generation,
+        model_input_tokens=row.model_input_tokens,
+        post_compaction_tokens=row.post_compaction_tokens,
+        retained_user_tokens=row.retained_user_tokens,
+        dropped_turn_count=row.dropped_turn_count,
+        dropped_message_count=row.dropped_message_count,
     )
 
 
@@ -118,12 +141,24 @@ async def insert_compaction(
     trigger: CompactionTrigger,
     source_input_tokens: int = 0,
     summary_tokens: int = 0,
+    generation: int = 1,
+    model_input_tokens: int = 0,
+    post_compaction_tokens: int = 0,
+    retained_user_tokens: int = 0,
+    dropped_turn_count: int = 0,
+    dropped_message_count: int = 0,
 ) -> PersistedCompaction:
     _validate_new_compaction(
         start_seq=start_seq,
         end_seq=end_seq,
         source_input_tokens=source_input_tokens,
         summary_tokens=summary_tokens,
+        generation=generation,
+        model_input_tokens=model_input_tokens,
+        post_compaction_tokens=post_compaction_tokens,
+        retained_user_tokens=retained_user_tokens,
+        dropped_turn_count=dropped_turn_count,
+        dropped_message_count=dropped_message_count,
     )
 
     try:
@@ -143,6 +178,12 @@ async def insert_compaction(
             trigger=trigger,
             source_input_tokens=source_input_tokens,
             summary_tokens=summary_tokens,
+            generation=generation,
+            model_input_tokens=model_input_tokens,
+            post_compaction_tokens=post_compaction_tokens,
+            retained_user_tokens=retained_user_tokens,
+            dropped_turn_count=dropped_turn_count,
+            dropped_message_count=dropped_message_count,
         )
         session.add(row)
         await session.commit()
@@ -261,6 +302,12 @@ async def copy_for_fork(
                     trigger=source.trigger,
                     source_input_tokens=source.source_input_tokens,
                     summary_tokens=source.summary_tokens,
+                    generation=source.generation,
+                    model_input_tokens=source.model_input_tokens,
+                    post_compaction_tokens=source.post_compaction_tokens,
+                    retained_user_tokens=source.retained_user_tokens,
+                    dropped_turn_count=source.dropped_turn_count,
+                    dropped_message_count=source.dropped_message_count,
                     created_at=now,
                 )
             )

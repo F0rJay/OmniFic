@@ -8,11 +8,24 @@ from app.agent_runtime.context.compaction.budget import (
 )
 from app.agent_runtime.context.compaction.overlay import preview_compaction_overlay
 from app.agent_runtime.context.compaction.service import CompactionError
+from app.agent_runtime.context.compaction.tokens import count_text_tokens
 from app.agent_runtime.context.types import ContextMessage
 
 
 def _is_history(message: ContextMessage) -> bool:
     return (message.metadata or {}).get("part") == "history"
+
+
+def _is_retained_user_message(message: ContextMessage, *, end_seq: int) -> bool:
+    if message.role != "user":
+        return False
+    metadata = message.metadata or {}
+    seq = metadata.get("seq")
+    return (
+        metadata.get("kind") != "compaction_summary"
+        and type(seq) is int
+        and seq <= end_seq
+    )
 
 
 def validate_post_compaction_context(
@@ -24,17 +37,24 @@ def validate_post_compaction_context(
 ) -> PostCompactionBudget:
     reserved = [message for message in parts if not _is_history(message)]
     history = [message for message in parts if _is_history(message)]
+    rebuilt_history = preview_compaction_overlay(
+        history,
+        end_seq=end_seq,
+        summary=summary,
+    )
     rebuilt_parts = [
         *reserved,
-        *preview_compaction_overlay(
-            history,
-            end_seq=end_seq,
-            summary=summary,
-        ),
+        *rebuilt_history,
     ]
+    retained_user_tokens = sum(
+        count_text_tokens(message.content)
+        for message in rebuilt_history
+        if _is_retained_user_message(message, end_seq=end_seq)
+    )
     budget = calculate_post_compaction_budget(
         rebuilt_parts,
         max_context_tokens=max_context_tokens,
+        retained_user_tokens=retained_user_tokens,
     )
     if not budget.within_safe_zone:
         logger.warning(

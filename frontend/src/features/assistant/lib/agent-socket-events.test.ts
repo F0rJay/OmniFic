@@ -6,6 +6,33 @@ vi.stubGlobal("localStorage", {
 const { toAgentEvent } = await import("./agent-socket-events");
 
 describe("compaction socket events", () => {
+  it("preserves persisted compaction window metrics", () => {
+    const event = toAgentEvent("agent:compaction_success", "session-1", {
+      session_id: "session-1",
+      compaction_id: "cmp-1",
+      trigger: "auto",
+      start_seq: 2,
+      end_seq: 5,
+      source_input_tokens: 500,
+      summary_tokens: 40,
+      generation: 3,
+      model_input_tokens: 460,
+      post_compaction_tokens: 180,
+      retained_user_tokens: 70,
+      dropped_turn_count: 1,
+      dropped_message_count: 2,
+    });
+
+    expect(event.payload).toMatchObject({
+      generation: 3,
+      model_input_tokens: 460,
+      post_compaction_tokens: 180,
+      retained_user_tokens: 70,
+      dropped_turn_count: 1,
+      dropped_message_count: 2,
+    });
+  });
+
   it("maps cancellation to a hidden terminal compaction event", () => {
     const event = toAgentEvent("agent:compaction_cancelled", "session-1", {
       session_id: "session-1",

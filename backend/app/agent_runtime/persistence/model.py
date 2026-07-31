@@ -61,6 +61,30 @@ class AgentContextCompaction(SQLModel, table=True):
             name="ck_agent_context_compactions_summary_tokens_nonnegative",
         ),
         CheckConstraint(
+            "generation >= 1",
+            name="ck_agent_context_compactions_generation_positive",
+        ),
+        CheckConstraint(
+            "model_input_tokens >= 0",
+            name="ck_agent_context_compactions_model_input_tokens_nonnegative",
+        ),
+        CheckConstraint(
+            "post_compaction_tokens >= 0",
+            name="ck_agent_context_compactions_post_compaction_tokens_nonnegative",
+        ),
+        CheckConstraint(
+            "retained_user_tokens >= 0",
+            name="ck_agent_context_compactions_retained_user_tokens_nonnegative",
+        ),
+        CheckConstraint(
+            "dropped_turn_count >= 0",
+            name="ck_agent_context_compactions_dropped_turn_count_nonnegative",
+        ),
+        CheckConstraint(
+            "dropped_message_count >= 0",
+            name="ck_agent_context_compactions_dropped_message_count_nonnegative",
+        ),
+        CheckConstraint(
             "start_seq <= end_seq",
             name="ck_agent_context_compactions_valid_range",
         ),
@@ -82,6 +106,12 @@ class AgentContextCompaction(SQLModel, table=True):
     trigger: str = Field(index=True, max_length=20)
     source_input_tokens: int = Field(default=0, ge=0)
     summary_tokens: int = Field(default=0, ge=0)
+    generation: int = Field(default=1, ge=1)
+    model_input_tokens: int = Field(default=0, ge=0)
+    post_compaction_tokens: int = Field(default=0, ge=0)
+    retained_user_tokens: int = Field(default=0, ge=0)
+    dropped_turn_count: int = Field(default=0, ge=0)
+    dropped_message_count: int = Field(default=0, ge=0)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC), index=True)
 
 

@@ -288,7 +288,7 @@ def _project_rows(
                     row,
                     message_type="compaction",
                     display_channel=row.display_channel,
-                    payload={"kind": "compaction"},
+                    payload={"kind": "compaction", **row.metadata},
                     tool_calls=[],
                 )
             )

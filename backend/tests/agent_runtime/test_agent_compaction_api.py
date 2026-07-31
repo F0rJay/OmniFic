@@ -47,6 +47,12 @@ def _runner(
                 "end_seq": 7,
                 "source_input_tokens": 1234,
                 "summary_tokens": 98,
+                "generation": 3,
+                "model_input_tokens": 1100,
+                "post_compaction_tokens": 420,
+                "retained_user_tokens": 160,
+                "dropped_turn_count": 2,
+                "dropped_message_count": 5,
             }
         )
     return runner
@@ -111,6 +117,12 @@ async def test_manual_compaction_returns_structured_metrics(client: AsyncClient)
         "end_seq": 7,
         "source_input_tokens": 1234,
         "summary_tokens": 98,
+        "generation": 3,
+        "model_input_tokens": 1100,
+        "post_compaction_tokens": 420,
+        "retained_user_tokens": 160,
+        "dropped_turn_count": 2,
+        "dropped_message_count": 5,
     }
     runner.compact.assert_awaited_once_with()
     runner.consume_next_pending_user_message_for_continuation.assert_awaited_once_with()

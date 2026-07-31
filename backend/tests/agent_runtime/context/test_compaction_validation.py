@@ -37,6 +37,7 @@ def test_validate_post_compaction_context_accepts_rebuilt_safe_context() -> None
 
     assert budget.total_tokens > 0
     assert budget.history_tokens > 0
+    assert budget.retained_user_tokens > 0
     assert budget.within_safe_zone is True
 
 

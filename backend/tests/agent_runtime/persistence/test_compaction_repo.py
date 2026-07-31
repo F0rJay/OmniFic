@@ -21,6 +21,12 @@ async def test_insert_and_list_compactions(
         trigger="manual",
         source_input_tokens=3000,
         summary_tokens=120,
+        generation=3,
+        model_input_tokens=2800,
+        post_compaction_tokens=640,
+        retained_user_tokens=210,
+        dropped_turn_count=2,
+        dropped_message_count=4,
     )
 
     rows = await compaction_repo.list_by_session(db_session, "session_a")
@@ -38,9 +44,15 @@ async def test_insert_and_list_compactions(
             item.trigger,
             item.source_input_tokens,
             item.summary_tokens,
+            item.generation,
+            item.model_input_tokens,
+            item.post_compaction_tokens,
+            item.retained_user_tokens,
+            item.dropped_turn_count,
+            item.dropped_message_count,
         )
         for item in rows
-    ] == [(1, 3, "摘要", "manual", 3000, 120)]
+    ] == [(1, 3, "摘要", "manual", 3000, 120, 3, 2800, 640, 210, 2, 4)]
 
 
 @pytest.mark.asyncio
@@ -115,6 +127,37 @@ async def test_insert_rejects_negative_values(
             trigger="manual",
             source_input_tokens=source_input_tokens,
             summary_tokens=summary_tokens,
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "invalid_metrics",
+    [
+        {"generation": 0},
+        {"model_input_tokens": -1},
+        {"post_compaction_tokens": -1},
+        {"retained_user_tokens": -1},
+        {"dropped_turn_count": -1},
+        {"dropped_message_count": -1},
+    ],
+)
+async def test_insert_rejects_invalid_window_metrics(
+    db_session: AsyncSession,
+    sample_task,
+    invalid_metrics: dict[str, int],
+) -> None:
+    with pytest.raises(PersistenceWriteError, match="invalid compaction"):
+        await compaction_repo.insert_compaction(
+            db_session,
+            session_id="session_invalid_metrics",
+            task_id=sample_task.id,
+            project_id=sample_task.project_id,
+            start_seq=1,
+            end_seq=3,
+            summary="invalid",
+            trigger="manual",
+            **invalid_metrics,
         )
 
 
@@ -234,6 +277,12 @@ async def test_copy_complete_ranges_for_fork(
         trigger="manual",
         source_input_tokens=100,
         summary_tokens=10,
+        generation=4,
+        model_input_tokens=90,
+        post_compaction_tokens=30,
+        retained_user_tokens=12,
+        dropped_turn_count=1,
+        dropped_message_count=2,
     )
     await compaction_repo.insert_compaction(
         db_session,
@@ -268,6 +317,12 @@ async def test_copy_complete_ranges_for_fork(
             row.trigger,
             row.source_input_tokens,
             row.summary_tokens,
+            row.generation,
+            row.model_input_tokens,
+            row.post_compaction_tokens,
+            row.retained_user_tokens,
+            row.dropped_turn_count,
+            row.dropped_message_count,
         )
         for row in rows
     ] == [
@@ -281,5 +336,11 @@ async def test_copy_complete_ranges_for_fork(
             "manual",
             100,
             10,
+            4,
+            90,
+            30,
+            12,
+            1,
+            2,
         )
     ]
