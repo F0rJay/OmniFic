@@ -1,7 +1,8 @@
 // Modified by OmniFic contributors from OpenFic v0.7.5.
 importScripts("/sw-precache.js");
 
-const CACHE_NAME = "omnific-shell-v1";
+const CACHE_NAME = "omnific-shell-v2";
+const APP_SHELL_CACHE_PREFIXES = ["openfic-shell-", "omnific-shell-"];
 
 const BACKEND_PATHS = ["/api/", "/socket.io/", "/covers/", "/icons/"];
 
@@ -22,7 +23,11 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => key.startsWith("omnific-shell-") && key !== CACHE_NAME)
+            .filter(
+              (key) =>
+                APP_SHELL_CACHE_PREFIXES.some((prefix) => key.startsWith(prefix)) &&
+                key !== CACHE_NAME,
+            )
             .map((key) => caches.delete(key)),
         ),
       )
@@ -58,23 +63,24 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put("/index.html", copy));
           return response;
         })
-        .catch(() => caches.match("/index.html")),
+        .catch(() => caches.open(CACHE_NAME).then((cache) => cache.match("/index.html"))),
     );
     return;
   }
 
   event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) {
-        return cached;
-      }
-      return fetch(request).then((response) => {
-        if (response.ok && response.type === "basic") {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.match(request).then((cached) => {
+        if (cached) {
+          return cached;
         }
-        return response;
-      });
-    }),
+        return fetch(request).then((response) => {
+          if (response.ok && response.type === "basic") {
+            cache.put(request, response.clone());
+          }
+          return response;
+        });
+      }),
+    ),
   );
 });
