@@ -1128,6 +1128,9 @@ async def test_manual_compact_builds_window_and_returns_metrics_without_revision
         compact_window.await_args.kwargs["usage_sink"]
         == runner._emit_persisted_task_usage_events
     )
+    result_validator = compact_window.await_args.kwargs["result_validator"]
+    assert callable(result_validator)
+    result_validator("manual summary")
     begin_user_revision.assert_not_awaited()
     fake_session.close.assert_awaited_once_with()
 

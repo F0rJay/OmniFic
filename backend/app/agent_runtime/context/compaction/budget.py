@@ -23,6 +23,23 @@ class AutoCompactionBudget:
         return self.history_tokens > 0 and self.history_tokens >= self.trigger_tokens
 
 
+@dataclass(frozen=True)
+class PostCompactionBudget:
+    total_tokens: int
+    history_tokens: int
+    reserved_tokens: int
+    max_context_tokens: int
+    safe_history_tokens: int
+
+    @property
+    def within_safe_zone(self) -> bool:
+        if self.max_context_tokens <= 0 or self.total_tokens >= self.max_context_tokens:
+            return False
+        return self.history_tokens == 0 or (
+            self.history_tokens < self.safe_history_tokens
+        )
+
+
 def calculate_auto_compaction_budget(
     parts: list[ContextMessage],
     *,
@@ -39,4 +56,22 @@ def calculate_auto_compaction_budget(
         reserved_tokens=reserved_tokens,
         available_history_tokens=available_history_tokens,
         trigger_tokens=trigger_tokens,
+    )
+
+
+def calculate_post_compaction_budget(
+    parts: list[ContextMessage],
+    *,
+    max_context_tokens: int,
+) -> PostCompactionBudget:
+    budget = calculate_auto_compaction_budget(
+        parts,
+        max_context_tokens=max_context_tokens,
+    )
+    return PostCompactionBudget(
+        total_tokens=budget.history_tokens + budget.reserved_tokens,
+        history_tokens=budget.history_tokens,
+        reserved_tokens=budget.reserved_tokens,
+        max_context_tokens=max_context_tokens,
+        safe_history_tokens=budget.trigger_tokens,
     )

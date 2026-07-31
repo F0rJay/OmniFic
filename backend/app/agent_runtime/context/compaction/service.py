@@ -32,6 +32,7 @@ from app.storage.services import prompt_chain_service
 
 EventSink = Callable[[str, dict[str, Any]], Awaitable[None] | None]
 UsageSink = Callable[[dict[str, Any]], Awaitable[None] | None]
+ResultValidator = Callable[[str], Awaitable[None] | None]
 PromptRole = Literal["system", "user", "assistant"]
 
 _SURROGATE_RE = re.compile(r"[\ud800-\udfff]")
@@ -68,6 +69,7 @@ async def compact_window(
     event_sink: EventSink | None = None,
     usage_sink: UsageSink | None = None,
     model_config: Mapping[str, Any] | None = None,
+    result_validator: ResultValidator | None = None,
 ) -> PersistedCompaction:
     session_id = str(state.get("session_id") or "")
     task_id = str(state.get("task_id") or "")
@@ -186,6 +188,35 @@ async def compact_window(
             error=exc,
         )
         raise
+
+    if result_validator is not None:
+        try:
+            validation = result_validator(summary)
+            if inspect.isawaitable(validation):
+                await validation
+        except CompactionError as exc:
+            await _emit_error(
+                event_sink,
+                session_id=session_id,
+                task_id=task_id,
+                trigger=trigger,
+                error=exc,
+            )
+            raise
+        except Exception as exc:
+            logger.opt(exception=True).error("Failed to validate compacted context")
+            error = CompactionError(
+                "compaction_validation_failed",
+                "压缩结果校验失败，当前请求已中止",
+            )
+            await _emit_error(
+                event_sink,
+                session_id=session_id,
+                task_id=task_id,
+                trigger=trigger,
+                error=error,
+            )
+            raise error from exc
 
     usage = _extract_usage(response)
     token_input, token_output, token_cache = _token_counts(usage)

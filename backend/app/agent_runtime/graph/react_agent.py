@@ -42,6 +42,9 @@ from app.agent_runtime.context.compaction.budget import (
     calculate_auto_compaction_budget,
 )
 from app.agent_runtime.context.compaction.service import CompactionError, compact_window
+from app.agent_runtime.context.compaction.validation import (
+    validate_post_compaction_context,
+)
 from app.agent_runtime.context.compaction.window import (
     CompactionNoWindowError,
     select_compaction_window,
@@ -351,6 +354,14 @@ async def maybe_auto_compact(
         await emit_error_once(error)
         raise error from exc
 
+    def validate_result(summary: str) -> None:
+        validate_post_compaction_context(
+            parts,
+            end_seq=window.end_seq,
+            summary=summary,
+            max_context_tokens=max_context_tokens,
+        )
+
     try:
         await compact_window(
             db_session,
@@ -360,6 +371,7 @@ async def maybe_auto_compact(
             event_sink=tracked_event_sink if event_sink is not None else None,
             usage_sink=usage_sink,
             model_config=model_config,
+            result_validator=validate_result,
         )
     except CompactionError as exc:
         await emit_error_once(exc)

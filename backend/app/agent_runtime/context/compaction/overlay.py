@@ -16,14 +16,18 @@ def _seq(message: ContextMessage) -> int | None:
     return None
 
 
-def _summary_message(compaction: PersistedCompaction) -> ContextMessage:
+def _summary_message(
+    *,
+    summary: str,
+    compaction_id: str,
+) -> ContextMessage:
     return ContextMessage(
         role="user",
-        content=f"<compaction-summary>\n{compaction.summary}\n</compaction-summary>",
+        content=f"<compaction-summary>\n{summary}\n</compaction-summary>",
         metadata={
             "part": "history",
             "kind": "compaction_summary",
-            "compaction_id": compaction.id,
+            "compaction_id": compaction_id,
         },
     )
 
@@ -77,6 +81,47 @@ def _retained_user_messages(
     return selected
 
 
+def _is_compaction_summary(message: ContextMessage) -> bool:
+    return (message.metadata or {}).get("kind") == "compaction_summary"
+
+
+def _apply_compaction_overlay(
+    history_messages: list[ContextMessage],
+    *,
+    end_seq: int,
+    summary: str,
+    compaction_id: str,
+) -> list[ContextMessage]:
+    output = _retained_user_messages(
+        history_messages,
+        end_seq=end_seq,
+        max_tokens=COMPACT_USER_MESSAGE_MAX_TOKENS,
+    )
+    output.append(_summary_message(summary=summary, compaction_id=compaction_id))
+    output.extend(
+        message
+        for message in history_messages
+        if not _is_compaction_summary(message)
+        and ((seq := _seq(message)) is None or seq > end_seq)
+    )
+    return output
+
+
+def preview_compaction_overlay(
+    history_messages: list[ContextMessage],
+    *,
+    end_seq: int,
+    summary: str,
+) -> list[ContextMessage]:
+    """Rebuild the next history in memory before persisting its checkpoint."""
+    return _apply_compaction_overlay(
+        history_messages,
+        end_seq=end_seq,
+        summary=summary,
+        compaction_id="pending",
+    )
+
+
 def apply_compaction_overlay(
     history_messages: list[ContextMessage],
     compactions: list[PersistedCompaction],
@@ -88,15 +133,9 @@ def apply_compaction_overlay(
     # checkpoint replaces the whole compacted history instead of stacking every
     # historical summary into the next model request.
     latest = max(compactions, key=lambda item: (item.end_seq, item.created_at))
-    output = _retained_user_messages(
+    return _apply_compaction_overlay(
         history_messages,
         end_seq=latest.end_seq,
-        max_tokens=COMPACT_USER_MESSAGE_MAX_TOKENS,
+        summary=latest.summary,
+        compaction_id=latest.id,
     )
-    output.append(_summary_message(latest))
-    output.extend(
-        message
-        for message in history_messages
-        if (seq := _seq(message)) is None or seq > latest.end_seq
-    )
-    return output

@@ -12,6 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent_runtime.context import ContextBuildError, build_context_parts
 from app.agent_runtime.context.compaction.service import CompactionError, compact_window
+from app.agent_runtime.context.compaction.validation import (
+    validate_post_compaction_context,
+)
 from app.agent_runtime.context.compaction.window import (
     CompactionNoWindowError,
     select_compaction_window,
@@ -756,6 +759,14 @@ class SessionRunner:
                     "没有可压缩的上下文窗口",
                 ) from exc
 
+            def validate_result(summary: str) -> None:
+                validate_post_compaction_context(
+                    parts,
+                    end_seq=window.end_seq,
+                    summary=summary,
+                    max_context_tokens=int(self.model_config["max_context_tokens"]),
+                )
+
             result = await compact_window(
                 session,
                 state=state,
@@ -764,6 +775,7 @@ class SessionRunner:
                 event_sink=self._emit_agent_event,
                 usage_sink=self._emit_persisted_task_usage_events,
                 model_config=self.model_config,
+                result_validator=validate_result,
             )
             return {
                 "compaction_id": result.id,

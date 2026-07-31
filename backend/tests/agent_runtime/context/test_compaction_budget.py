@@ -1,5 +1,6 @@
 from app.agent_runtime.context.compaction.budget import (
     calculate_auto_compaction_budget,
+    calculate_post_compaction_budget,
 )
 from app.agent_runtime.context.types import ContextMessage
 
@@ -82,3 +83,46 @@ def test_auto_compaction_budget_requires_real_history(monkeypatch) -> None:
     assert budget.available_history_tokens == 0
     assert budget.trigger_tokens == 0
     assert budget.trigger_reached is False
+
+
+def test_post_compaction_budget_requires_history_below_trigger(monkeypatch) -> None:
+    token_counts = {"system": 70, "safe": 23, "at-trigger": 24}
+
+    def fake_count_context_tokens(messages) -> int:
+        return sum(token_counts[message.content] for message in messages)
+
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.budget.count_context_tokens",
+        fake_count_context_tokens,
+    )
+
+    safe = calculate_post_compaction_budget(
+        [_part("system", "system"), _part("history", "safe")],
+        max_context_tokens=100,
+    )
+    unsafe = calculate_post_compaction_budget(
+        [_part("system", "system"), _part("history", "at-trigger")],
+        max_context_tokens=100,
+    )
+
+    assert safe.total_tokens == 93
+    assert safe.safe_history_tokens == 24
+    assert safe.within_safe_zone is True
+    assert unsafe.total_tokens == 94
+    assert unsafe.within_safe_zone is False
+
+
+def test_post_compaction_budget_rejects_reserved_context_overflow(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.budget.count_context_tokens",
+        lambda messages: sum(100 for _message in messages),
+    )
+
+    budget = calculate_post_compaction_budget(
+        [_part("system", "system")],
+        max_context_tokens=100,
+    )
+
+    assert budget.history_tokens == 0
+    assert budget.total_tokens == 100
+    assert budget.within_safe_zone is False

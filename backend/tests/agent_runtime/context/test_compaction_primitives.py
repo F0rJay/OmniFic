@@ -4,7 +4,10 @@ from typing import Literal
 
 import pytest
 
-from app.agent_runtime.context.compaction.overlay import apply_compaction_overlay
+from app.agent_runtime.context.compaction.overlay import (
+    apply_compaction_overlay,
+    preview_compaction_overlay,
+)
 from app.agent_runtime.context.compaction.tokens import count_context_tokens
 from app.agent_runtime.context.compaction.turns import group_llm_turns
 from app.agent_runtime.context.compaction.window import (
@@ -87,6 +90,32 @@ def test_overlay_uses_only_latest_checkpoint_summary() -> None:
         ("user", "<compaction-summary>\nlatest summary\n</compaction-summary>"),
         ("user", "after checkpoint"),
     ]
+
+
+def test_preview_overlay_replaces_previous_summary_before_persistence() -> None:
+    messages = [
+        history("user", "first", 1),
+        ContextMessage(
+            role="user",
+            content="<compaction-summary>old summary</compaction-summary>",
+            metadata={"part": "history", "kind": "compaction_summary"},
+        ),
+        history("assistant", "new answer", 4),
+        history("user", "latest request", 5),
+    ]
+
+    out = preview_compaction_overlay(
+        messages,
+        end_seq=5,
+        summary="new summary",
+    )
+
+    assert [(message.role, message.content) for message in out] == [
+        ("user", "first"),
+        ("user", "latest request"),
+        ("user", "<compaction-summary>\nnew summary\n</compaction-summary>"),
+    ]
+    assert all("old summary" not in message.content for message in out)
 
 
 def test_overlay_limits_retained_user_messages_from_the_end(

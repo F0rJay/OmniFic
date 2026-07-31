@@ -383,6 +383,53 @@ async def test_compact_window_rejects_empty_summary_without_persisting(
 
 
 @pytest.mark.asyncio
+async def test_compact_window_validates_summary_before_persisting(
+    db_session: AsyncSession,
+    state: AgentRuntimeState,
+    window: CompactionWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_model = FakeModel(AIMessage(content="oversized summary"))
+    events: list[tuple[str, dict[str, Any]]] = []
+
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.create_chat_model",
+        lambda _config: fake_model,
+    )
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.prompt_chain_service.get_latest_version_with_entries_or_default",
+        AsyncMock(return_value=_prompt_version()),
+    )
+
+    def validate_summary(summary: str) -> None:
+        assert summary == "oversized summary"
+        raise CompactionError(
+            "compaction_context_unsafe",
+            "压缩后上下文仍超出安全范围，当前请求已中止",
+        )
+
+    with pytest.raises(CompactionError) as exc_info:
+        await compact_window(
+            db_session,
+            state=state,
+            window=window,
+            trigger="auto",
+            event_sink=lambda name, payload: _record_event(events, name, payload),
+            result_validator=validate_summary,
+        )
+
+    assert exc_info.value.code == "compaction_context_unsafe"
+    assert [name for name, _payload in events] == [
+        "agent:compaction_start",
+        "agent:compaction_error",
+    ]
+    rows = await compaction_repo.list_by_session(db_session, state["session_id"])
+    assert rows == []
+    display_rows = await message_repo.list_by_session(db_session, state["session_id"])
+    assert display_rows == []
+
+
+@pytest.mark.asyncio
 async def test_compact_window_ignores_post_commit_sink_failures(
     db_session: AsyncSession,
     state: AgentRuntimeState,
