@@ -38,9 +38,10 @@ from app.agent_runtime.context.processors.filter import (
     filter_tool_result_metadata_content,
 )
 from app.agent_runtime.context.helpers import compile_canonical_mentions
-from app.agent_runtime.context.compaction.config import AUTO_TRIGGER_RATIO
+from app.agent_runtime.context.compaction.budget import (
+    calculate_auto_compaction_budget,
+)
 from app.agent_runtime.context.compaction.service import CompactionError, compact_window
-from app.agent_runtime.context.compaction.tokens import count_context_tokens
 from app.agent_runtime.context.compaction.window import (
     CompactionNoWindowError,
     select_compaction_window,
@@ -294,8 +295,11 @@ async def maybe_auto_compact(
     if max_context_tokens <= 0:
         return False
 
-    threshold = int(max_context_tokens * AUTO_TRIGGER_RATIO)
-    if count_context_tokens(parts) < threshold:
+    budget = calculate_auto_compaction_budget(
+        parts,
+        max_context_tokens=max_context_tokens,
+    )
+    if not budget.trigger_reached:
         return False
 
     error_event_emitted = False

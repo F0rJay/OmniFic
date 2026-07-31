@@ -8,6 +8,7 @@ import pytest
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.tools import BaseTool
 
+from app.agent_runtime.context.compaction.budget import AutoCompactionBudget
 from app.agent_runtime.context.compaction.service import CompactionError
 from app.agent_runtime.context.types import ContextMessage
 from app.agent_runtime.graph.react_agent import create_react_agent, maybe_auto_compact
@@ -134,6 +135,64 @@ def _compaction_parts() -> list[ContextMessage]:
     ]
 
 
+def _auto_compaction_budget(*, trigger_reached: bool) -> AutoCompactionBudget:
+    return AutoCompactionBudget(
+        history_tokens=9 if trigger_reached else 7,
+        reserved_tokens=0,
+        available_history_tokens=10,
+        trigger_tokens=8,
+    )
+
+
+@pytest.mark.asyncio
+async def test_auto_compaction_does_not_trigger_from_reserved_context() -> None:
+    parts = [
+        ContextMessage(
+            role="system",
+            content="large static context",
+            metadata={"part": "system"},
+        ),
+        ContextMessage(
+            role="user",
+            content="short history",
+            metadata={"part": "history", "seq": 1},
+        ),
+    ]
+
+    def fake_count_context_tokens(messages) -> int:
+        return sum(
+            15
+            if (message.metadata or {}).get("part") == "history"
+            else 80
+            for message in messages
+        )
+
+    with (
+        patch(
+            "app.agent_runtime.context.compaction.budget.count_context_tokens",
+            side_effect=fake_count_context_tokens,
+        ),
+        patch(
+            "app.agent_runtime.graph.react_agent.compaction_repo.list_by_session",
+            new=AsyncMock(),
+        ) as list_compactions,
+    ):
+        compacted = await maybe_auto_compact(
+            state={
+                **_auto_compaction_state(),
+                "model_config": {"max_context_tokens": 100},
+            },
+            agent_name="writer",
+            parts=parts,
+            db_session=AsyncMock(),
+            event_sink=_noop_event_sink,
+            usage_sink=_noop_usage_sink,
+        )
+
+    assert compacted is False
+    list_compactions.assert_not_awaited()
+
+
 @pytest.mark.asyncio
 async def test_auto_compaction_emits_stable_error_when_compaction_load_fails() -> None:
     events: list[tuple[str, dict]] = []
@@ -143,8 +202,8 @@ async def test_auto_compaction_emits_stable_error_when_compaction_load_fails() -
 
     with (
         patch(
-            "app.agent_runtime.graph.react_agent.count_context_tokens",
-            return_value=9,
+            "app.agent_runtime.graph.react_agent.calculate_auto_compaction_budget",
+            return_value=_auto_compaction_budget(trigger_reached=True),
         ),
         patch(
             "app.agent_runtime.graph.react_agent.compaction_repo.list_by_session",
@@ -192,8 +251,8 @@ async def test_auto_compaction_wraps_unhandled_compact_window_error() -> None:
 
     with (
         patch(
-            "app.agent_runtime.graph.react_agent.count_context_tokens",
-            return_value=9,
+            "app.agent_runtime.graph.react_agent.calculate_auto_compaction_budget",
+            return_value=_auto_compaction_budget(trigger_reached=True),
         ),
         patch(
             "app.agent_runtime.graph.react_agent.compaction_repo.list_by_session",
@@ -262,14 +321,15 @@ def test_auto_compaction_runs_before_main_model_and_rebuilds_context() -> None:
     async def fake_build_context_parts(**_kwargs):
         return build_calls.popleft()
 
-    def fake_count_context_tokens(parts):
+    def fake_calculate_auto_compaction_budget(parts, *, max_context_tokens):
+        assert max_context_tokens == 10
         contents = [part.content for part in parts]
         counted_candidates.append(contents)
-        has_runtime_messages = (
+        assert (
             "补充要求" in contents
             and any("Call the `noop` tool" in content for content in contents)
         )
-        return 9 if has_runtime_messages else 0
+        return _auto_compaction_budget(trigger_reached=True)
 
     def fake_select_compaction_window(history, _compactions, max_context_tokens):
         selected_history.extend(history)
@@ -309,9 +369,8 @@ def test_auto_compaction_runs_before_main_model_and_rebuilds_context() -> None:
             create=True,
         ) as mocked_build_parts,
         patch(
-            "app.agent_runtime.graph.react_agent.count_context_tokens",
-            side_effect=fake_count_context_tokens,
-            create=True,
+            "app.agent_runtime.graph.react_agent.calculate_auto_compaction_budget",
+            side_effect=fake_calculate_auto_compaction_budget,
         ),
         patch(
             "app.agent_runtime.graph.react_agent.select_compaction_window",
@@ -425,9 +484,8 @@ def test_auto_compaction_stays_silent_below_threshold() -> None:
             create=True,
         ),
         patch(
-            "app.agent_runtime.graph.react_agent.count_context_tokens",
-            return_value=7,
-            create=True,
+            "app.agent_runtime.graph.react_agent.calculate_auto_compaction_budget",
+            return_value=_auto_compaction_budget(trigger_reached=False),
         ),
         patch(
             "app.agent_runtime.graph.react_agent.compact_window",
