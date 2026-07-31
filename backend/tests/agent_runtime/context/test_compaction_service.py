@@ -153,6 +153,12 @@ class SequencedFakeModel:
         return response
 
 
+class FakeStatusError(RuntimeError):
+    def __init__(self, status_code: int) -> None:
+        self.status_code = status_code
+        super().__init__(f"HTTP {status_code}")
+
+
 def _prompt_version() -> SimpleNamespace:
     return SimpleNamespace(
         version=SimpleNamespace(id="v1"),
@@ -438,6 +444,11 @@ async def test_compact_window_converts_llm_error_to_stable_error_event(
         "app.agent_runtime.context.compaction.service.prompt_chain_service.get_latest_version_with_entries_or_default",
         AsyncMock(return_value=_prompt_version()),
     )
+    sleep = AsyncMock()
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.asyncio.sleep",
+        sleep,
+    )
 
     with pytest.raises(CompactionError) as exc_info:
         await compact_window(
@@ -456,8 +467,155 @@ async def test_compact_window_converts_llm_error_to_stable_error_event(
     assert "provider" not in text
     assert "stack" not in text
     assert "summary" not in error_payload
+    sleep.assert_not_awaited()
     rows = await compaction_repo.list_by_session(db_session, state["session_id"])
     assert rows == []
+
+
+@pytest.mark.asyncio
+async def test_compact_window_retries_transient_errors_with_exponential_backoff(
+    db_session: AsyncSession,
+    state: AgentRuntimeState,
+    window: CompactionWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_model = SequencedFakeModel(
+        [
+            ConnectionError("connection reset"),
+            FakeStatusError(429),
+            _ai_message("retry summary"),
+        ]
+    )
+    sleep = AsyncMock()
+
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.create_chat_model",
+        lambda _config: fake_model,
+    )
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.prompt_chain_service.get_latest_version_with_entries_or_default",
+        AsyncMock(return_value=_prompt_version()),
+    )
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.asyncio.sleep",
+        sleep,
+    )
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.random.uniform",
+        lambda _start, _end: 1.0,
+    )
+
+    result = await compact_window(
+        db_session,
+        state=state,
+        window=window,
+        trigger="manual",
+    )
+
+    assert result.summary == "retry summary"
+    assert len(fake_model.invocations) == 3
+    assert fake_model.invocations[0] == fake_model.invocations[1]
+    assert fake_model.invocations[1] == fake_model.invocations[2]
+    assert [call.args[0] for call in sleep.await_args_list] == [0.2, 0.4]
+
+
+@pytest.mark.asyncio
+async def test_compact_window_stops_after_transient_retry_budget_is_exhausted(
+    db_session: AsyncSession,
+    state: AgentRuntimeState,
+    window: CompactionWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_model = SequencedFakeModel([FakeStatusError(503) for _ in range(4)])
+    sleep = AsyncMock()
+
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.create_chat_model",
+        lambda _config: fake_model,
+    )
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.prompt_chain_service.get_latest_version_with_entries_or_default",
+        AsyncMock(return_value=_prompt_version()),
+    )
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.asyncio.sleep",
+        sleep,
+    )
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.random.uniform",
+        lambda _start, _end: 1.0,
+    )
+
+    with pytest.raises(CompactionError) as exc_info:
+        await compact_window(
+            db_session,
+            state=state,
+            window=window,
+            trigger="manual",
+        )
+
+    assert exc_info.value.code == "llm_error"
+    assert len(fake_model.invocations) == 4
+    assert [call.args[0] for call in sleep.await_args_list] == [0.2, 0.4, 0.8]
+
+
+@pytest.mark.asyncio
+async def test_context_trimming_resets_the_transient_retry_budget(
+    db_session: AsyncSession,
+    state: AgentRuntimeState,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    retry_window = CompactionWindow(
+        start_seq=1,
+        end_seq=2,
+        messages=[
+            ContextMessage(role="assistant", content="old history"),
+            ContextMessage(role="user", content="recent history"),
+        ],
+        source_input_tokens=20,
+    )
+    fake_model = SequencedFakeModel(
+        [
+            FakeStatusError(503),
+            FakeStatusError(503),
+            FakeStatusError(503),
+            RuntimeError("maximum context length exceeded"),
+            FakeStatusError(503),
+            _ai_message("retry summary"),
+        ]
+    )
+    sleep = AsyncMock()
+
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.create_chat_model",
+        lambda _config: fake_model,
+    )
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.prompt_chain_service.get_latest_version_with_entries_or_default",
+        AsyncMock(return_value=_prompt_version()),
+    )
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.asyncio.sleep",
+        sleep,
+    )
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.random.uniform",
+        lambda _start, _end: 1.0,
+    )
+
+    result = await compact_window(
+        db_session,
+        state=state,
+        window=retry_window,
+        trigger="manual",
+    )
+
+    assert result.summary == "retry summary"
+    assert len(fake_model.invocations) == 6
+    assert [call.args[0] for call in sleep.await_args_list] == [0.2, 0.4, 0.8, 0.2]
+    assert [message.content for message in fake_model.invocations[-1][1:]] == [
+        "recent history"
+    ]
 
 
 @pytest.mark.asyncio
@@ -469,9 +627,7 @@ async def test_compact_window_drops_oldest_history_and_retries_on_context_limit(
     old = ContextMessage(
         role="assistant",
         content="oldest tool call",
-        tool_calls=[
-            {"id": "call-old", "name": "search", "args": {"q": "old"}}
-        ],
+        tool_calls=[{"id": "call-old", "name": "search", "args": {"q": "old"}}],
     )
     old_result = ContextMessage(
         role="tool",
@@ -504,6 +660,11 @@ async def test_compact_window_drops_oldest_history_and_retries_on_context_limit(
         "app.agent_runtime.context.compaction.service.prompt_chain_service.get_latest_version_with_entries_or_default",
         AsyncMock(return_value=_prompt_version()),
     )
+    sleep = AsyncMock()
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.asyncio.sleep",
+        sleep,
+    )
 
     result = await compact_window(
         db_session,
@@ -523,3 +684,4 @@ async def test_compact_window_drops_oldest_history_and_retries_on_context_limit(
     ]
     assert [type(message) for message in retry_history] == [HumanMessage]
     assert retry_history[0].content == "recent history"
+    sleep.assert_not_awaited()

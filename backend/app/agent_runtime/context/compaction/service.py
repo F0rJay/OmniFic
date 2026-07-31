@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import asyncio
 import inspect
 import json
+import random
 import re
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable, Iterator, Mapping
 from typing import Any, Literal, cast
 
+import httpx
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -42,6 +45,11 @@ _CONTEXT_WINDOW_ERROR_PATTERNS = (
     "too many tokens",
     "token limit exceeded",
 )
+_MAX_TRANSIENT_RETRIES = 3
+_INITIAL_RETRY_DELAY_SECONDS = 0.2
+_RETRY_BACKOFF_FACTOR = 2.0
+_RETRY_JITTER_RANGE = (0.9, 1.1)
+_RETRYABLE_HTTP_STATUS_CODES = {408, 429}
 
 
 class CompactionError(RuntimeError):
@@ -122,6 +130,7 @@ async def compact_window(
         )
         raise error from exc
 
+    transient_retries = 0
     while True:
         try:
             response = await model.ainvoke(messages)
@@ -133,10 +142,26 @@ async def compact_window(
                 # A tool call and all of its results form one indivisible unit.
                 source_turns.pop(0)
                 messages = _build_compaction_messages(prompt_messages, source_turns)
+                transient_retries = 0
                 logger.warning(
                     "Context window exceeded while compacting; "
                     "removed oldest history unit and retrying"
                 )
+                continue
+
+            if (
+                _is_transient_llm_error(exc)
+                and transient_retries < _MAX_TRANSIENT_RETRIES
+            ):
+                transient_retries += 1
+                delay = _retry_delay(transient_retries)
+                logger.warning(
+                    "Transient compaction LLM failure; retrying in {:.3f}s ({}/{})",
+                    delay,
+                    transient_retries,
+                    _MAX_TRANSIENT_RETRIES,
+                )
+                await asyncio.sleep(delay)
                 continue
 
             logger.opt(exception=True).error("Compaction LLM request failed")
@@ -360,6 +385,59 @@ def _is_context_window_exceeded(exc: Exception) -> bool:
 
     text = " ".join(values).lower()
     return any(pattern in text for pattern in _CONTEXT_WINDOW_ERROR_PATTERNS)
+
+
+def _exception_chain(exc: BaseException) -> Iterator[BaseException]:
+    current: BaseException | None = exc
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        yield current
+        current = current.__cause__ or current.__context__
+
+
+def _status_code(exc: BaseException) -> int | None:
+    for candidate in _exception_chain(exc):
+        values = [
+            getattr(candidate, "status_code", None),
+            getattr(getattr(candidate, "response", None), "status_code", None),
+        ]
+        code = getattr(candidate, "code", None)
+        if callable(code):
+            try:
+                code = code()
+            except Exception:
+                code = None
+        values.append(code)
+
+        for value in values:
+            if isinstance(value, bool):
+                continue
+            if isinstance(value, int):
+                return value
+            enum_value = getattr(value, "value", None)
+            if isinstance(enum_value, int) and not isinstance(enum_value, bool):
+                return enum_value
+    return None
+
+
+def _is_transient_llm_error(exc: Exception) -> bool:
+    status_code = _status_code(exc)
+    if status_code in _RETRYABLE_HTTP_STATUS_CODES:
+        return True
+    if status_code is not None and 500 <= status_code <= 599:
+        return True
+
+    transient_types = (ConnectionError, TimeoutError, httpx.TransportError)
+    return any(
+        isinstance(candidate, transient_types) for candidate in _exception_chain(exc)
+    )
+
+
+def _retry_delay(retry_number: int) -> float:
+    exponent = max(retry_number - 1, 0)
+    base_delay = _INITIAL_RETRY_DELAY_SECONDS * (_RETRY_BACKOFF_FACTOR**exponent)
+    return base_delay * random.uniform(*_RETRY_JITTER_RANGE)
 
 
 def _extract_usage(message: Any) -> dict[str, Any] | None:
