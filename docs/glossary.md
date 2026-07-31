@@ -102,12 +102,34 @@
 
 - **定义**：Agent 每次 LLM 调用前，组装 System Prompt + Rules + Skills + Task Goal + History 的过程。
 - **代码位置**：`backend/app/agent_runtime/context/build_context.py`
-- **常见混淆**：Context Build != Compaction。Build 是每次组装，Compaction 是对历史做摘要压缩。
+- **延伸阅读**：[上下文压缩机制](./features/context-compaction.md)
+- **常见混淆**：Context Build != Compaction。Build 是每次组装，Compaction 是按检查点对旧历史做摘要覆盖或预算重置。
 
 ### Compaction（压缩）
 
-- **定义**：将旧对话历史替换为 LLM 生成的摘要，释放上下文窗口。
+- **定义**：在模型感知的 token 预算内，用 `llm_summary` 工作简报或 `token_budget` 应急重置覆盖旧有效历史，并保留原始会话记录与持久化检查点的过程。
 - **代码位置**：`backend/app/agent_runtime/context/compaction/`
+- **延伸阅读**：[上下文压缩机制](./features/context-compaction.md)
+- **常见混淆**：压缩 != 删除聊天记录。压缩改变后续模型输入，原始消息仍保留用于显示和审计。
+
+### LLM Summary（LLM 摘要策略）
+
+- **定义**：上下文压缩的默认策略。把完整有效历史作为结构化消息交给摘要模型，生成包含目标、决策、相关内容、错误与待办的工作简报，并在持久化前重建下一窗口进行安全校验。
+- **代码位置**：`backend/app/agent_runtime/context/compaction/service.py`, `backend/app/prompts/session/compaction.yaml`
+- **延伸阅读**：[上下文压缩机制](./features/context-compaction.md)
+
+### Token-Budget Compaction（Token 预算应急压缩）
+
+- **定义**：摘要提示词或模型不可用、摘要为空或摘要后仍超出安全区时，不调用 LLM，通过二分搜索尽量保留最近用户指令并删除旧 assistant/tool 历史的确定性应急策略。
+- **代码位置**：`backend/app/agent_runtime/context/compaction/token_budget.py`
+- **延伸阅读**：[上下文压缩机制](./features/context-compaction.md)
+- **常见混淆**：Token-Budget Compaction != 自动压缩阈值。前者是压缩失败后的策略，后者决定何时自动开始压缩。
+
+### Compaction Checkpoint（压缩检查点）
+
+- **定义**：记录一次压缩覆盖的原始消息序号范围、代次、策略、摘要和预算指标的持久化记录。同一会话范围不重叠，构建模型输入时只应用最新检查点。
+- **代码位置**：`backend/app/agent_runtime/persistence/model.py`, `backend/app/agent_runtime/persistence/compaction_repo.py`
+- **延伸阅读**：[上下文压缩机制](./features/context-compaction.md)
 
 ---
 

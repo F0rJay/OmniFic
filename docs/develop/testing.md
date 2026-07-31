@@ -16,6 +16,10 @@ pytest tests/api/test_tasks.py -v
 pytest tests/api/test_agent.py -v
 pytest tests/api/test_writing_readiness.py -v
 pytest tests/agent_runtime/context/ -v
+pytest tests/agent_runtime/context/test_compaction_service.py -v
+pytest tests/agent_runtime/context/test_token_budget_compaction.py -v
+pytest tests/agent_runtime/persistence/test_compaction_repo.py -v
+pytest tests/agent_runtime/test_agent_compaction_api.py -v
 pytest tests/agent_runtime/test_model_factory.py -v
 ```
 
@@ -88,6 +92,7 @@ git diff --check
 - 子智能体列表：创建超过可视高度的子任务，确认列表内部滚动且底部条目可达
 - 首次正文准入：覆盖资料缺失、审查失败/通过、资料变更后过期、当前回合授权和必须由 Writer 首次写入
 - 任务目标：设置、保存、清除、切换任务后验证持久化
+- 上下文压缩：覆盖自动阈值、手动压缩、LLM 重试、token-budget 回退、取消、检查点恢复和编辑旧消息后的失效
 - 桌面首次启动：检查本地运行环境安装进度、失败提示和诊断日志
 - Windows 更新：检查 x86_64/ARM64 更新清单、用户可读更新列表、GitHub 完整说明入口、下载和重启安装流程
 - 更新日志兜底：检查 link-only `Full Changelog` 被过滤，并验证 Release 正文缺失时可以读取 tag 内 `CHANGELOG.md`

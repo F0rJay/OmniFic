@@ -34,6 +34,11 @@ backend/app/
 └── main.py           # 入口
 ```
 
+## 深入文档
+
+- [系统架构](../docs/architecture.md) — 前后端、Agent Runtime、存储与桌面端边界
+- [上下文压缩机制](../docs/features/context-compaction.md) — 模型感知预算、摘要与应急策略、检查点和事件
+
 ## 快速开始
 
 普通用户可以直接安装包含 Web 前端的 PyPI 包：

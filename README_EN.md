@@ -124,6 +124,8 @@ See the [`/` command center](./docs/features/codex-slash.md) and [persistent tas
 - Compact long conversation history while restoring goals, rules, skills, and required state from the persistent task
 - Track index freshness, failures, and rebuild requirements, with per-chapter actions for filling gaps, updating stale content, and retrying failures
 
+Long sessions use a model-aware budget, an LLM working brief, and a deterministic token-budget fallback. See the [context compaction mechanism](./docs/features/context-compaction.md) for implementation details.
+
 ### Models, prompts, and Agent customization
 
 - Configure multiple model providers, Base URLs, and API keys, including OpenAI-compatible endpoints and relays
@@ -242,6 +244,7 @@ OmniFic is personally maintained and remains experimental.
 - [User guide](./docs/user-guide_EN.md): first-time setup, writing, story data, Agent collaboration, and troubleshooting
 - [Installation and removal](./docs/installation_EN.md): desktop, PyPI, Docker, source installation, backups, and complete data removal
 - [System architecture](./docs/architecture.md): frontend, backend, Agent Runtime, storage, and desktop structure
+- [Context compaction mechanism](./docs/features/context-compaction.md): budgets, dual compaction strategies, checkpoint recovery, and lifecycle events
 - [Development setup](./docs/develop/setup.md): local development, database setup, and common commands
 - [Testing guide](./docs/develop/testing.md): backend and frontend verification
 - [Contribution guide](./CONTRIBUTING.md): contribution conventions and workflow

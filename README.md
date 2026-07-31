@@ -124,6 +124,8 @@ flowchart LR
 - 在长会话中压缩历史上下文，同时从持久化任务中恢复目标、规则、技能与必要状态
 - 记录索引的新鲜度、失败状态和重建需求，支持按章节补齐、更新或重试
 
+长会话采用模型感知预算、LLM 工作简报和 token-budget 应急重置的双策略机制，详见[上下文压缩机制](./docs/features/context-compaction.md)。
+
 ### 模型、提示词与 Agent 定制
 
 - 配置多个模型供应商、Base URL 与 API Key，支持 OpenAI 兼容端点和中转站
@@ -242,6 +244,7 @@ OmniFic 目前由个人维护，处于实验性开发阶段。
 - [使用指南](./docs/user-guide.md)：从首次配置到写作、设定管理、Agent 协作和故障排查
 - [安装与卸载](./docs/installation.md)：桌面、PyPI、Docker、源码安装及完整数据清理
 - [系统架构](./docs/architecture.md)：前端、后端、Agent Runtime、存储与桌面端结构
+- [上下文压缩机制](./docs/features/context-compaction.md)：预算、双策略压缩、检查点恢复与生命周期事件
 - [开发环境搭建](./docs/develop/setup.md)：本地开发、数据库与常用命令
 - [测试指南](./docs/develop/testing.md)：后端与前端验证方式
 - [贡献指南](./CONTRIBUTING.md)：提交约定与协作流程

@@ -83,6 +83,7 @@
 |---|---|
 | `features/codex-slash.md` | `/` 命令中心 |
 | `features/task-goal.md` | 任务目标持久化 |
+| `features/context-compaction.md` | 上下文压缩、预算、应急策略与检查点恢复 |
 | `features/model-reasoning.md` | 模型推理覆盖 |
 | `features/relay-provider.md` | 中转站供应商 |
 | `features/worldbook-import.md` | 世界书导入 |

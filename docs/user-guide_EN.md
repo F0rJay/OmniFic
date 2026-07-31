@@ -270,6 +270,14 @@ Changing the default Embedding model invalidates existing indexes and requires a
 
 If the Agent reports that indexing is disabled, unconfigured, stale, failed, or requires rebuilding, resolve that state before retrying semantic search.
 
+### Conversation context compaction
+
+Long Agent sessions compact automatically when conversation history reaches its model-aware budget. OmniFic preserves required context such as the task goal, rules, and skills, then prefers an LLM-generated working brief. If the summary path is unavailable or still unsafe, a deterministic token-budget fallback keeps as many recent user instructions as the remaining window allows. Original transcript messages are not deleted.
+
+The ring in the upper-right corner of the Assistant shows context-window usage; it is not a loading spinner. Use the adjacent compaction button to compact a primary Agent session manually while it is idle, completed, or in an error state. The action is disabled while the Agent is running, loading, waiting for an answer or approval, compacting, or while a subagent is open.
+
+The automatic threshold accounts for output reserve, tool schemas, fixed prompts, and a safety margin, so it may run before the ring reaches 80%. See the [context compaction mechanism](./features/context-compaction.md) for the current budget, fallback, checkpoint, and error semantics.
+
 ## Prompts, rules, skills, and Agent definitions
 
 Adjust these after the basic workflow is stable:
