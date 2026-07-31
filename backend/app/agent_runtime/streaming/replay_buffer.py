@@ -15,6 +15,7 @@ BUFFERED_AGENT_EVENT_NAMES = {
     "agent:tool_call",
     "agent:retry",
     "agent:compaction_start",
+    "agent:compaction_fallback",
     "agent:compaction_success",
     "agent:compaction_error",
     "agent:compaction_cancelled",
@@ -59,7 +60,8 @@ class AgentEventReplayBuffer:
             events[:] = [
                 event
                 for event in events
-                if event.name != "agent:compaction_start"
+                if event.name
+                not in {"agent:compaction_start", "agent:compaction_fallback"}
             ]
         if name == "agent:subagent_status":
             child_run_id = data.get("child_run_id")

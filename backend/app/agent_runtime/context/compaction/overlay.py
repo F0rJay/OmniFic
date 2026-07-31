@@ -38,12 +38,20 @@ def _truncate_middle_to_tokens(value: str, max_tokens: int) -> str:
     if len(tokens) <= max_tokens:
         return value
 
-    left_budget = max_tokens // 2
-    right_budget = max_tokens - left_budget
+    if max_tokens <= 0:
+        return ""
+
+    marker = "…tokens truncated…"
+    marker_tokens = encoding.encode(marker)
+    if len(marker_tokens) >= max_tokens:
+        return encoding.decode(tokens[-max_tokens:])
+
+    content_budget = max_tokens - len(marker_tokens)
+    left_budget = content_budget // 2
+    right_budget = content_budget - left_budget
     left = encoding.decode(tokens[:left_budget]) if left_budget else ""
     right = encoding.decode(tokens[-right_budget:]) if right_budget else ""
-    removed = len(tokens) - max_tokens
-    return f"{left}…{removed} tokens truncated…{right}"
+    return f"{left}{marker}{right}"
 
 
 def _retained_user_messages(
@@ -91,11 +99,12 @@ def _apply_compaction_overlay(
     end_seq: int,
     summary: str,
     compaction_id: str,
+    retained_user_max_tokens: int = COMPACT_USER_MESSAGE_MAX_TOKENS,
 ) -> list[ContextMessage]:
     output = _retained_user_messages(
         history_messages,
         end_seq=end_seq,
-        max_tokens=COMPACT_USER_MESSAGE_MAX_TOKENS,
+        max_tokens=retained_user_max_tokens,
     )
     output.append(_summary_message(summary=summary, compaction_id=compaction_id))
     output.extend(
@@ -112,6 +121,7 @@ def preview_compaction_overlay(
     *,
     end_seq: int,
     summary: str,
+    retained_user_max_tokens: int = COMPACT_USER_MESSAGE_MAX_TOKENS,
 ) -> list[ContextMessage]:
     """Rebuild the next history in memory before persisting its checkpoint."""
     return _apply_compaction_overlay(
@@ -119,6 +129,7 @@ def preview_compaction_overlay(
         end_seq=end_seq,
         summary=summary,
         compaction_id="pending",
+        retained_user_max_tokens=retained_user_max_tokens,
     )
 
 
@@ -138,4 +149,9 @@ def apply_compaction_overlay(
         end_seq=latest.end_seq,
         summary=latest.summary,
         compaction_id=latest.id,
+        retained_user_max_tokens=(
+            latest.retained_user_tokens
+            if latest.strategy == "token_budget"
+            else COMPACT_USER_MESSAGE_MAX_TOKENS
+        ),
     )

@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
 from app.agent_runtime.persistence.compaction_types import (
+    CompactionStrategy,
     CompactionTrigger,
     PersistedCompaction,
 )
@@ -34,6 +35,7 @@ def _validate_new_compaction(
     retained_user_tokens: int,
     dropped_turn_count: int,
     dropped_message_count: int,
+    strategy: CompactionStrategy,
 ) -> None:
     if start_seq < 0:
         raise PersistenceWriteError(f"invalid compaction start_seq: {start_seq}")
@@ -62,6 +64,8 @@ def _validate_new_compaction(
         raise PersistenceWriteError(
             f"invalid compaction range: start_seq={start_seq} end_seq={end_seq}"
         )
+    if strategy not in {"llm_summary", "token_budget"}:
+        raise PersistenceWriteError(f"invalid compaction strategy: {strategy}")
 
 
 def _mapped_contiguous_range(
@@ -92,6 +96,7 @@ def _row_to_dto(row: AgentContextCompaction) -> PersistedCompaction:
         end_seq=row.end_seq,
         summary=row.summary,
         trigger=cast(CompactionTrigger, row.trigger),
+        strategy=cast(CompactionStrategy, row.strategy),
         source_input_tokens=row.source_input_tokens,
         summary_tokens=row.summary_tokens,
         created_at=row.created_at,
@@ -139,6 +144,7 @@ async def insert_compaction(
     end_seq: int,
     summary: str,
     trigger: CompactionTrigger,
+    strategy: CompactionStrategy = "llm_summary",
     source_input_tokens: int = 0,
     summary_tokens: int = 0,
     generation: int = 1,
@@ -159,6 +165,7 @@ async def insert_compaction(
         retained_user_tokens=retained_user_tokens,
         dropped_turn_count=dropped_turn_count,
         dropped_message_count=dropped_message_count,
+        strategy=strategy,
     )
 
     try:
@@ -176,6 +183,7 @@ async def insert_compaction(
             end_seq=end_seq,
             summary=summary,
             trigger=trigger,
+            strategy=strategy,
             source_input_tokens=source_input_tokens,
             summary_tokens=summary_tokens,
             generation=generation,
@@ -300,6 +308,7 @@ async def copy_for_fork(
                     end_seq=end_seq,
                     summary=source.summary,
                     trigger=source.trigger,
+                    strategy=source.strategy,
                     source_input_tokens=source.source_input_tokens,
                     summary_tokens=source.summary_tokens,
                     generation=source.generation,

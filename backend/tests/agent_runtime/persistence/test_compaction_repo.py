@@ -19,6 +19,7 @@ async def test_insert_and_list_compactions(
         end_seq=3,
         summary="摘要",
         trigger="manual",
+        strategy="token_budget",
         source_input_tokens=3000,
         summary_tokens=120,
         generation=3,
@@ -42,6 +43,7 @@ async def test_insert_and_list_compactions(
             item.end_seq,
             item.summary,
             item.trigger,
+            item.strategy,
             item.source_input_tokens,
             item.summary_tokens,
             item.generation,
@@ -52,7 +54,28 @@ async def test_insert_and_list_compactions(
             item.dropped_message_count,
         )
         for item in rows
-    ] == [(1, 3, "摘要", "manual", 3000, 120, 3, 2800, 640, 210, 2, 4)]
+    ] == [
+        (1, 3, "摘要", "manual", "token_budget", 3000, 120, 3, 2800, 640, 210, 2, 4)
+    ]
+
+
+@pytest.mark.asyncio
+async def test_insert_rejects_invalid_strategy(
+    db_session: AsyncSession,
+    sample_task,
+) -> None:
+    with pytest.raises(PersistenceWriteError, match="invalid compaction strategy"):
+        await compaction_repo.insert_compaction(
+            db_session,
+            session_id="session_invalid_strategy",
+            task_id=sample_task.id,
+            project_id=sample_task.project_id,
+            start_seq=1,
+            end_seq=3,
+            summary="invalid",
+            trigger="manual",
+            strategy="unknown",  # type: ignore[arg-type]
+        )
 
 
 @pytest.mark.asyncio
@@ -275,6 +298,7 @@ async def test_copy_complete_ranges_for_fork(
         end_seq=3,
         summary="copy me",
         trigger="manual",
+        strategy="token_budget",
         source_input_tokens=100,
         summary_tokens=10,
         generation=4,
@@ -315,6 +339,7 @@ async def test_copy_complete_ranges_for_fork(
             row.end_seq,
             row.summary,
             row.trigger,
+            row.strategy,
             row.source_input_tokens,
             row.summary_tokens,
             row.generation,
@@ -334,6 +359,7 @@ async def test_copy_complete_ranges_for_fork(
             12,
             "copy me",
             "manual",
+            "token_budget",
             100,
             10,
             4,

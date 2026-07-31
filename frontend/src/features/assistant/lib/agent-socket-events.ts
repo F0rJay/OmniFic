@@ -22,6 +22,7 @@ export const AGENT_SOCKET_EVENTS = [
   "agent:note_refresh",
   "agent:world_entry_refresh",
   "agent:compaction_start",
+  "agent:compaction_fallback",
   "agent:compaction_success",
   "agent:compaction_error",
   "agent:compaction_cancelled",
@@ -376,6 +377,35 @@ export function toAgentEvent(
     };
   }
 
+  if (eventName === "agent:compaction_fallback") {
+    const sessionKey = getString(data.session_id) || sessionId;
+    const startSeq = Number(data.start_seq ?? 0);
+    const endSeq = Number(data.end_seq ?? 0);
+    const id = `compaction:${sessionKey}:${startSeq}:${endSeq}:pending`;
+    return {
+      id,
+      correlation_id: id,
+      type: "compaction",
+      role: "system",
+      status: "running",
+      display: "list",
+      content: i18n.t("assistant.compactionRunning"),
+      created_at: getString(data.created_at),
+      payload: {
+        session_id: sessionKey,
+        trigger: getString(data.trigger),
+        strategy: "token_budget",
+        fallback_reason: getString(data.reason),
+        start_seq: startSeq,
+        end_seq: endSeq,
+        source_input_tokens: Number(data.source_input_tokens ?? 0),
+        generation: Number(data.generation ?? 1),
+        post_compaction_tokens: Number(data.post_compaction_tokens ?? 0),
+        retained_user_tokens: Number(data.retained_user_tokens ?? 0),
+      },
+    };
+  }
+
   if (eventName === "agent:compaction_success") {
     const compactionId = getString(data.compaction_id);
     const id = compactionId
@@ -404,6 +434,8 @@ export function toAgentEvent(
         retained_user_tokens: Number(data.retained_user_tokens ?? 0),
         dropped_turn_count: Number(data.dropped_turn_count ?? 0),
         dropped_message_count: Number(data.dropped_message_count ?? 0),
+        strategy: data.strategy === "token_budget" ? "token_budget" : "llm_summary",
+        fallback_reason: getString(data.fallback_reason),
       },
     };
   }
@@ -429,6 +461,7 @@ export function toAgentEvent(
         session_id: sessionKey,
         compaction_id: compactionId,
         trigger: getString(data.trigger),
+        strategy: getString(data.strategy),
         start_seq: startSeq,
         end_seq: endSeq,
         source_input_tokens: Number(data.source_input_tokens ?? 0),

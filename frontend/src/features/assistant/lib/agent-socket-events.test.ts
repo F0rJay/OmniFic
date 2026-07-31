@@ -21,6 +21,8 @@ describe("compaction socket events", () => {
       retained_user_tokens: 70,
       dropped_turn_count: 1,
       dropped_message_count: 2,
+      strategy: "token_budget",
+      fallback_reason: "llm_error",
     });
 
     expect(event.payload).toMatchObject({
@@ -30,6 +32,32 @@ describe("compaction socket events", () => {
       retained_user_tokens: 70,
       dropped_turn_count: 1,
       dropped_message_count: 2,
+      strategy: "token_budget",
+      fallback_reason: "llm_error",
+    });
+  });
+
+  it("keeps token-budget fallback attached to the running compaction", () => {
+    const event = toAgentEvent("agent:compaction_fallback", "session-1", {
+      session_id: "session-1",
+      trigger: "auto",
+      reason: "llm_error",
+      start_seq: 2,
+      end_seq: 5,
+      source_input_tokens: 500,
+      generation: 3,
+      post_compaction_tokens: 180,
+      retained_user_tokens: 70,
+    });
+
+    expect(event).toMatchObject({
+      id: "compaction:session-1:2:5:pending",
+      type: "compaction",
+      status: "running",
+      payload: {
+        strategy: "token_budget",
+        fallback_reason: "llm_error",
+      },
     });
   });
 

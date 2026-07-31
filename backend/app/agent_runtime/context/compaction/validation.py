@@ -8,6 +8,7 @@ from app.agent_runtime.context.compaction.budget import (
 )
 from app.agent_runtime.context.compaction.overlay import preview_compaction_overlay
 from app.agent_runtime.context.compaction.service import CompactionError
+from app.agent_runtime.context.compaction.config import COMPACT_USER_MESSAGE_MAX_TOKENS
 from app.agent_runtime.context.compaction.tokens import count_text_tokens
 from app.agent_runtime.context.types import ContextMessage
 
@@ -34,6 +35,8 @@ def validate_post_compaction_context(
     end_seq: int,
     summary: str,
     max_context_tokens: int,
+    retained_user_max_tokens: int = COMPACT_USER_MESSAGE_MAX_TOKENS,
+    log_unsafe: bool = True,
 ) -> PostCompactionBudget:
     reserved = [message for message in parts if not _is_history(message)]
     history = [message for message in parts if _is_history(message)]
@@ -41,6 +44,7 @@ def validate_post_compaction_context(
         history,
         end_seq=end_seq,
         summary=summary,
+        retained_user_max_tokens=retained_user_max_tokens,
     )
     rebuilt_parts = [
         *reserved,
@@ -56,7 +60,7 @@ def validate_post_compaction_context(
         max_context_tokens=max_context_tokens,
         retained_user_tokens=retained_user_tokens,
     )
-    if not budget.within_safe_zone:
+    if not budget.within_safe_zone and log_unsafe:
         logger.warning(
             "Post-compaction context remains outside safe zone: "
             "total_tokens={} max_context_tokens={} history_tokens={} "
@@ -67,6 +71,7 @@ def validate_post_compaction_context(
             budget.safe_history_tokens,
             budget.reserved_tokens,
         )
+    if not budget.within_safe_zone:
         raise CompactionError(
             "compaction_context_unsafe",
             "压缩后上下文仍超出安全范围，当前请求已中止",

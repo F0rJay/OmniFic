@@ -181,6 +181,18 @@ def test_replay_buffer_compaction_terminal_events_clear_active_start() -> None:
         },
     )
     buffer.record_unlocked(
+        "agent:compaction_fallback",
+        {
+            "session_id": "session-1",
+            "task_id": "task-1",
+            "trigger": "manual",
+            "strategy": "token_budget",
+            "reason": "llm_error",
+            "start_seq": 0,
+            "end_seq": 2,
+        },
+    )
+    buffer.record_unlocked(
         "agent:token",
         {
             "session_id": "session-1",
@@ -210,6 +222,18 @@ def test_replay_buffer_compaction_terminal_events_clear_active_start() -> None:
             "start_seq": 3,
             "end_seq": 5,
             "source_input_tokens": 700,
+        },
+    )
+    buffer.record_unlocked(
+        "agent:compaction_fallback",
+        {
+            "session_id": "session-2",
+            "task_id": "task-2",
+            "trigger": "manual",
+            "strategy": "token_budget",
+            "reason": "llm_error",
+            "start_seq": 3,
+            "end_seq": 5,
         },
     )
     buffer.record_unlocked(

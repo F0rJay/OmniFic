@@ -1068,6 +1068,7 @@ async def test_manual_compact_builds_window_and_returns_metrics_without_revision
         retained_user_tokens=24,
         dropped_turn_count=1,
         dropped_message_count=3,
+        strategy="llm_summary",
     )
     list_by_session = AsyncMock(return_value=[])
 
@@ -1115,6 +1116,7 @@ async def test_manual_compact_builds_window_and_returns_metrics_without_revision
         "retained_user_tokens": 24,
         "dropped_turn_count": 1,
         "dropped_message_count": 3,
+        "strategy": "llm_summary",
     }
     load_history_mock.assert_awaited_once_with(fake_session, "sess_manual_compact_001")
     to_history_dict.assert_called_once_with(history_message)
@@ -1143,6 +1145,8 @@ async def test_manual_compact_builds_window_and_returns_metrics_without_revision
     result_validator = compact_window.await_args.kwargs["result_validator"]
     assert callable(result_validator)
     result_validator("manual summary")
+    fallback_builder = compact_window.await_args.kwargs["token_budget_fallback"]
+    assert callable(fallback_builder)
     assert compact_window.await_args.kwargs["cancel_event"] is runner._cancel_event
     begin_user_revision.assert_not_awaited()
     fake_session.close.assert_awaited_once_with()

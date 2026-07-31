@@ -973,6 +973,7 @@ async def compact_agent_session(
             in {
                 "no_compactable_window",
                 "compaction_empty_summary",
+                "compaction_token_budget_exhausted",
                 "compaction_conflict",
             }
             else status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -999,6 +1000,11 @@ async def compact_agent_session(
         end_seq=int(result["end_seq"]),
         source_input_tokens=int(result.get("source_input_tokens", 0)),
         summary_tokens=int(result.get("summary_tokens", 0)),
+        strategy=(
+            "token_budget"
+            if result.get("strategy") == "token_budget"
+            else "llm_summary"
+        ),
         generation=int(result.get("generation", 1)),
         model_input_tokens=int(result.get("model_input_tokens", 0)),
         post_compaction_tokens=int(result.get("post_compaction_tokens", 0)),

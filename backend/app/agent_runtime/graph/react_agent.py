@@ -42,6 +42,9 @@ from app.agent_runtime.context.compaction.budget import (
     calculate_auto_compaction_budget,
 )
 from app.agent_runtime.context.compaction.service import CompactionError, compact_window
+from app.agent_runtime.context.compaction.token_budget import (
+    build_token_budget_compaction,
+)
 from app.agent_runtime.context.compaction.validation import (
     validate_post_compaction_context,
 )
@@ -363,6 +366,13 @@ async def maybe_auto_compact(
             max_context_tokens=max_context_tokens,
         )
 
+    def build_fallback(_error: CompactionError):
+        return build_token_budget_compaction(
+            parts,
+            end_seq=window.end_seq,
+            max_context_tokens=max_context_tokens,
+        )
+
     try:
         await compact_window(
             db_session,
@@ -374,6 +384,7 @@ async def maybe_auto_compact(
             model_config=model_config,
             result_validator=validate_result,
             cancel_event=cancel_event,
+            token_budget_fallback=build_fallback,
         )
     except CompactionError as exc:
         await emit_error_once(exc)

@@ -13,6 +13,7 @@ from sqlmodel import SQLModel
 from app.agent_runtime.context.compaction.service import (
     CompactionLifecycleContext,
     CompactionError,
+    TokenBudgetCompactionResult,
     compact_window,
 )
 from app.agent_runtime.context.compaction.budget import PostCompactionBudget
@@ -309,6 +310,8 @@ async def test_compact_window_persists_raw_summary_and_emits_events_and_usage(
         "retained_user_tokens": 11,
         "dropped_turn_count": 0,
         "dropped_message_count": 0,
+        "strategy": "llm_summary",
+        "fallback_reason": None,
     }
 
     display_rows = await message_repo.list_by_session(
@@ -327,6 +330,7 @@ async def test_compact_window_persists_raw_summary_and_emits_events_and_usage(
         "kind": "compaction",
         "compaction_id": result.id,
         "trigger": "manual",
+        "strategy": "llm_summary",
         "start_seq": window.start_seq,
         "end_seq": window.end_seq,
         "generation": 3,
@@ -874,6 +878,171 @@ async def test_compact_window_converts_llm_error_to_stable_error_event(
     assert "stack" not in text
     assert "summary" not in error_payload
     sleep.assert_not_awaited()
+    rows = await compaction_repo.list_by_session(db_session, state["session_id"])
+    assert rows == []
+
+
+@pytest.mark.asyncio
+async def test_compact_window_uses_token_budget_fallback_when_llm_is_unavailable(
+    db_session: AsyncSession,
+    state: AgentRuntimeState,
+    window: CompactionWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_model = FakeModel(RuntimeError("provider unavailable"))
+    events: list[tuple[str, dict[str, Any]]] = []
+    fallback = AsyncMock(
+        return_value=TokenBudgetCompactionResult(
+            summary="上下文窗口已按 token 预算重置。",
+            budget=PostCompactionBudget(
+                total_tokens=180,
+                history_tokens=30,
+                reserved_tokens=150,
+                max_context_tokens=1_000,
+                safe_history_tokens=680,
+                retained_user_tokens=12,
+            ),
+            dropped_turn_count=4,
+            dropped_message_count=7,
+        )
+    )
+
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.create_chat_model",
+        lambda _config: fake_model,
+    )
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.prompt_chain_service.get_latest_version_with_entries_or_default",
+        AsyncMock(return_value=_prompt_version()),
+    )
+
+    result = await compact_window(
+        db_session,
+        state=state,
+        window=window,
+        trigger="auto",
+        event_sink=lambda name, payload: _record_event(events, name, payload),
+        token_budget_fallback=fallback,
+    )
+
+    fallback.assert_awaited_once()
+    assert fallback.await_args.args[0].code == "llm_error"
+    assert result.strategy == "token_budget"
+    assert result.summary_tokens > 0
+    assert result.model_input_tokens == 0
+    assert result.post_compaction_tokens == 180
+    assert result.retained_user_tokens == 12
+    assert result.dropped_turn_count == 4
+    assert result.dropped_message_count == 7
+    assert [name for name, _payload in events] == [
+        "agent:compaction_start",
+        "agent:compaction_fallback",
+        "agent:compaction_success",
+    ]
+    assert events[1][1]["reason"] == "llm_error"
+    assert events[-1][1]["strategy"] == "token_budget"
+
+
+@pytest.mark.asyncio
+async def test_compact_window_uses_token_budget_fallback_for_unsafe_summary(
+    db_session: AsyncSession,
+    state: AgentRuntimeState,
+    window: CompactionWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_model = FakeModel(_ai_message("oversized summary"))
+    fallback = AsyncMock(
+        return_value=TokenBudgetCompactionResult(
+            summary="fallback reset",
+            budget=PostCompactionBudget(
+                total_tokens=100,
+                history_tokens=10,
+                reserved_tokens=90,
+                max_context_tokens=1_000,
+                safe_history_tokens=728,
+                retained_user_tokens=0,
+            ),
+            dropped_turn_count=1,
+            dropped_message_count=1,
+        )
+    )
+
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.create_chat_model",
+        lambda _config: fake_model,
+    )
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.prompt_chain_service.get_latest_version_with_entries_or_default",
+        AsyncMock(return_value=_prompt_version()),
+    )
+
+    def reject_summary(_summary: str) -> None:
+        raise CompactionError(
+            "compaction_context_unsafe",
+            "压缩后上下文仍超出安全范围，当前请求已中止",
+        )
+
+    result = await compact_window(
+        db_session,
+        state=state,
+        window=window,
+        trigger="manual",
+        result_validator=reject_summary,
+        token_budget_fallback=fallback,
+    )
+
+    assert result.strategy == "token_budget"
+    fallback.assert_awaited_once()
+    assert fallback.await_args.args[0].code == "compaction_context_unsafe"
+
+
+@pytest.mark.asyncio
+async def test_compact_window_cancels_during_token_budget_fallback(
+    db_session: AsyncSession,
+    state: AgentRuntimeState,
+    window: CompactionWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_model = FakeModel(RuntimeError("provider unavailable"))
+    cancel_event = asyncio.Event()
+    fallback_started = asyncio.Event()
+    events: list[tuple[str, dict[str, Any]]] = []
+
+    async def blocking_fallback(_error: CompactionError):
+        fallback_started.set()
+        await asyncio.Event().wait()
+
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.create_chat_model",
+        lambda _config: fake_model,
+    )
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.prompt_chain_service.get_latest_version_with_entries_or_default",
+        AsyncMock(return_value=_prompt_version()),
+    )
+
+    task = asyncio.create_task(
+        compact_window(
+            db_session,
+            state=state,
+            window=window,
+            trigger="auto",
+            event_sink=lambda name, payload: _record_event(events, name, payload),
+            cancel_event=cancel_event,
+            token_budget_fallback=blocking_fallback,
+        )
+    )
+    await fallback_started.wait()
+    cancel_event.set()
+
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    assert [name for name, _payload in events] == [
+        "agent:compaction_start",
+        "agent:compaction_cancelled",
+    ]
+    assert events[-1][1]["phase"] == "token_budget_fallback"
     rows = await compaction_repo.list_by_session(db_session, state["session_id"])
     assert rows == []
 

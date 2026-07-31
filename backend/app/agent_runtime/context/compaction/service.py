@@ -15,6 +15,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent_runtime.context.compaction.budget import PostCompactionBudget
+from app.agent_runtime.context.compaction.tokens import count_text_tokens
 from app.agent_runtime.context.compaction.turns import LLMTurn, group_llm_turns
 from app.agent_runtime.context.compaction.window import CompactionWindow
 from app.agent_runtime.context.processors.to_langchain import to_langchain_messages
@@ -24,6 +25,7 @@ from app.agent_runtime.model_config import to_client_model_config
 from app.agent_runtime.persistence import compaction_repo
 from app.agent_runtime.persistence import repo as message_repo
 from app.agent_runtime.persistence.compaction_types import (
+    CompactionStrategy,
     CompactionTrigger,
     PersistedCompaction,
 )
@@ -56,6 +58,12 @@ _INITIAL_RETRY_DELAY_SECONDS = 0.2
 _RETRY_BACKOFF_FACTOR = 2.0
 _RETRY_JITTER_RANGE = (0.9, 1.1)
 _RETRYABLE_HTTP_STATUS_CODES = {408, 429}
+_TOKEN_BUDGET_FALLBACK_CODES = {
+    "prompt_error",
+    "llm_error",
+    "compaction_empty_summary",
+    "compaction_context_unsafe",
+}
 
 
 class CompactionError(RuntimeError):
@@ -77,10 +85,38 @@ class CompactionLifecycleContext:
     compaction: PersistedCompaction | None = None
 
 
+@dataclass(frozen=True)
+class TokenBudgetCompactionResult:
+    summary: str
+    budget: PostCompactionBudget
+    dropped_turn_count: int
+    dropped_message_count: int
+    strategy: Literal["token_budget"] = "token_budget"
+
+
 CompactionHook = Callable[
     [CompactionLifecycleContext],
     Awaitable[bool | None] | bool | None,
 ]
+TokenBudgetFallback = Callable[
+    [CompactionError],
+    Awaitable[TokenBudgetCompactionResult] | TokenBudgetCompactionResult,
+]
+
+
+@dataclass(frozen=True)
+class _CompactionCandidate:
+    summary: str
+    usage: dict[str, Any] | None
+    token_input: int
+    token_output: int
+    token_cache: int
+    summary_tokens: int
+    validation_budget: PostCompactionBudget | None
+    dropped_turn_count: int
+    dropped_message_count: int
+    strategy: CompactionStrategy
+    fallback_reason: str | None = None
 
 
 @dataclass
@@ -102,6 +138,7 @@ async def compact_window(
     pre_compact_hook: CompactionHook | None = None,
     post_compact_hook: CompactionHook | None = None,
     cancel_event: asyncio.Event | None = None,
+    token_budget_fallback: TokenBudgetFallback | None = None,
 ) -> PersistedCompaction:
     session_id = str(state.get("session_id") or "")
     task_id = str(state.get("task_id") or "")
@@ -120,6 +157,7 @@ async def compact_window(
             pre_compact_hook=pre_compact_hook,
             post_compact_hook=post_compact_hook,
             cancel_event=cancel_event,
+            token_budget_fallback=token_budget_fallback,
             lifecycle=lifecycle,
         )
     except asyncio.CancelledError:
@@ -138,6 +176,7 @@ async def compact_window(
                 "phase": lifecycle.phase,
                 "persisted": compaction is not None,
                 "compaction_id": compaction.id if compaction is not None else None,
+                "strategy": compaction.strategy if compaction is not None else None,
                 "model_input_tokens": (
                     compaction.model_input_tokens if compaction is not None else 0
                 ),
@@ -174,6 +213,7 @@ async def _compact_window_impl(
     pre_compact_hook: CompactionHook | None,
     post_compact_hook: CompactionHook | None,
     cancel_event: asyncio.Event | None,
+    token_budget_fallback: TokenBudgetFallback | None,
     lifecycle: _CompactionLifecycleState,
 ) -> PersistedCompaction:
     session_id = str(state.get("session_id") or "")
@@ -218,133 +258,18 @@ async def _compact_window_impl(
         )
         raise
 
-    lifecycle.phase = "prompt_build"
-    _raise_if_cancelled(cancel_event)
-
     try:
-        prompt_messages = await _build_prompt_messages(db_session)
-        source_turns = group_llm_turns(window.messages)
-        messages = _build_compaction_messages(prompt_messages, source_turns)
+        candidate = await _build_llm_candidate(
+            db_session,
+            state=state,
+            window=window,
+            model_config=model_config,
+            result_validator=result_validator,
+            cancel_event=cancel_event,
+            lifecycle=lifecycle,
+        )
     except CompactionError as exc:
-        await _emit_error(
-            event_sink,
-            session_id=session_id,
-            task_id=task_id,
-            trigger=trigger,
-            error=exc,
-        )
-        raise
-    except Exception as exc:
-        logger.opt(exception=True).error("Failed to build compaction prompt")
-        error = CompactionError("prompt_error", "压缩提示词加载失败，当前请求已中止")
-        await _emit_error(
-            event_sink,
-            session_id=session_id,
-            task_id=task_id,
-            trigger=trigger,
-            error=error,
-        )
-        raise error from exc
-
-    try:
-        effective_model_config = (
-            dict(model_config) if model_config is not None else _model_config(state)
-        )
-        model = create_chat_model(
-            ModelConfig(**to_client_model_config(effective_model_config))
-        )
-    except Exception as exc:
-        logger.opt(exception=True).error("Compaction LLM client creation failed")
-        error = CompactionError("llm_error", "压缩失败，当前请求已中止")
-        await _emit_error(
-            event_sink,
-            session_id=session_id,
-            task_id=task_id,
-            trigger=trigger,
-            error=error,
-        )
-        raise error from exc
-
-    transient_retries = 0
-    dropped_turn_count = 0
-    dropped_message_count = 0
-    while True:
-        lifecycle.phase = "model_request"
-        try:
-            response = await _await_with_cancellation(
-                model.ainvoke(messages),
-                cancel_event,
-            )
-            break
-        except Exception as exc:
-            if _is_context_window_exceeded(exc) and source_turns:
-                # Match Codex's local fallback: preserve the prompt and recent
-                # history, remove one oldest source unit, then retry immediately.
-                # A tool call and all of its results form one indivisible unit.
-                dropped_turn = source_turns.pop(0)
-                dropped_turn_count += 1
-                dropped_message_count += len(dropped_turn.messages)
-                messages = _build_compaction_messages(prompt_messages, source_turns)
-                transient_retries = 0
-                logger.warning(
-                    "Context window exceeded while compacting; "
-                    "removed oldest history unit and retrying"
-                )
-                continue
-
-            if (
-                _is_transient_llm_error(exc)
-                and transient_retries < _MAX_TRANSIENT_RETRIES
-            ):
-                transient_retries += 1
-                delay = _retry_delay(transient_retries)
-                logger.warning(
-                    "Transient compaction LLM failure; retrying in {:.3f}s ({}/{})",
-                    delay,
-                    transient_retries,
-                    _MAX_TRANSIENT_RETRIES,
-                )
-                lifecycle.phase = "retry_backoff"
-                await _await_with_cancellation(
-                    asyncio.sleep(delay),
-                    cancel_event,
-                )
-                continue
-
-            logger.opt(exception=True).error("Compaction LLM request failed")
-            error = CompactionError("llm_error", "压缩失败，当前请求已中止")
-            await _emit_error(
-                event_sink,
-                session_id=session_id,
-                task_id=task_id,
-                trigger=trigger,
-                error=error,
-            )
-            raise error from exc
-
-    try:
-        summary = _summary_from_response(response)
-    except CompactionError as exc:
-        await _emit_error(
-            event_sink,
-            session_id=session_id,
-            task_id=task_id,
-            trigger=trigger,
-            error=exc,
-        )
-        raise
-
-    validation_budget: PostCompactionBudget | None = None
-    if result_validator is not None:
-        lifecycle.phase = "result_validation"
-        _raise_if_cancelled(cancel_event)
-        try:
-            validation = result_validator(summary)
-            if inspect.isawaitable(validation):
-                validation = await _await_with_cancellation(validation, cancel_event)
-            if isinstance(validation, PostCompactionBudget):
-                validation_budget = validation
-        except CompactionError as exc:
+        if token_budget_fallback is None or exc.code not in _TOKEN_BUDGET_FALLBACK_CODES:
             await _emit_error(
                 event_sink,
                 session_id=session_id,
@@ -353,24 +278,57 @@ async def _compact_window_impl(
                 error=exc,
             )
             raise
-        except Exception as exc:
-            logger.opt(exception=True).error("Failed to validate compacted context")
-            error = CompactionError(
-                "compaction_validation_failed",
-                "压缩结果校验失败，当前请求已中止",
+        try:
+            candidate = await _build_token_budget_candidate(
+                token_budget_fallback,
+                reason=exc,
+                cancel_event=cancel_event,
+                lifecycle=lifecycle,
             )
+        except CompactionError as fallback_error:
             await _emit_error(
                 event_sink,
                 session_id=session_id,
                 task_id=task_id,
                 trigger=trigger,
-                error=error,
+                error=fallback_error,
             )
-            raise error from exc
+            raise
+        await _emit_event(
+            event_sink,
+            "agent:compaction_fallback",
+            {
+                "session_id": session_id,
+                "task_id": task_id,
+                "trigger": trigger,
+                "strategy": candidate.strategy,
+                "reason": exc.code,
+                "start_seq": window.start_seq,
+                "end_seq": window.end_seq,
+                "source_input_tokens": window.source_input_tokens,
+                "generation": window.generation,
+                "post_compaction_tokens": (
+                    candidate.validation_budget.total_tokens
+                    if candidate.validation_budget is not None
+                    else 0
+                ),
+                "retained_user_tokens": (
+                    candidate.validation_budget.retained_user_tokens
+                    if candidate.validation_budget is not None
+                    else 0
+                ),
+            },
+        )
 
-    usage = _extract_usage(response)
-    token_input, token_output, token_cache = _token_counts(usage)
-    summary_tokens = max(token_output, 0)
+    summary = candidate.summary
+    usage = candidate.usage
+    token_input = candidate.token_input
+    token_output = candidate.token_output
+    token_cache = candidate.token_cache
+    summary_tokens = candidate.summary_tokens
+    validation_budget = candidate.validation_budget
+    dropped_turn_count = candidate.dropped_turn_count
+    dropped_message_count = candidate.dropped_message_count
 
     lifecycle.phase = "persistence"
     _raise_if_cancelled(cancel_event)
@@ -384,6 +342,7 @@ async def _compact_window_impl(
             end_seq=window.end_seq,
             summary=summary,
             trigger=trigger,
+            strategy=candidate.strategy,
             source_input_tokens=window.source_input_tokens,
             summary_tokens=summary_tokens,
             generation=window.generation,
@@ -500,10 +459,183 @@ async def _compact_window_impl(
             "retained_user_tokens": result.retained_user_tokens,
             "dropped_turn_count": result.dropped_turn_count,
             "dropped_message_count": result.dropped_message_count,
+            "strategy": result.strategy,
+            "fallback_reason": candidate.fallback_reason,
         },
     )
     lifecycle.phase = "completed"
     return result
+
+
+async def _build_llm_candidate(
+    db_session: AsyncSession,
+    *,
+    state: AgentRuntimeState | dict[str, Any],
+    window: CompactionWindow,
+    model_config: Mapping[str, Any] | None,
+    result_validator: ResultValidator | None,
+    cancel_event: asyncio.Event | None,
+    lifecycle: _CompactionLifecycleState,
+) -> _CompactionCandidate:
+    lifecycle.phase = "prompt_build"
+    _raise_if_cancelled(cancel_event)
+    try:
+        prompt_messages = await _build_prompt_messages(db_session)
+        source_turns = group_llm_turns(window.messages)
+        messages = _build_compaction_messages(prompt_messages, source_turns)
+    except CompactionError:
+        raise
+    except Exception as exc:
+        logger.opt(exception=True).error("Failed to build compaction prompt")
+        raise CompactionError(
+            "prompt_error",
+            "压缩提示词加载失败，当前请求已中止",
+        ) from exc
+
+    try:
+        effective_model_config = (
+            dict(model_config) if model_config is not None else _model_config(state)
+        )
+        model = create_chat_model(
+            ModelConfig(**to_client_model_config(effective_model_config))
+        )
+    except CompactionError:
+        raise
+    except Exception as exc:
+        logger.opt(exception=True).error("Compaction LLM client creation failed")
+        raise CompactionError("llm_error", "压缩失败，当前请求已中止") from exc
+
+    transient_retries = 0
+    dropped_turn_count = 0
+    dropped_message_count = 0
+    while True:
+        lifecycle.phase = "model_request"
+        try:
+            response = await _await_with_cancellation(
+                model.ainvoke(messages),
+                cancel_event,
+            )
+            break
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            if _is_context_window_exceeded(exc) and source_turns:
+                dropped_turn = source_turns.pop(0)
+                dropped_turn_count += 1
+                dropped_message_count += len(dropped_turn.messages)
+                messages = _build_compaction_messages(prompt_messages, source_turns)
+                transient_retries = 0
+                logger.warning(
+                    "Context window exceeded while compacting; "
+                    "removed oldest history unit and retrying"
+                )
+                continue
+
+            if (
+                _is_transient_llm_error(exc)
+                and transient_retries < _MAX_TRANSIENT_RETRIES
+            ):
+                transient_retries += 1
+                delay = _retry_delay(transient_retries)
+                logger.warning(
+                    "Transient compaction LLM failure; retrying in {:.3f}s ({}/{})",
+                    delay,
+                    transient_retries,
+                    _MAX_TRANSIENT_RETRIES,
+                )
+                lifecycle.phase = "retry_backoff"
+                await _await_with_cancellation(asyncio.sleep(delay), cancel_event)
+                continue
+
+            logger.opt(exception=True).error("Compaction LLM request failed")
+            raise CompactionError("llm_error", "压缩失败，当前请求已中止") from exc
+
+    summary = _summary_from_response(response)
+    validation_budget: PostCompactionBudget | None = None
+    if result_validator is not None:
+        lifecycle.phase = "result_validation"
+        _raise_if_cancelled(cancel_event)
+        try:
+            validation = result_validator(summary)
+            if inspect.isawaitable(validation):
+                validation = await _await_with_cancellation(validation, cancel_event)
+            if isinstance(validation, PostCompactionBudget):
+                validation_budget = validation
+        except asyncio.CancelledError:
+            raise
+        except CompactionError:
+            raise
+        except Exception as exc:
+            logger.opt(exception=True).error("Failed to validate compacted context")
+            raise CompactionError(
+                "compaction_validation_failed",
+                "压缩结果校验失败，当前请求已中止",
+            ) from exc
+
+    usage = _extract_usage(response)
+    token_input, token_output, token_cache = _token_counts(usage)
+    return _CompactionCandidate(
+        summary=summary,
+        usage=usage,
+        token_input=token_input,
+        token_output=token_output,
+        token_cache=token_cache,
+        summary_tokens=max(token_output, 0),
+        validation_budget=validation_budget,
+        dropped_turn_count=dropped_turn_count,
+        dropped_message_count=dropped_message_count,
+        strategy="llm_summary",
+    )
+
+
+async def _build_token_budget_candidate(
+    fallback: TokenBudgetFallback,
+    *,
+    reason: CompactionError,
+    cancel_event: asyncio.Event | None,
+    lifecycle: _CompactionLifecycleState,
+) -> _CompactionCandidate:
+    lifecycle.phase = "token_budget_fallback"
+    _raise_if_cancelled(cancel_event)
+    try:
+        result = fallback(reason)
+        if inspect.isawaitable(result):
+            result = await _await_with_cancellation(result, cancel_event)
+    except asyncio.CancelledError:
+        raise
+    except CompactionError:
+        raise
+    except Exception as exc:
+        logger.opt(exception=True).error("Token-budget compaction fallback failed")
+        raise CompactionError(
+            "compaction_token_budget_failed",
+            "应急压缩失败，当前请求已中止",
+        ) from exc
+
+    _raise_if_cancelled(cancel_event)
+    if not isinstance(result, TokenBudgetCompactionResult):
+        raise CompactionError(
+            "compaction_token_budget_failed",
+            "应急压缩失败，当前请求已中止",
+        )
+    if not result.summary.strip() or not result.budget.within_safe_zone:
+        raise CompactionError(
+            "compaction_token_budget_exhausted",
+            "必要上下文已占满模型窗口，无法执行应急压缩",
+        )
+    return _CompactionCandidate(
+        summary=result.summary,
+        usage=None,
+        token_input=0,
+        token_output=0,
+        token_cache=0,
+        summary_tokens=count_text_tokens(result.summary),
+        validation_budget=result.budget,
+        dropped_turn_count=result.dropped_turn_count,
+        dropped_message_count=result.dropped_message_count,
+        strategy=result.strategy,
+        fallback_reason=reason.code,
+    )
 
 
 def _lifecycle_context(
@@ -612,6 +744,7 @@ async def _persist_display_marker(
             "kind": "compaction",
             "compaction_id": compaction.id,
             "trigger": trigger,
+            "strategy": compaction.strategy,
             "start_seq": compaction.start_seq,
             "end_seq": compaction.end_seq,
             "generation": compaction.generation,

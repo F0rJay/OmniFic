@@ -347,6 +347,7 @@ def test_auto_compaction_runs_before_main_model_and_rebuilds_context() -> None:
         assert callable(kwargs["event_sink"])
         assert kwargs["usage_sink"] is _noop_usage_sink
         assert callable(kwargs["result_validator"])
+        assert callable(kwargs["token_budget_fallback"])
         assert kwargs["cancel_event"] is cancel_event
         return SimpleNamespace(id="compaction-1")
 

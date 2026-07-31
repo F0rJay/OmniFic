@@ -5,6 +5,7 @@ Agent API Schemas。
 """
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -109,6 +110,10 @@ class AgentCompactionResponse(BaseModel):
     end_seq: int = Field(..., description="压缩窗口结束消息序号")
     source_input_tokens: int = Field(default=0, description="源窗口输入 token 数")
     summary_tokens: int = Field(default=0, description="摘要 token 数")
+    strategy: Literal["llm_summary", "token_budget"] = Field(
+        default="llm_summary",
+        description="压缩策略",
+    )
     generation: int = Field(default=1, ge=1, description="压缩代数")
     model_input_tokens: int = Field(
         default=0,

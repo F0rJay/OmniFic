@@ -123,6 +123,7 @@ async def test_manual_compaction_returns_structured_metrics(client: AsyncClient)
         "retained_user_tokens": 160,
         "dropped_turn_count": 2,
         "dropped_message_count": 5,
+        "strategy": "llm_summary",
     }
     runner.compact.assert_awaited_once_with()
     runner.consume_next_pending_user_message_for_continuation.assert_awaited_once_with()

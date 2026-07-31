@@ -8,6 +8,7 @@ from typing import Literal
 
 
 CompactionTrigger = Literal["auto", "manual"]
+CompactionStrategy = Literal["llm_summary", "token_budget"]
 
 
 @dataclass(frozen=True)
@@ -24,6 +25,7 @@ class PersistedCompaction:
     summary_tokens: int
     created_at: datetime
     generation: int = 1
+    strategy: CompactionStrategy = "llm_summary"
     model_input_tokens: int = 0
     post_compaction_tokens: int = 0
     retained_user_tokens: int = 0
@@ -40,6 +42,7 @@ class NewCompaction:
     end_seq: int
     summary: str
     trigger: CompactionTrigger
+    strategy: CompactionStrategy = "llm_summary"
     source_input_tokens: int = 0
     summary_tokens: int = 0
     generation: int = 1

@@ -293,6 +293,7 @@ export interface AgentCompactionResponse {
   end_seq: number;
   source_input_tokens: number;
   summary_tokens: number;
+  strategy: "llm_summary" | "token_budget";
 }
 
 export interface AgentEvent {

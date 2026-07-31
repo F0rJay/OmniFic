@@ -2363,6 +2363,7 @@ export async function compactAgentSession(sessionId: string): Promise<AgentCompa
     end_seq: Number(data.end_seq ?? 0),
     source_input_tokens: Number(data.source_input_tokens ?? 0),
     summary_tokens: Number(data.summary_tokens ?? 0),
+    strategy: data.strategy === "token_budget" ? "token_budget" : "llm_summary",
   };
 }
 

@@ -88,6 +88,10 @@ class AgentContextCompaction(SQLModel, table=True):
             "start_seq <= end_seq",
             name="ck_agent_context_compactions_valid_range",
         ),
+        CheckConstraint(
+            "strategy IN ('llm_summary', 'token_budget')",
+            name="ck_agent_context_compactions_strategy_valid",
+        ),
         Index(
             "ix_agent_context_compactions_session_start_end",
             "session_id",
@@ -104,6 +108,7 @@ class AgentContextCompaction(SQLModel, table=True):
     end_seq: int = Field(index=True, ge=0)
     summary: str = Field(sa_column=Column(Text, nullable=False))
     trigger: str = Field(index=True, max_length=20)
+    strategy: str = Field(default="llm_summary", index=True, max_length=20)
     source_input_tokens: int = Field(default=0, ge=0)
     summary_tokens: int = Field(default=0, ge=0)
     generation: int = Field(default=1, ge=1)

@@ -8,7 +8,10 @@ from app.agent_runtime.context.compaction.overlay import (
     apply_compaction_overlay,
     preview_compaction_overlay,
 )
-from app.agent_runtime.context.compaction.tokens import count_context_tokens
+from app.agent_runtime.context.compaction.tokens import (
+    count_context_tokens,
+    count_text_tokens,
+)
 from app.agent_runtime.context.compaction.turns import group_llm_turns
 from app.agent_runtime.context.compaction.window import (
     CompactionNoWindowError,
@@ -35,6 +38,8 @@ def compaction(
     summary: str = "摘要",
     *,
     generation: int = 1,
+    strategy: Literal["llm_summary", "token_budget"] = "llm_summary",
+    retained_user_tokens: int = 0,
 ) -> PersistedCompaction:
     return PersistedCompaction(
         id=f"c-{start}-{end}",
@@ -49,6 +54,8 @@ def compaction(
         summary_tokens=20,
         created_at=datetime.now(UTC),
         generation=generation,
+        strategy=strategy,
+        retained_user_tokens=retained_user_tokens,
     )
 
 
@@ -143,8 +150,36 @@ def test_overlay_limits_retained_user_messages_from_the_end(
     assert out[-1].content == "<compaction-summary>\nsummary\n</compaction-summary>"
     retained = out[:-1]
     assert [message.role for message in retained] == ["user", "user"]
-    assert "tokens truncated" in retained[0].content
+    assert count_text_tokens(retained[0].content) <= 4
+    assert retained[0].content.strip()
     assert retained[1].content == "recent"
+
+
+def test_token_budget_overlay_uses_persisted_retention_budget() -> None:
+    messages = [
+        history("user", "old request", 1),
+        history("assistant", "old answer", 2),
+        history("user", "latest request", 3),
+        history("assistant", "latest answer", 4),
+    ]
+    checkpoint = compaction(
+        1,
+        4,
+        "上下文窗口已按 token 预算重置。",
+        strategy="token_budget",
+        retained_user_tokens=count_text_tokens(messages[2].content),
+    )
+
+    out = apply_compaction_overlay(messages, [checkpoint])
+
+    assert [(message.role, message.content) for message in out] == [
+        ("user", "latest request"),
+        (
+            "user",
+            "<compaction-summary>\n上下文窗口已按 token 预算重置。\n</compaction-summary>",
+        ),
+    ]
+    assert all("answer" not in message.content for message in out)
 
 
 def test_group_llm_turns_keeps_assistant_tool_calls_with_matching_tool_results() -> None:

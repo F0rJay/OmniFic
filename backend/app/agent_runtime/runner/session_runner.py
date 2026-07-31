@@ -12,6 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent_runtime.context import ContextBuildError, build_context_parts
 from app.agent_runtime.context.compaction.service import CompactionError, compact_window
+from app.agent_runtime.context.compaction.token_budget import (
+    build_token_budget_compaction,
+)
 from app.agent_runtime.context.compaction.validation import (
     validate_post_compaction_context,
 )
@@ -769,6 +772,13 @@ class SessionRunner:
                     max_context_tokens=int(self.model_config["max_context_tokens"]),
                 )
 
+            def build_fallback(_error: CompactionError):
+                return build_token_budget_compaction(
+                    parts,
+                    end_seq=window.end_seq,
+                    max_context_tokens=int(self.model_config["max_context_tokens"]),
+                )
+
             result = await compact_window(
                 session,
                 state=state,
@@ -779,6 +789,7 @@ class SessionRunner:
                 model_config=self.model_config,
                 result_validator=validate_result,
                 cancel_event=self._cancel_event,
+                token_budget_fallback=build_fallback,
             )
             return {
                 "compaction_id": result.id,
@@ -792,6 +803,7 @@ class SessionRunner:
                 "retained_user_tokens": result.retained_user_tokens,
                 "dropped_turn_count": result.dropped_turn_count,
                 "dropped_message_count": result.dropped_message_count,
+                "strategy": result.strategy,
             }
         finally:
             await session.close()
