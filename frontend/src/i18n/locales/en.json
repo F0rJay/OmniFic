@@ -1602,6 +1602,7 @@
     "compactionRunning": "Compacting context",
     "compactionDone": "Context compacted",
     "compactionFailed": "Compaction failed",
+    "compactionCancelled": "Compaction cancelled",
     "completedTitle": "Content generation complete",
     "completedWordCount": "Generated {{count}} words",
     "completedIterationNote": ", refined over {{count}} iterations",

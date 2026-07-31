@@ -1131,6 +1131,7 @@ async def test_manual_compact_builds_window_and_returns_metrics_without_revision
     result_validator = compact_window.await_args.kwargs["result_validator"]
     assert callable(result_validator)
     result_validator("manual summary")
+    assert compact_window.await_args.kwargs["cancel_event"] is runner._cancel_event
     begin_user_revision.assert_not_awaited()
     fake_session.close.assert_awaited_once_with()
 

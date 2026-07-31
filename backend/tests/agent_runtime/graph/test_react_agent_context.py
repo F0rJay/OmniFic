@@ -301,6 +301,7 @@ def test_auto_compaction_runs_before_main_model_and_rebuilds_context() -> None:
         max_iterations=3,
     )
     injected_queue: asyncio.Queue[tuple[str | None, str, str]] = asyncio.Queue()
+    cancel_event = asyncio.Event()
     injected_queue.put_nowait(("msg_pending_1", "user", "补充要求"))
     consume_sink = AsyncMock(return_value=True)
     first_parts = [
@@ -346,6 +347,7 @@ def test_auto_compaction_runs_before_main_model_and_rebuilds_context() -> None:
         assert callable(kwargs["event_sink"])
         assert kwargs["usage_sink"] is _noop_usage_sink
         assert callable(kwargs["result_validator"])
+        assert kwargs["cancel_event"] is cancel_event
         return SimpleNamespace(id="compaction-1")
 
     async def fake_list_by_session(_db_session, session_id):
@@ -426,6 +428,7 @@ def test_auto_compaction_runs_before_main_model_and_rebuilds_context() -> None:
                         "thread_id": "s1",
                         "agent_event_sink": _noop_event_sink,
                         "compaction_usage_sink": _noop_usage_sink,
+                        "compaction_cancel_event": cancel_event,
                         "inject_message_consumed_sink": consume_sink,
                     }
                 },

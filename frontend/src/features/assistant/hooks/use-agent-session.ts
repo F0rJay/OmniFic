@@ -309,6 +309,20 @@ export function useAgentSession({
         return;
       }
 
+      if (event.type === "compaction" && payload.cancelled === true) {
+        syncCompactingState(false);
+        manualCompactionPreviousStateRef.current = null;
+        updateTranscriptState((current) =>
+          abortCompactionTranscriptState(
+            current,
+            typeof payload.session_id === "string"
+              ? payload.session_id
+              : (sessionIdRef.current ?? undefined),
+          ),
+        );
+        return;
+      }
+
       if (event.type === "compaction_error") {
         const message =
           event.content ||

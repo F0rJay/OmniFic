@@ -6,6 +6,7 @@ import json
 import random
 import re
 from collections.abc import Awaitable, Callable, Iterator, Mapping
+from dataclasses import dataclass
 from typing import Any, Literal, cast
 
 import httpx
@@ -60,6 +61,29 @@ class CompactionError(RuntimeError):
         super().__init__(message)
 
 
+@dataclass(frozen=True)
+class CompactionLifecycleContext:
+    session_id: str
+    task_id: str
+    trigger: CompactionTrigger
+    start_seq: int
+    end_seq: int
+    source_input_tokens: int
+    compaction: PersistedCompaction | None = None
+
+
+CompactionHook = Callable[
+    [CompactionLifecycleContext],
+    Awaitable[bool | None] | bool | None,
+]
+
+
+@dataclass
+class _CompactionLifecycleState:
+    phase: str = "pre_compact"
+    compaction: PersistedCompaction | None = None
+
+
 async def compact_window(
     db_session: AsyncSession,
     *,
@@ -70,6 +94,63 @@ async def compact_window(
     usage_sink: UsageSink | None = None,
     model_config: Mapping[str, Any] | None = None,
     result_validator: ResultValidator | None = None,
+    pre_compact_hook: CompactionHook | None = None,
+    post_compact_hook: CompactionHook | None = None,
+    cancel_event: asyncio.Event | None = None,
+) -> PersistedCompaction:
+    session_id = str(state.get("session_id") or "")
+    task_id = str(state.get("task_id") or "")
+    lifecycle = _CompactionLifecycleState()
+
+    try:
+        return await _compact_window_impl(
+            db_session,
+            state=state,
+            window=window,
+            trigger=trigger,
+            event_sink=event_sink,
+            usage_sink=usage_sink,
+            model_config=model_config,
+            result_validator=result_validator,
+            pre_compact_hook=pre_compact_hook,
+            post_compact_hook=post_compact_hook,
+            cancel_event=cancel_event,
+            lifecycle=lifecycle,
+        )
+    except asyncio.CancelledError:
+        compaction = lifecycle.compaction
+        await _emit_event(
+            event_sink,
+            "agent:compaction_cancelled",
+            {
+                "session_id": session_id,
+                "task_id": task_id,
+                "trigger": trigger,
+                "start_seq": window.start_seq,
+                "end_seq": window.end_seq,
+                "source_input_tokens": window.source_input_tokens,
+                "phase": lifecycle.phase,
+                "persisted": compaction is not None,
+                "compaction_id": compaction.id if compaction is not None else None,
+            },
+        )
+        raise
+
+
+async def _compact_window_impl(
+    db_session: AsyncSession,
+    *,
+    state: AgentRuntimeState | dict[str, Any],
+    window: CompactionWindow,
+    trigger: CompactionTrigger,
+    event_sink: EventSink | None,
+    usage_sink: UsageSink | None,
+    model_config: Mapping[str, Any] | None,
+    result_validator: ResultValidator | None,
+    pre_compact_hook: CompactionHook | None,
+    post_compact_hook: CompactionHook | None,
+    cancel_event: asyncio.Event | None,
+    lifecycle: _CompactionLifecycleState,
 ) -> PersistedCompaction:
     session_id = str(state.get("session_id") or "")
     task_id = str(state.get("task_id") or "")
@@ -87,6 +168,33 @@ async def compact_window(
             "source_input_tokens": window.source_input_tokens,
         },
     )
+
+    _raise_if_cancelled(cancel_event)
+    try:
+        await _run_compaction_hook(
+            pre_compact_hook,
+            _lifecycle_context(
+                session_id=session_id,
+                task_id=task_id,
+                trigger=trigger,
+                window=window,
+            ),
+            cancel_event=cancel_event,
+            error_code="pre_compact_hook_failed",
+            error_message="压缩前置钩子执行失败，当前请求已中止",
+        )
+    except CompactionError as exc:
+        await _emit_error(
+            event_sink,
+            session_id=session_id,
+            task_id=task_id,
+            trigger=trigger,
+            error=exc,
+        )
+        raise
+
+    lifecycle.phase = "prompt_build"
+    _raise_if_cancelled(cancel_event)
 
     try:
         prompt_messages = await _build_prompt_messages(db_session)
@@ -134,8 +242,12 @@ async def compact_window(
 
     transient_retries = 0
     while True:
+        lifecycle.phase = "model_request"
         try:
-            response = await model.ainvoke(messages)
+            response = await _await_with_cancellation(
+                model.ainvoke(messages),
+                cancel_event,
+            )
             break
         except Exception as exc:
             if _is_context_window_exceeded(exc) and source_turns:
@@ -163,7 +275,11 @@ async def compact_window(
                     transient_retries,
                     _MAX_TRANSIENT_RETRIES,
                 )
-                await asyncio.sleep(delay)
+                lifecycle.phase = "retry_backoff"
+                await _await_with_cancellation(
+                    asyncio.sleep(delay),
+                    cancel_event,
+                )
                 continue
 
             logger.opt(exception=True).error("Compaction LLM request failed")
@@ -190,10 +306,12 @@ async def compact_window(
         raise
 
     if result_validator is not None:
+        lifecycle.phase = "result_validation"
+        _raise_if_cancelled(cancel_event)
         try:
             validation = result_validator(summary)
             if inspect.isawaitable(validation):
-                await validation
+                await _await_with_cancellation(validation, cancel_event)
         except CompactionError as exc:
             await _emit_error(
                 event_sink,
@@ -222,6 +340,8 @@ async def compact_window(
     token_input, token_output, token_cache = _token_counts(usage)
     summary_tokens = max(token_output, 0)
 
+    lifecycle.phase = "persistence"
+    _raise_if_cancelled(cancel_event)
     try:
         result = await compaction_repo.insert_compaction(
             db_session,
@@ -257,6 +377,8 @@ async def compact_window(
         )
         raise error from exc
 
+    lifecycle.compaction = result
+
     try:
         await _persist_display_marker(
             db_session,
@@ -290,6 +412,32 @@ async def compact_window(
             token_cache=token_cache,
         ),
     )
+
+    lifecycle.phase = "post_compact"
+    try:
+        await _run_compaction_hook(
+            post_compact_hook,
+            _lifecycle_context(
+                session_id=session_id,
+                task_id=task_id,
+                trigger=trigger,
+                window=window,
+                compaction=result,
+            ),
+            cancel_event=cancel_event,
+            error_code="post_compact_hook_failed",
+            error_message="压缩后置钩子执行失败，当前请求已中止",
+        )
+    except CompactionError as exc:
+        await _emit_error(
+            event_sink,
+            session_id=session_id,
+            task_id=task_id,
+            trigger=trigger,
+            error=exc,
+        )
+        raise
+
     await _emit_event(
         event_sink,
         "agent:compaction_success",
@@ -304,7 +452,92 @@ async def compact_window(
             "summary_tokens": result.summary_tokens,
         },
     )
+    lifecycle.phase = "completed"
     return result
+
+
+def _lifecycle_context(
+    *,
+    session_id: str,
+    task_id: str,
+    trigger: CompactionTrigger,
+    window: CompactionWindow,
+    compaction: PersistedCompaction | None = None,
+) -> CompactionLifecycleContext:
+    return CompactionLifecycleContext(
+        session_id=session_id,
+        task_id=task_id,
+        trigger=trigger,
+        start_seq=window.start_seq,
+        end_seq=window.end_seq,
+        source_input_tokens=window.source_input_tokens,
+        compaction=compaction,
+    )
+
+
+def _raise_if_cancelled(cancel_event: asyncio.Event | None) -> None:
+    if cancel_event is not None and cancel_event.is_set():
+        raise asyncio.CancelledError
+
+
+async def _await_with_cancellation(
+    awaitable: Awaitable[Any],
+    cancel_event: asyncio.Event | None,
+) -> Any:
+    if cancel_event is None:
+        return await awaitable
+
+    if cancel_event.is_set():
+        if isinstance(awaitable, asyncio.Future):
+            awaitable.cancel()
+            await asyncio.gather(awaitable, return_exceptions=True)
+        else:
+            close = getattr(awaitable, "close", None)
+            if callable(close):
+                close()
+        raise asyncio.CancelledError
+    operation = asyncio.ensure_future(awaitable)
+    cancellation = asyncio.create_task(cancel_event.wait())
+    try:
+        done, _pending = await asyncio.wait(
+            {operation, cancellation},
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+        if cancellation in done:
+            raise asyncio.CancelledError
+        return await operation
+    finally:
+        if not operation.done():
+            operation.cancel()
+        if not cancellation.done():
+            cancellation.cancel()
+        await asyncio.gather(operation, cancellation, return_exceptions=True)
+
+
+async def _run_compaction_hook(
+    hook: CompactionHook | None,
+    context: CompactionLifecycleContext,
+    *,
+    cancel_event: asyncio.Event | None,
+    error_code: str,
+    error_message: str,
+) -> None:
+    _raise_if_cancelled(cancel_event)
+    if hook is None:
+        return
+    try:
+        outcome = hook(context)
+        if inspect.isawaitable(outcome):
+            outcome = await _await_with_cancellation(outcome, cancel_event)
+    except asyncio.CancelledError:
+        raise
+    except CompactionError:
+        raise
+    except Exception as exc:
+        raise CompactionError(error_code, error_message) from exc
+    if outcome is False:
+        raise asyncio.CancelledError
+    _raise_if_cancelled(cancel_event)
 
 
 async def _persist_display_marker(

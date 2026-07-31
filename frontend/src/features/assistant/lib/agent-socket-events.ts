@@ -24,6 +24,7 @@ export const AGENT_SOCKET_EVENTS = [
   "agent:compaction_start",
   "agent:compaction_success",
   "agent:compaction_error",
+  "agent:compaction_cancelled",
   "agent:done",
   "agent:error",
 ] as const;
@@ -396,6 +397,37 @@ export function toAgentEvent(
         end_seq: Number(data.end_seq ?? 0),
         source_input_tokens: Number(data.source_input_tokens ?? 0),
         summary_tokens: Number(data.summary_tokens ?? 0),
+      },
+    };
+  }
+
+  if (eventName === "agent:compaction_cancelled") {
+    const compactionId = getString(data.compaction_id);
+    const sessionKey = getString(data.session_id) || sessionId;
+    const startSeq = Number(data.start_seq ?? 0);
+    const endSeq = Number(data.end_seq ?? 0);
+    const id = compactionId
+      ? `compaction:${compactionId}`
+      : `compaction:${sessionKey}:${startSeq}:${endSeq}:pending`;
+    return {
+      id,
+      correlation_id: id,
+      type: "compaction",
+      role: "system",
+      status: "error",
+      display: "hidden",
+      content: i18n.t("assistant.compactionCancelled"),
+      created_at: getString(data.created_at),
+      payload: {
+        session_id: sessionKey,
+        compaction_id: compactionId,
+        trigger: getString(data.trigger),
+        start_seq: startSeq,
+        end_seq: endSeq,
+        source_input_tokens: Number(data.source_input_tokens ?? 0),
+        phase: getString(data.phase),
+        persisted: data.persisted === true,
+        cancelled: true,
       },
     };
   }

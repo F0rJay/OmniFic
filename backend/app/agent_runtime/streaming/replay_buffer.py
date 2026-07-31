@@ -17,11 +17,13 @@ BUFFERED_AGENT_EVENT_NAMES = {
     "agent:compaction_start",
     "agent:compaction_success",
     "agent:compaction_error",
+    "agent:compaction_cancelled",
 }
 
 COMPACTION_TERMINAL_EVENT_NAMES = {
     "agent:compaction_success",
     "agent:compaction_error",
+    "agent:compaction_cancelled",
 }
 
 

@@ -233,3 +233,25 @@ def test_replay_buffer_compaction_terminal_events_clear_active_start() -> None:
     assert [event.name for event in replayed_error] == [
         "agent:compaction_error",
     ]
+
+
+def test_replay_buffer_treats_compaction_cancellation_as_terminal() -> None:
+    buffer = AgentEventReplayBuffer()
+    payload = {
+        "session_id": "session-1",
+        "task_id": "task-1",
+        "trigger": "manual",
+        "start_seq": 0,
+        "end_seq": 2,
+        "source_input_tokens": 500,
+    }
+
+    buffer.record_unlocked("agent:compaction_start", payload)
+    buffer.record_unlocked(
+        "agent:compaction_cancelled",
+        {**payload, "phase": "model_request", "persisted": False},
+    )
+
+    replayed = buffer.replay_events_unlocked("session-1")
+
+    assert [event.name for event in replayed] == ["agent:compaction_cancelled"]

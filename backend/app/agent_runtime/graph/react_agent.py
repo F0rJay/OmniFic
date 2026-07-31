@@ -287,6 +287,7 @@ async def maybe_auto_compact(
     event_sink: Callable[[str, dict[str, Any]], Awaitable[None] | None] | None,
     usage_sink: Callable[[dict[str, Any]], Awaitable[None] | None] | None,
     model_config: Mapping[str, Any] | None = None,
+    cancel_event: asyncio.Event | None = None,
 ) -> bool:
     del agent_name
     persisted_model_config = state.get("model_config")
@@ -372,6 +373,7 @@ async def maybe_auto_compact(
             usage_sink=usage_sink,
             model_config=model_config,
             result_validator=validate_result,
+            cancel_event=cancel_event,
         )
     except CompactionError as exc:
         await emit_error_once(exc)
@@ -623,6 +625,9 @@ def create_react_agent(
         compaction_usage_sink = configurable.get("compaction_usage_sink")
         if not callable(compaction_usage_sink):
             compaction_usage_sink = None
+        compaction_cancel_event = configurable.get("compaction_cancel_event")
+        if not isinstance(compaction_cancel_event, asyncio.Event):
+            compaction_cancel_event = None
         runtime_model_config = configurable.get("model_config")
         if not isinstance(runtime_model_config, Mapping):
             runtime_model_config = None
@@ -765,6 +770,7 @@ def create_react_agent(
                 event_sink=agent_event_sink,
                 usage_sink=compaction_usage_sink,
                 model_config=runtime_model_config,
+                cancel_event=compaction_cancel_event,
             ):
                 context_parts = await build_context_parts(
                     state=cast("AgentRuntimeState", effective_runtime_state),

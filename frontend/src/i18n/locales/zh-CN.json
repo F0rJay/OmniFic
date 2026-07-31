@@ -1665,6 +1665,7 @@
     "compactionRunning": "正在压缩上下文",
     "compactionDone": "上下文已压缩",
     "compactionFailed": "压缩失败",
+    "compactionCancelled": "上下文压缩已取消",
     "completedTitle": "内容创作完成",
     "completedWordCount": "共生成 {{count}} 字",
     "completedIterationNote": "，经过 {{count}} 次迭代优化",

@@ -17,6 +17,7 @@ import {
   syncAgentTranscriptLiveState,
 } from "../lib/agent-transcript-live-state";
 import {
+  abortCompactionTranscriptState,
   failCompactionTranscriptState,
   getStageTextForAgentKey,
   getStageTextForStageKey,
@@ -249,6 +250,18 @@ export function useSubagentSession(
     const cleanup = subscribeSubagentSessionEvents(
       targetThreadId,
       (event) => {
+        if (event.type === "compaction" && event.payload?.cancelled === true) {
+          commitTranscriptState(
+            abortCompactionTranscriptState(transcriptStateRef.current, targetThreadId),
+          );
+          setSession((current) =>
+            current
+              ? { ...current, status: "cancelled", isRunning: false, isActive: false }
+              : current,
+          );
+          return;
+        }
+
         if (event.type === "compaction_error") {
           suppressNextErrorAfterCompactionErrorRef.current = true;
           const payload = event.payload ?? {};

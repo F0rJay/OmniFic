@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncGenerator
 from types import SimpleNamespace
 from typing import Any, cast
@@ -10,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlmodel import SQLModel
 
 from app.agent_runtime.context.compaction.service import (
+    CompactionLifecycleContext,
     CompactionError,
     compact_window,
 )
@@ -159,6 +161,20 @@ class FakeStatusError(RuntimeError):
         super().__init__(f"HTTP {status_code}")
 
 
+class BlockingFakeModel:
+    def __init__(self) -> None:
+        self.started = asyncio.Event()
+        self.cancelled = False
+
+    async def ainvoke(self, _messages: list[Any]) -> AIMessage:
+        self.started.set()
+        try:
+            await asyncio.Event().wait()
+        except asyncio.CancelledError:
+            self.cancelled = True
+            raise
+
+
 def _prompt_version() -> SimpleNamespace:
     return SimpleNamespace(
         version=SimpleNamespace(id="v1"),
@@ -202,6 +218,15 @@ async def test_compact_window_persists_raw_summary_and_emits_events_and_usage(
     )
     events: list[tuple[str, dict[str, Any]]] = []
     usage_events: list[dict[str, Any]] = []
+    lifecycle: list[tuple[str, CompactionLifecycleContext]] = []
+
+    async def pre_compact(context: CompactionLifecycleContext) -> bool:
+        lifecycle.append(("pre", context))
+        return True
+
+    async def post_compact(context: CompactionLifecycleContext) -> bool:
+        lifecycle.append(("post", context))
+        return True
 
     monkeypatch.setattr(
         "app.agent_runtime.context.compaction.service.create_chat_model",
@@ -219,6 +244,8 @@ async def test_compact_window_persists_raw_summary_and_emits_events_and_usage(
         trigger="manual",
         event_sink=lambda name, payload: _record_event(events, name, payload),
         usage_sink=usage_events.append,
+        pre_compact_hook=pre_compact,
+        post_compact_hook=post_compact,
     )
 
     assert result.summary == "摘要正文"
@@ -234,6 +261,9 @@ async def test_compact_window_persists_raw_summary_and_emits_events_and_usage(
     assert usage_events[0]["usage_kind"] == "compaction"
     assert usage_events[0]["usage"]["input_tokens"] == 100
     assert usage_events[0]["usage"]["output_tokens"] == 20
+    assert [phase for phase, _context in lifecycle] == ["pre", "post"]
+    assert lifecycle[0][1].compaction is None
+    assert lifecycle[1][1].compaction == result
     normalized_usage = SessionRunner(
         session_id=state["session_id"],
         task_id=state["task_id"],
@@ -264,6 +294,291 @@ async def test_compact_window_persists_raw_summary_and_emits_events_and_usage(
         "compaction_id": result.id,
         "trigger": "manual",
     }
+
+
+@pytest.mark.asyncio
+async def test_pre_compact_hook_can_cancel_before_model_invocation(
+    db_session: AsyncSession,
+    state: AgentRuntimeState,
+    window: CompactionWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_model = FakeModel(_ai_message("unused summary"))
+    events: list[tuple[str, dict[str, Any]]] = []
+
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.create_chat_model",
+        lambda _config: fake_model,
+    )
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.prompt_chain_service.get_latest_version_with_entries_or_default",
+        AsyncMock(return_value=_prompt_version()),
+    )
+
+    with pytest.raises(asyncio.CancelledError):
+        await compact_window(
+            db_session,
+            state=state,
+            window=window,
+            trigger="manual",
+            event_sink=lambda name, payload: _record_event(events, name, payload),
+            pre_compact_hook=lambda _context: False,
+        )
+
+    assert fake_model.messages is None
+    assert [name for name, _payload in events] == [
+        "agent:compaction_start",
+        "agent:compaction_cancelled",
+    ]
+    assert events[-1][1]["phase"] == "pre_compact"
+    assert events[-1][1]["persisted"] is False
+    rows = await compaction_repo.list_by_session(db_session, state["session_id"])
+    assert rows == []
+
+
+@pytest.mark.asyncio
+async def test_pre_cancelled_hook_task_is_cleaned_up(
+    db_session: AsyncSession,
+    state: AgentRuntimeState,
+    window: CompactionWindow,
+) -> None:
+    cancel_event = asyncio.Event()
+    hook_tasks: list[asyncio.Task[None]] = []
+
+    async def pending_hook() -> None:
+        await asyncio.Event().wait()
+
+    def pre_compact_hook(
+        _context: CompactionLifecycleContext,
+    ) -> asyncio.Task[None]:
+        hook_task = asyncio.create_task(pending_hook())
+        hook_tasks.append(hook_task)
+        cancel_event.set()
+        return hook_task
+
+    with pytest.raises(asyncio.CancelledError):
+        await compact_window(
+            db_session,
+            state=state,
+            window=window,
+            trigger="manual",
+            pre_compact_hook=pre_compact_hook,
+            cancel_event=cancel_event,
+        )
+
+    assert hook_tasks[0].cancelled()
+
+
+@pytest.mark.asyncio
+async def test_pre_compact_hook_failure_becomes_stable_error(
+    db_session: AsyncSession,
+    state: AgentRuntimeState,
+    window: CompactionWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_model = FakeModel(_ai_message("unused summary"))
+    events: list[tuple[str, dict[str, Any]]] = []
+
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.create_chat_model",
+        lambda _config: fake_model,
+    )
+
+    def failing_hook(_context: CompactionLifecycleContext) -> None:
+        raise RuntimeError("private hook details")
+
+    with pytest.raises(CompactionError) as exc_info:
+        await compact_window(
+            db_session,
+            state=state,
+            window=window,
+            trigger="manual",
+            event_sink=lambda name, payload: _record_event(events, name, payload),
+            pre_compact_hook=failing_hook,
+        )
+
+    assert exc_info.value.code == "pre_compact_hook_failed"
+    assert fake_model.messages is None
+    assert events[-1][0] == "agent:compaction_error"
+    assert events[-1][1]["code"] == "pre_compact_hook_failed"
+    assert "private hook details" not in repr(events[-1][1])
+
+
+@pytest.mark.asyncio
+async def test_cancel_event_interrupts_in_flight_compaction_model_request(
+    db_session: AsyncSession,
+    state: AgentRuntimeState,
+    window: CompactionWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_model = BlockingFakeModel()
+    cancel_event = asyncio.Event()
+    events: list[tuple[str, dict[str, Any]]] = []
+
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.create_chat_model",
+        lambda _config: fake_model,
+    )
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.prompt_chain_service.get_latest_version_with_entries_or_default",
+        AsyncMock(return_value=_prompt_version()),
+    )
+
+    task = asyncio.create_task(
+        compact_window(
+            db_session,
+            state=state,
+            window=window,
+            trigger="auto",
+            event_sink=lambda name, payload: _record_event(events, name, payload),
+            cancel_event=cancel_event,
+        )
+    )
+    await fake_model.started.wait()
+    cancel_event.set()
+
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    assert fake_model.cancelled is True
+    assert [name for name, _payload in events] == [
+        "agent:compaction_start",
+        "agent:compaction_cancelled",
+    ]
+    assert events[-1][1]["phase"] == "model_request"
+    assert events[-1][1]["persisted"] is False
+
+
+@pytest.mark.asyncio
+async def test_parent_task_cancellation_cleans_up_compaction_model_request(
+    db_session: AsyncSession,
+    state: AgentRuntimeState,
+    window: CompactionWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_model = BlockingFakeModel()
+    events: list[tuple[str, dict[str, Any]]] = []
+
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.create_chat_model",
+        lambda _config: fake_model,
+    )
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.prompt_chain_service.get_latest_version_with_entries_or_default",
+        AsyncMock(return_value=_prompt_version()),
+    )
+
+    task = asyncio.create_task(
+        compact_window(
+            db_session,
+            state=state,
+            window=window,
+            trigger="auto",
+            event_sink=lambda name, payload: _record_event(events, name, payload),
+            cancel_event=asyncio.Event(),
+        )
+    )
+    await fake_model.started.wait()
+    task.cancel()
+
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    assert fake_model.cancelled is True
+    assert events[-1][0] == "agent:compaction_cancelled"
+    assert events[-1][1]["phase"] == "model_request"
+
+
+@pytest.mark.asyncio
+async def test_cancel_event_interrupts_transient_retry_backoff(
+    db_session: AsyncSession,
+    state: AgentRuntimeState,
+    window: CompactionWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_model = SequencedFakeModel(
+        [FakeStatusError(503), _ai_message("unused summary")]
+    )
+    cancel_event = asyncio.Event()
+    retry_backoff_started = asyncio.Event()
+    events: list[tuple[str, dict[str, Any]]] = []
+
+    def retry_delay(_retry_number: int) -> float:
+        retry_backoff_started.set()
+        return 60.0
+
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.create_chat_model",
+        lambda _config: fake_model,
+    )
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.prompt_chain_service.get_latest_version_with_entries_or_default",
+        AsyncMock(return_value=_prompt_version()),
+    )
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service._retry_delay",
+        retry_delay,
+    )
+
+    task = asyncio.create_task(
+        compact_window(
+            db_session,
+            state=state,
+            window=window,
+            trigger="auto",
+            event_sink=lambda name, payload: _record_event(events, name, payload),
+            cancel_event=cancel_event,
+        )
+    )
+    await retry_backoff_started.wait()
+    cancel_event.set()
+
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    assert len(fake_model.invocations) == 1
+    assert events[-1][0] == "agent:compaction_cancelled"
+    assert events[-1][1]["phase"] == "retry_backoff"
+
+
+@pytest.mark.asyncio
+async def test_post_compact_hook_can_stop_after_checkpoint_is_persisted(
+    db_session: AsyncSession,
+    state: AgentRuntimeState,
+    window: CompactionWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_model = FakeModel(_ai_message("persisted summary"))
+    events: list[tuple[str, dict[str, Any]]] = []
+
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.create_chat_model",
+        lambda _config: fake_model,
+    )
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.prompt_chain_service.get_latest_version_with_entries_or_default",
+        AsyncMock(return_value=_prompt_version()),
+    )
+
+    with pytest.raises(asyncio.CancelledError):
+        await compact_window(
+            db_session,
+            state=state,
+            window=window,
+            trigger="manual",
+            event_sink=lambda name, payload: _record_event(events, name, payload),
+            post_compact_hook=lambda _context: False,
+        )
+
+    assert [name for name, _payload in events] == [
+        "agent:compaction_start",
+        "agent:compaction_cancelled",
+    ]
+    assert events[-1][1]["phase"] == "post_compact"
+    assert events[-1][1]["persisted"] is True
+    assert isinstance(events[-1][1]["compaction_id"], str)
+    rows = await compaction_repo.list_by_session(db_session, state["session_id"])
+    assert [row.summary for row in rows] == ["persisted summary"]
 
 
 @pytest.mark.asyncio

@@ -559,6 +559,7 @@ class SessionRunner:
                 "retry_event_sink": self._emit_retry_event,
                 "agent_event_sink": self._emit_agent_event,
                 "compaction_usage_sink": self._emit_persisted_task_usage_events,
+                "compaction_cancel_event": self._cancel_event,
                 "inject_queue": self._inject_queue,
                 "inject_message_consumed_sink": self._mark_injected_user_message_sent,
                 "model_config": self.model_config,
@@ -714,6 +715,7 @@ class SessionRunner:
         )
 
     async def compact(self) -> dict[str, int | str]:
+        self._cancel_event.clear()
         session = await create_session()
         try:
             history_messages = await load_history(session, self.session_id)
@@ -776,6 +778,7 @@ class SessionRunner:
                 usage_sink=self._emit_persisted_task_usage_events,
                 model_config=self.model_config,
                 result_validator=validate_result,
+                cancel_event=self._cancel_event,
             )
             return {
                 "compaction_id": result.id,
