@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import json
 import re
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Any, Literal, cast
@@ -10,6 +11,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent_runtime.context.compaction.window import CompactionWindow
+from app.agent_runtime.context.compaction.transcript import to_transcript
 from app.agent_runtime.graph.state import AgentRuntimeState
 from app.agent_runtime.model_config import to_client_model_config
 from app.agent_runtime.persistence import compaction_repo
@@ -28,6 +30,16 @@ UsageSink = Callable[[dict[str, Any]], Awaitable[None] | None]
 PromptRole = Literal["system", "user", "assistant"]
 
 _SURROGATE_RE = re.compile(r"[\ud800-\udfff]")
+_CONTEXT_WINDOW_ERROR_PATTERNS = (
+    "context_length_exceeded",
+    "context window exceeded",
+    "maximum context length",
+    "maximum context window",
+    "prompt is too long",
+    "input is too long",
+    "too many tokens",
+    "token limit exceeded",
+)
 
 
 class CompactionError(RuntimeError):
@@ -91,10 +103,11 @@ async def compact_window(
         effective_model_config = (
             dict(model_config) if model_config is not None else _model_config(state)
         )
-        model = create_chat_model(ModelConfig(**to_client_model_config(effective_model_config)))
-        response = await model.ainvoke(messages)
+        model = create_chat_model(
+            ModelConfig(**to_client_model_config(effective_model_config))
+        )
     except Exception as exc:
-        logger.opt(exception=True).error("Compaction LLM request failed")
+        logger.opt(exception=True).error("Compaction LLM client creation failed")
         error = CompactionError("llm_error", "压缩失败，当前请求已中止")
         await _emit_error(
             event_sink,
@@ -104,6 +117,34 @@ async def compact_window(
             error=error,
         )
         raise error from exc
+
+    source_messages = list(window.messages)
+    while True:
+        try:
+            response = await model.ainvoke(messages)
+            break
+        except Exception as exc:
+            if _is_context_window_exceeded(exc) and source_messages:
+                # Match Codex's local fallback: preserve the prompt and recent
+                # history, remove one oldest source item, then retry immediately.
+                source_messages.pop(0)
+                messages[-1] = HumanMessage(content=to_transcript(source_messages))
+                logger.warning(
+                    "Context window exceeded while compacting; "
+                    "removed oldest history item and retrying"
+                )
+                continue
+
+            logger.opt(exception=True).error("Compaction LLM request failed")
+            error = CompactionError("llm_error", "压缩失败，当前请求已中止")
+            await _emit_error(
+                event_sink,
+                session_id=session_id,
+                task_id=task_id,
+                trigger=trigger,
+                error=error,
+            )
+            raise error from exc
 
     try:
         summary = _summary_from_response(response)
@@ -292,6 +333,24 @@ def _content_to_text(content: Any) -> str:
 
 def _sanitize_surrogates(value: str) -> str:
     return _SURROGATE_RE.sub("", value)
+
+
+def _is_context_window_exceeded(exc: Exception) -> bool:
+    values: list[Any] = [str(exc)]
+    for attribute in ("body", "code", "error", "message", "response"):
+        value = getattr(exc, attribute, None)
+        if value is None:
+            continue
+        if isinstance(value, str):
+            values.append(value)
+            continue
+        try:
+            values.append(json.dumps(value, ensure_ascii=False, default=str))
+        except (TypeError, ValueError):
+            values.append(str(value))
+
+    text = " ".join(values).lower()
+    return any(pattern in text for pattern in _CONTEXT_WINDOW_ERROR_PATTERNS)
 
 
 def _extract_usage(message: Any) -> dict[str, Any] | None:

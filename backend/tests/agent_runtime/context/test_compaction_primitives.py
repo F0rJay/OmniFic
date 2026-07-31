@@ -43,7 +43,7 @@ def compaction(start: int, end: int, summary: str = "摘要") -> PersistedCompac
     )
 
 
-def test_overlay_replaces_range_with_wrapped_user_summary() -> None:
+def test_overlay_rebuilds_history_with_user_messages_and_latest_summary() -> None:
     messages = [
         history("user", "first", 1),
         history("assistant", "old answer", 2),
@@ -56,11 +56,60 @@ def test_overlay_replaces_range_with_wrapped_user_summary() -> None:
 
     assert [(m.role, m.content) for m in out] == [
         ("user", "first"),
+        ("user", "old followup"),
         ("user", "<compaction-summary>\n压缩摘要\n</compaction-summary>"),
         ("assistant", "new answer"),
         ("system", "static"),
     ]
-    assert out[1].metadata == {"part": "history", "compaction_id": "c-2-3"}
+    assert out[2].metadata == {
+        "part": "history",
+        "kind": "compaction_summary",
+        "compaction_id": "c-2-3",
+    }
+
+
+def test_overlay_uses_only_latest_checkpoint_summary() -> None:
+    messages = [
+        history("user", "first", 1),
+        history("assistant", "old answer", 2),
+        history("user", "followup", 3),
+        history("assistant", "latest answer", 4),
+        history("user", "after checkpoint", 5),
+    ]
+
+    out = apply_compaction_overlay(
+        messages,
+        [compaction(1, 2, "old summary"), compaction(3, 4, "latest summary")],
+    )
+
+    assert [(m.role, m.content) for m in out] == [
+        ("user", "first"),
+        ("user", "followup"),
+        ("user", "<compaction-summary>\nlatest summary\n</compaction-summary>"),
+        ("user", "after checkpoint"),
+    ]
+
+
+def test_overlay_limits_retained_user_messages_from_the_end(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.overlay.COMPACT_USER_MESSAGE_MAX_TOKENS",
+        5,
+    )
+    messages = [
+        history("user", "old " * 20, 1),
+        history("assistant", "answer", 2),
+        history("user", "recent", 3),
+    ]
+
+    out = apply_compaction_overlay(messages, [compaction(1, 3, "summary")])
+
+    assert out[-1].content == "<compaction-summary>\nsummary\n</compaction-summary>"
+    retained = out[:-1]
+    assert [message.role for message in retained] == ["user", "user"]
+    assert "tokens truncated" in retained[0].content
+    assert retained[1].content == "recent"
 
 
 def test_group_llm_turns_keeps_assistant_tool_calls_with_matching_tool_results() -> None:
@@ -201,7 +250,7 @@ def test_count_context_tokens_includes_assistant_tool_call_arguments() -> None:
     assert count_context_tokens([assistant]) > 1_000
 
 
-def test_window_selects_middle_messages_after_first_user_and_before_tail() -> None:
+def test_window_summarizes_complete_effective_history() -> None:
     big = "x " * 2500
     messages = [
         history("user", "first", 1),
@@ -213,31 +262,37 @@ def test_window_selects_middle_messages_after_first_user_and_before_tail() -> No
 
     window = select_compaction_window(messages, [], max_context_tokens=3_000)
 
-    assert window.start_seq == 2
-    assert window.end_seq == 3
-    assert window.messages == messages[1:3]
+    assert window.start_seq == 1
+    assert window.end_seq == 5
+    assert window.messages == messages
     assert window.source_input_tokens >= 2_000
     assert "<assistant>" in window.transcript
     assert "<user>" in window.transcript
 
 
-def test_window_raises_no_window_when_middle_tokens_below_minimum() -> None:
+def test_window_allows_small_manual_compaction() -> None:
     messages = [
         history("user", "first", 1),
         history("assistant", "small", 2),
         history("user", "tail", 3),
     ]
 
-    with pytest.raises(CompactionNoWindowError, match="no_compactable_window"):
-        select_compaction_window(messages, [], max_context_tokens=8_000)
+    window = select_compaction_window(messages, [], max_context_tokens=8_000)
+
+    assert window.start_seq == 1
+    assert window.end_seq == 3
+    assert window.messages == messages
 
 
 def test_window_starts_after_latest_existing_compaction() -> None:
     big = "x " * 2500
     messages = [
         history("user", "first", 1),
-        history("assistant", big, 2),
-        history("user", big, 3),
+        ContextMessage(
+            role="user",
+            content="<compaction-summary>\nprevious summary\n</compaction-summary>",
+            metadata={"part": "history", "kind": "compaction_summary"},
+        ),
         history("assistant", big, 4),
         history("user", big, 5),
         history("assistant", "tail", 6),
@@ -250,5 +305,23 @@ def test_window_starts_after_latest_existing_compaction() -> None:
     )
 
     assert window.start_seq == 4
-    assert window.end_seq == 5
-    assert window.messages == messages[3:5]
+    assert window.end_seq == 6
+    assert window.messages == messages
+
+
+def test_window_requires_new_messages_after_latest_checkpoint() -> None:
+    messages = [
+        history("user", "first", 1),
+        ContextMessage(
+            role="user",
+            content="<compaction-summary>\nsummary\n</compaction-summary>",
+            metadata={"part": "history", "kind": "compaction_summary"},
+        ),
+    ]
+
+    with pytest.raises(CompactionNoWindowError, match="no_compactable_window"):
+        select_compaction_window(
+            messages,
+            [compaction(1, 3)],
+            max_context_tokens=8_000,
+        )

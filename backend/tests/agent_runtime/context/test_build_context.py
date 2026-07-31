@@ -158,6 +158,7 @@ async def test_build_context_applies_persisted_compaction_overlay_to_history_onl
 
     assert [m.content for m in out] == [
         "首轮",
+        "旧 B",
         "<compaction-summary>\n旧内容摘要\n</compaction-summary>",
         "最新",
     ]

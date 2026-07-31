@@ -141,6 +141,19 @@ class FakeModel:
         return self.response
 
 
+class SequencedFakeModel:
+    def __init__(self, responses: list[AIMessage | Exception]) -> None:
+        self.responses = list(responses)
+        self.invocations: list[list[Any]] = []
+
+    async def ainvoke(self, messages: list[Any]) -> AIMessage:
+        self.invocations.append(list(messages))
+        response = self.responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return response
+
+
 def _prompt_version() -> SimpleNamespace:
     return SimpleNamespace(
         version=SimpleNamespace(id="v1"),
@@ -366,3 +379,54 @@ async def test_compact_window_converts_llm_error_to_stable_error_event(
     assert "summary" not in error_payload
     rows = await compaction_repo.list_by_session(db_session, state["session_id"])
     assert rows == []
+
+
+@pytest.mark.asyncio
+async def test_compact_window_drops_oldest_history_and_retries_on_context_limit(
+    db_session: AsyncSession,
+    state: AgentRuntimeState,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    old = ContextMessage(role="assistant", content="oldest history")
+    recent = ContextMessage(role="user", content="recent history")
+    retry_window = CompactionWindow(
+        start_seq=1,
+        end_seq=2,
+        messages=[old, recent],
+        source_input_tokens=20,
+        transcript="<assistant>oldest history</assistant>\n<user>recent history</user>",
+    )
+    fake_model = SequencedFakeModel(
+        [
+            RuntimeError("maximum context length exceeded"),
+            _ai_message(
+                "retry summary",
+                {"input_tokens": 8, "output_tokens": 3},
+            ),
+        ]
+    )
+
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.create_chat_model",
+        lambda _config: fake_model,
+    )
+    monkeypatch.setattr(
+        "app.agent_runtime.context.compaction.service.prompt_chain_service.get_latest_version_with_entries_or_default",
+        AsyncMock(return_value=_prompt_version()),
+    )
+
+    result = await compact_window(
+        db_session,
+        state=state,
+        window=retry_window,
+        trigger="manual",
+    )
+
+    assert result.summary == "retry summary"
+    assert len(fake_model.invocations) == 2
+    first_transcript = fake_model.invocations[0][-1].content
+    retry_transcript = fake_model.invocations[1][-1].content
+    assert "oldest history" in first_transcript
+    assert "recent history" in first_transcript
+    assert "oldest history" not in retry_transcript
+    assert "recent history" in retry_transcript

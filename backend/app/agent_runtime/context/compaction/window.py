@@ -3,14 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import NoReturn
 
-from app.agent_runtime.context.compaction.config import (
-    MIN_COMPACTABLE_TOKENS,
-    TAIL_TOKEN_BUDGET,
-    TAIL_WINDOW_RATIO,
-)
 from app.agent_runtime.context.compaction.tokens import count_context_tokens
 from app.agent_runtime.context.compaction.transcript import to_transcript
-from app.agent_runtime.context.compaction.turns import LLMTurn, group_llm_turns
 from app.agent_runtime.context.types import ContextMessage
 from app.agent_runtime.persistence.compaction_types import PersistedCompaction
 
@@ -46,33 +40,10 @@ def _lower_bound(
     if existing_compactions:
         return max(compaction.end_seq for compaction in existing_compactions) + 1
 
-    for message in history_messages:
-        if message.role == "user" and (seq := _seq(message)) is not None:
-            return seq + 1
-
+    seqs = [seq for message in history_messages if (seq := _seq(message)) is not None]
+    if seqs:
+        return min(seqs)
     _raise_no_window()
-
-
-def _turn_tokens(turn: LLMTurn) -> int:
-    return count_context_tokens(turn.messages)
-
-
-def _tail_start_index(turns: list[LLMTurn], tail_budget: int) -> int:
-    tail_start = len(turns)
-    tail_tokens = 0
-
-    for index in range(len(turns) - 1, -1, -1):
-        turn_tokens = _turn_tokens(turns[index])
-        if tail_start == len(turns):
-            tail_tokens += turn_tokens
-            tail_start = index
-            continue
-        if tail_tokens + turn_tokens > tail_budget:
-            break
-        tail_tokens += turn_tokens
-        tail_start = index
-
-    return tail_start
 
 
 def select_compaction_window(
@@ -80,36 +51,30 @@ def select_compaction_window(
     existing_compactions: list[PersistedCompaction],
     max_context_tokens: int,
 ) -> CompactionWindow:
+    # Codex local compaction summarizes the complete effective history. The
+    # persisted range is only the new raw-message checkpoint since the previous
+    # compaction, which keeps OmniFic's append-only audit records non-overlapping.
+    del max_context_tokens
     lower_bound = _lower_bound(history_messages, existing_compactions)
-    sequenced_messages = [
+    new_sequenced_messages = [
         message
         for message in history_messages
         if (seq := _seq(message)) is not None and seq >= lower_bound
     ]
-    turns = group_llm_turns(sequenced_messages)
-    if len(turns) < 2:
+    if not new_sequenced_messages:
         _raise_no_window()
 
-    tail_budget = min(TAIL_TOKEN_BUDGET, int(max_context_tokens * TAIL_WINDOW_RATIO))
-    tail_start = _tail_start_index(turns, tail_budget)
-    window_turns = turns[:tail_start]
-    if not window_turns:
-        _raise_no_window()
-
-    window_messages = [
-        message for turn in window_turns for message in turn.messages
-    ]
+    window_messages = list(history_messages)
     source_input_tokens = count_context_tokens(window_messages)
-    if source_input_tokens < MIN_COMPACTABLE_TOKENS:
-        _raise_no_window()
-
-    seqs = [seq for message in window_messages if (seq := _seq(message)) is not None]
-    if not seqs:
-        _raise_no_window()
+    checkpoint_seqs = [
+        seq
+        for message in new_sequenced_messages
+        if (seq := _seq(message)) is not None
+    ]
 
     return CompactionWindow(
-        start_seq=min(seqs),
-        end_seq=max(seqs),
+        start_seq=min(checkpoint_seqs),
+        end_seq=max(checkpoint_seqs),
         messages=window_messages,
         source_input_tokens=source_input_tokens,
         transcript=to_transcript(window_messages),
